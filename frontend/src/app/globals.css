@@ -1,0 +1,101 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { @apply box-border; }
+  html { @apply scroll-smooth; }
+  body {
+    @apply bg-slate-50 text-slate-800 font-sans antialiased;
+    /* Previne scroll horizontal no mobile */
+    overflow-x: hidden;
+  }
+  /* Remove outline azul feio e coloca um melhor */
+  :focus-visible {
+    outline: 2px solid theme('colors.indigo.400');
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+}
+
+@layer components {
+  /* Card padrão */
+  .card {
+    @apply bg-white rounded-2xl border border-slate-100 shadow-sm;
+  }
+
+  /* Botões */
+  .btn-primary {
+    @apply bg-client text-white font-semibold rounded-xl px-5 py-2.5
+           hover:bg-indigo-600 active:scale-95 transition-all
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-worker {
+    @apply bg-worker text-white font-semibold rounded-xl px-5 py-2.5
+           hover:bg-amber-500 active:scale-95 transition-all
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-outline {
+    @apply border-2 border-client text-client font-semibold rounded-xl px-5 py-2.5
+           hover:bg-client/5 active:scale-95 transition-all;
+  }
+  .btn-ghost {
+    @apply text-slate-600 font-medium rounded-xl px-4 py-2
+           hover:bg-slate-100 active:scale-95 transition-all;
+  }
+  .btn-danger {
+    @apply border border-red-200 text-red-500 font-semibold rounded-xl px-5 py-2.5
+           hover:bg-red-50 active:scale-95 transition-all;
+  }
+
+  /* Input padrão */
+  .input {
+    @apply w-full border border-slate-200 rounded-xl px-4 py-3 text-sm
+           focus:outline-none focus:ring-2 focus:ring-client/20 focus:border-client
+           placeholder-slate-400 transition-all;
+  }
+  .input-error {
+    @apply border-red-400 bg-red-50 focus:ring-red-200 focus:border-red-400;
+  }
+
+  /* Badge de status */
+  .badge { @apply inline-flex items-center text-xs font-semibold px-2.5 py-0.5 rounded-full; }
+  .badge-green  { @apply bg-green-100 text-green-700; }
+  .badge-yellow { @apply bg-yellow-100 text-yellow-700; }
+  .badge-blue   { @apply bg-blue-100 text-blue-700; }
+  .badge-red    { @apply bg-red-100 text-red-600; }
+  .badge-slate  { @apply bg-slate-100 text-slate-600; }
+
+  /* Scrollbar customizada (webkit) */
+  .scrollbar-thin::-webkit-scrollbar { width: 4px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: theme('colors.slate.200'); border-radius: 9999px; }
+}
+
+@layer utilities {
+  /* Truncar texto com elipse */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Animação de entrada suave */
+  .fade-in { animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+}
+
+/* Safe area para bottom nav no mobile */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .safe-area-inset-bottom {
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  }
+}
