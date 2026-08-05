@@ -21,7 +21,8 @@ router.get('/', async (req, res) => {
       FROM users u
       LEFT JOIN services s ON s.worker_id = u.id AND s.is_active = TRUE
       LEFT JOIN categories c ON c.id = s.category_id
-      WHERE u.mode = 'worker' AND u.is_active = TRUE`;
+      WHERE u.mode = 'worker' AND u.is_active = TRUE
+      AND LOWER(u.city) = LOWER('Ribeirão Pires');`;
 
     const params = [];
     if (available === 'true') { params.push(true); sql += ` AND u.is_available = $${params.length}`; }

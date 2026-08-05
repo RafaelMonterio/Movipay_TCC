@@ -22,15 +22,33 @@ export default function ClientHomePage() {
   const [workers, setWorkers] = useState([]);
   const [quotes,  setQuotes]  = useState([]);
   const [loading, setLoading] = useState(true);
+  const [center, setCenter] = useState([-23.7060, -46.3690]);
 
   useEffect(() => {
     Promise.all([
       api.get('/orders').then(r => setOrders(r.data.orders || [])),
       api.get('/points/balance').then(r => setPoints(r.data.balance || 0)),
-      api.get('/workers?available=true').then(r => setWorkers(r.data.workers || [])),
       api.get('/quotes').then(r => setQuotes(r.data.quotes || [])),
     ]).finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (!navigator?.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setCenter([coords.latitude, coords.longitude]);
+      },
+      () => {},
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }, []);
+
+  useEffect(() => {
+    const [lat, lng] = center;
+    api.get(`/workers?available=true&lat=${lat}&lng=${lng}`)
+      .then(r => setWorkers(r.data.workers || []))
+      .catch(() => setWorkers([]));
+  }, [center]);
 
   const pts      = points;
   const level    = THRESHOLDS.reduce((acc, t, i) => pts >= t ? i : acc, 0);
@@ -38,6 +56,9 @@ export default function ClientHomePage() {
   const progress = nextThr ? Math.round(((pts - THRESHOLDS[level]) / (nextThr - THRESHOLDS[level])) * 100) : 100;
   const completed = orders.filter(o => o.status === 'completed').length;
   const recent    = orders.slice(0, 3);
+
+  const nearbyWorkers = workers.filter(w => typeof w.distance_km === 'number' && w.distance_km <= 1);
+  const mapCenter = center;
 
   return (
     <DashboardLayout>
@@ -62,17 +83,17 @@ export default function ClientHomePage() {
 
         {/* Mapa com trabalhadores */}
         <motion.div initial={{ opacity:0, scale:0.98 }} animate={{ opacity:1, scale:1 }} transition={{ delay:0.1 }}
-          className="bg-gradient-to-r from-indigo-500 to-violet-600 rounded-3xl overflow-hidden"
+          className="bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-sm"
         >
-          <div className="p-5 pb-3 flex items-center justify-between">
+          <div className="p-5 pb-3 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
-              <h2 className="text-lg font-black text-white">Profissionais perto de você</h2>
-              <p className="text-indigo-100 text-xs mt-0.5">
-                {workers.filter(w => w.is_available).length} disponíveis agora
+              <h2 className="text-lg font-black text-slate-900">Profissionais perto de você</h2>
+              <p className="text-slate-500 text-sm mt-1 max-w-2xl">
+                Sua localização está centralizada no mapa abaixo. Veja os profissionais disponíveis dentro de 1 km.
               </p>
             </div>
             <Link href="/client/services"
-              className="bg-white/20 text-white text-xs font-semibold px-3 py-1.5 rounded-xl hover:bg-white/30 transition-all">
+              className="self-start bg-slate-100 text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-xl hover:bg-slate-200 transition-all">
               Ver todos →
             </Link>
           </div>
@@ -82,8 +103,47 @@ export default function ClientHomePage() {
                 <p className="text-slate-400 text-sm">Carregando mapa...</p>
               </div>
             }>
-              <WorkersMap workers={workers} />
+              <WorkersMap workers={workers} center={mapCenter} />
             </Suspense>
+          </div>
+
+          <div className="px-5 pb-5">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">Trabalhadores em até 1 km</p>
+                <p className="text-xs text-slate-500 mt-1">{nearbyWorkers.length} profissional{nearbyWorkers.length !== 1 ? 'es' : ''} perto de você</p>
+              </div>
+            </div>
+            {nearbyWorkers.length > 0 ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {nearbyWorkers.slice(0, 4).map((w, i) => (
+                  <motion.div key={w.id} initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} transition={{ delay: i * 0.04 }}
+                    className="bg-slate-50 rounded-3xl border border-slate-200 p-4"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-900 font-bold text-lg">
+                        {w.name?.charAt(0) || 'T'}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-slate-900 truncate">{w.name}</p>
+                        <p className="text-xs text-slate-500 mt-1">{w.neighborhood || w.city || 'Ribeirão Pires'}</p>
+                      </div>
+                    </div>
+                    <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
+                      <span>{w.avg_rating ? `⭐ ${Number(w.avg_rating).toFixed(1)}` : 'Novo'}</span>
+                      <span>{w.distance_km ? `${w.distance_km} km` : '—'} </span>
+                    </div>
+                    <div className={`mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wide ${w.is_available ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                      {w.is_available ? 'Disponível' : 'Indisponível'}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
+                Não há profissionais dentro de 1 km no momento. Continue navegando pelo mapa ou verifique novamente em breve.
+              </div>
+            )}
           </div>
         </motion.div>
 

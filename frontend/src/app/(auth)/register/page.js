@@ -15,11 +15,14 @@ function StepData({ form }) {
         {label} {required && <span className="text-red-400">*</span>}
       </label>
       <input
+        name={name}
         type={type}
+        autoComplete={name === 'email' ? 'email' : name === 'password' || name === 'confirmPassword' ? 'new-password' : name === 'phone' ? 'tel' : 'name'}
         value={form.values[name]}
         onChange={e => form.handleChange(name, e.target.value)}
         onBlur={() => form.handleBlur(name)}
         placeholder={placeholder}
+        spellCheck={false}
         className={`w-full border rounded-xl px-4 py-3 text-sm focus:outline-none transition-all ${
           form.errors[name] && form.touched[name]
             ? 'border-red-300 bg-red-50 focus:ring-2 focus:ring-red-100'

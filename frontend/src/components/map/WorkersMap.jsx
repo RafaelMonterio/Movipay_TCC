@@ -29,25 +29,27 @@ export default function WorkersMap({ workers = [], center = [-23.5505, -46.6333]
       const map = L.map(mapRef.current, {
         center,
         zoom: 14,
-        zoomControl: true,
+        zoomControl: false,
         attributionControl: false,
       });
       instanceRef.current = map;
+      L.control.zoom({ position: 'topright' }).addTo(map);
 
-      // Tiles OpenStreetMap gratuito
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      // Mapa mais clean
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
         maxZoom: 19,
+        attribution: '&copy; OpenStreetMap &copy; CARTO',
       }).addTo(map);
 
       // Pin da localização atual (centro)
       const userIcon = L.divIcon({
         html: `<div style="
-          width:16px;height:16px;border-radius:50%;
-          background:#6366f1;border:3px solid white;
-          box-shadow:0 2px 8px rgba(99,102,241,0.5)
+          width:18px;height:18px;border-radius:50%;
+          background:#2563eb;border:3px solid white;
+          box-shadow:0 2px 10px rgba(37,99,235,0.35)
         "></div>`,
-        iconSize: [16, 16],
-        iconAnchor: [8, 8],
+        iconSize: [18, 18],
+        iconAnchor: [9, 9],
         className: '',
       });
       L.marker(center, { icon: userIcon })
@@ -58,42 +60,25 @@ export default function WorkersMap({ workers = [], center = [-23.5505, -46.6333]
       workers.forEach(w => {
         if (!w.lat || !w.lng) return;
 
-        const color = w.is_available ? '#22c55e' : '#94a3b8';
+        const color = w.is_available ? '#16a34a' : '#94a3b8';
         const workerIcon = L.divIcon({
           html: `<div style="
-            background:white;border:2px solid ${color};
-            border-radius:50%;width:36px;height:36px;
-            display:flex;align-items:center;justify-content:center;
-            font-size:16px;box-shadow:0 2px 8px rgba(0,0,0,0.15);
-            cursor:pointer;
-          ">
-            ${w.is_available ? '🟢' : '⚫'}
-          </div>`,
-          iconSize: [36, 36],
-          iconAnchor: [18, 18],
+            width:22px;height:22px;border-radius:50%;
+            background:${color};border:2px solid white;
+            box-shadow:0 2px 12px rgba(15,23,42,0.12);
+          "></div>`,
+          iconSize: [22, 22],
+          iconAnchor: [11, 11],
           className: '',
         });
-
-        const stars = w.avg_rating
-          ? '★'.repeat(Math.round(w.avg_rating)) + '☆'.repeat(5 - Math.round(w.avg_rating))
-          : 'Novo';
 
         L.marker([w.lat, w.lng], { icon: workerIcon })
           .addTo(map)
           .bindPopup(`
-            <div style="min-width:160px;font-family:sans-serif">
-              <div style="font-weight:700;font-size:14px;margin-bottom:4px">${w.name}</div>
-              <div style="font-size:12px;color:#64748b;margin-bottom:4px">${w.neighborhood || w.city || ''}</div>
-              <div style="font-size:12px;color:#f59e0b">${stars}</div>
-              ${w.distance_km ? `<div style="font-size:11px;color:#94a3b8;margin-top:4px">📍 ${w.distance_km} km</div>` : ''}
-              <div style="margin-top:8px">
-                <span style="
-                  display:inline-block;font-size:11px;font-weight:600;
-                  padding:2px 8px;border-radius:4px;
-                  background:${w.is_available ? '#dcfce7' : '#f1f5f9'};
-                  color:${w.is_available ? '#16a34a' : '#94a3b8'}
-                ">${w.is_available ? '● Disponível' : '○ Indisponível'}</span>
-              </div>
+            <div style="min-width:150px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height:1.4; color:#0f172a">
+              <div style="font-weight:700;font-size:14px; margin-bottom:4px">${w.name}</div>
+              <div style="font-size:12px; color:#475569; margin-bottom:4px">${w.neighborhood || w.city || 'Ribeirão Pires'}</div>
+              ${w.distance_km ? `<div style="font-size:12px; color:#475569;">${w.distance_km} km</div>` : ''}
             </div>
           `);
       });

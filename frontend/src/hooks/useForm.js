@@ -8,12 +8,12 @@ export function useForm(initialValues, validationRules = {}) {
   const [submitting, setSubmitting] = useState(false);
 
   // Valida um campo específico
-  const validateField = useCallback((name, value) => {
+  const validateField = useCallback((name, value, allValues = values) => {
     const rules = validationRules[name];
     if (!rules) return '';
 
     for (const rule of rules) {
-      const error = rule(value, values);
+      const error = rule(value, allValues);
       if (error) return error;
     }
     return '';
@@ -24,7 +24,7 @@ export function useForm(initialValues, validationRules = {}) {
     const newErrors = {};
     let valid = true;
     for (const name of Object.keys(validationRules)) {
-      const error = validateField(name, values[name]);
+      const error = validateField(name, values[name], values);
       if (error) { newErrors[name] = error; valid = false; }
     }
     setErrors(newErrors);
@@ -34,10 +34,13 @@ export function useForm(initialValues, validationRules = {}) {
 
   // Atualiza campo e valida em tempo real
   function handleChange(name, value) {
-    setValues(prev => ({ ...prev, [name]: value }));
-    if (touched[name]) {
-      setErrors(prev => ({ ...prev, [name]: validateField(name, value) }));
-    }
+    setValues(prev => {
+      const next = { ...prev, [name]: value };
+      if (touched[name]) {
+        setErrors(prevErr => ({ ...prevErr, [name]: validateField(name, value, next) }));
+      }
+      return next;
+    });
   }
 
   // Marca campo como tocado ao sair do input

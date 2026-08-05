@@ -18,6 +18,7 @@ router.post('/register', async (req, res) => {
   } = req.body;
 
   const normalizedMode = ['client', 'worker'].includes(mode) ? mode : 'client';
+  const cityValue = 'Ribeirão Pires';
 
   if (!name || !email || !password)
     return res.status(400).json({ error: 'name, email e password são obrigatórios' });
@@ -36,7 +37,7 @@ router.post('/register', async (req, res) => {
         normalizedMode,
         phone?.toString().trim() || null,
         bio?.toString().trim() || null,
-        city?.toString().trim() || null,
+        cityValue,
       ]
     );
 
@@ -88,7 +89,7 @@ router.post('/login', async (req, res) => {
 router.get('/me', authMiddleware, async (req, res) => {
   try {
     const { rows } = await query(
-      `SELECT id, name, email, mode, points, avatar_url, phone, bio, created_at
+      `SELECT id, name, email, mode, points, avatar_url, phone, bio, city, lat, lng, created_at
        FROM users WHERE id = $1`,
       [req.user.id]
     );

@@ -44,8 +44,8 @@ export function AuthProvider({ children }) {
 
   async function register(nameOrPayload, email, password, mode = 'client', phone = '', bio = '', city = '') {
     const payload = typeof nameOrPayload === 'object'
-      ? nameOrPayload
-      : { name: nameOrPayload, email, password, mode, phone, bio, city };
+      ? { ...nameOrPayload, city: nameOrPayload.city || 'Ribeirão Pires' }
+      : { name: nameOrPayload, email, password, mode, phone, bio, city: city || 'Ribeirão Pires' };
 
     const u = await authService.register(payload);
     const token = localStorage.getItem('access_token');
