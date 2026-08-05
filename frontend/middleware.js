@@ -12,15 +12,21 @@ export function middleware(request) {
   const isPublic = PUBLIC_ROUTES.some(r => pathname.startsWith(r));
   if (isPublic) return NextResponse.next();
 
+  const loginUrl = request.nextUrl.clone();
+  loginUrl.pathname = '/login';
+  loginUrl.search = '';
+
   // Rota raiz — redireciona conforme login
   if (pathname === '/') {
-    if (!token) return NextResponse.redirect(new URL('/login', request.url));
+    if (!token) return NextResponse.redirect(loginUrl);
     return NextResponse.next();
   }
 
   // Rotas protegidas — sem token redireciona para login
   if (!token && (pathname.startsWith('/client') || pathname.startsWith('/worker'))) {
-    const url = new URL('/login', request.url);
+    const url = request.nextUrl.clone();
+    url.pathname = '/login';
+    url.search = '';
     url.searchParams.set('redirect', pathname);
     return NextResponse.redirect(url);
   }
