@@ -4,6 +4,31 @@
 -- Senha: "123456"
 -- ============================================================
 
+UPDATE users
+SET city = 'Ribeirão Pires',
+    lat = CASE
+      WHEN email = 'pedro@teste.com' THEN -23.7065
+      WHEN email = 'lucia@teste.com' THEN -23.7048
+      WHEN email = 'rafael@teste.com' THEN -23.7082
+      WHEN email = 'fernanda@teste.com' THEN -23.7071
+      ELSE lat
+    END,
+    lng = CASE
+      WHEN email = 'pedro@teste.com' THEN -46.3692
+      WHEN email = 'lucia@teste.com' THEN -46.3679
+      WHEN email = 'rafael@teste.com' THEN -46.3681
+      WHEN email = 'fernanda@teste.com' THEN -46.3657
+      ELSE lng
+    END,
+    neighborhood = CASE
+      WHEN email = 'pedro@teste.com' THEN 'Centro'
+      WHEN email = 'lucia@teste.com' THEN 'Parque São Vicente'
+      WHEN email = 'rafael@teste.com' THEN 'Jardim Ruyce'
+      WHEN email = 'fernanda@teste.com' THEN 'Vila Bela'
+      ELSE neighborhood
+    END
+WHERE mode = 'client' AND email IN ('pedro@teste.com', 'lucia@teste.com', 'rafael@teste.com', 'fernanda@teste.com');
+
 INSERT INTO users (name, email, password_hash, mode, points, phone, bio, lat, lng, city, neighborhood, is_verified)
 VALUES
   (

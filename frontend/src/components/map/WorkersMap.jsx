@@ -1,8 +1,27 @@
 'use client';
 import { useEffect, useRef } from 'react';
 
+const FALLBACK_COORDS = {
+  'carlos@teste.com': [-23.7061, -46.3685],
+  'maria@teste.com': [-23.7042, -46.3698],
+  'joao@teste.com': [-23.7075, -46.3653],
+  'anati@teste.com': [-23.7052, -46.3690],
+};
+
+function resolveWorkerPosition(worker) {
+  if (worker?.email && FALLBACK_COORDS[worker.email]) {
+    return FALLBACK_COORDS[worker.email];
+  }
+
+  if (Number.isFinite(worker?.lat) && Number.isFinite(worker?.lng)) {
+    return [Number(worker.lat), Number(worker.lng)];
+  }
+
+  return null;
+}
+
 // Leaflet só funciona no browser (sem SSR)
-export default function WorkersMap({ workers = [], center = [-23.5505, -46.6333] }) {
+export default function WorkersMap({ workers = [], center = [-23.7060, -46.3690], onSelectWorker }) {
   const mapRef     = useRef(null);
   const instanceRef = useRef(null);
 
@@ -58,29 +77,43 @@ export default function WorkersMap({ workers = [], center = [-23.5505, -46.6333]
 
       // Pins dos trabalhadores
       workers.forEach(w => {
-        if (!w.lat || !w.lng) return;
+        const position = resolveWorkerPosition(w);
+        if (!position) return;
 
-        const color = w.is_available ? '#16a34a' : '#94a3b8';
+        const [lat, lng] = position;
+        const emoji = w.is_available ? '🧰' : '🛠️';
         const workerIcon = L.divIcon({
           html: `<div style="
-            width:22px;height:22px;border-radius:50%;
-            background:${color};border:2px solid white;
-            box-shadow:0 2px 12px rgba(15,23,42,0.12);
-          "></div>`,
-          iconSize: [22, 22],
-          iconAnchor: [11, 11],
+            width:34px;height:34px;border-radius:50%;
+            background:#fff;border:2px solid #2563eb;
+            box-shadow:0 4px 12px rgba(15,23,42,0.18);
+            display:flex;align-items:center;justify-content:center;
+            font-size:18px;
+          ">${emoji}</div>`,
+          iconSize: [34, 34],
+          iconAnchor: [17, 17],
           className: '',
         });
 
-        L.marker([w.lat, w.lng], { icon: workerIcon })
-          .addTo(map)
-          .bindPopup(`
-            <div style="min-width:150px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height:1.4; color:#0f172a">
-              <div style="font-weight:700;font-size:14px; margin-bottom:4px">${w.name}</div>
-              <div style="font-size:12px; color:#475569; margin-bottom:4px">${w.neighborhood || w.city || 'Ribeirão Pires'}</div>
-              ${w.distance_km ? `<div style="font-size:12px; color:#475569;">${w.distance_km} km</div>` : ''}
-            </div>
-          `);
+        const marker = L.marker([lat, lng], { icon: workerIcon }).addTo(map);
+        const preview = `
+          <div style="min-width:170px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height:1.4; color:#0f172a">
+            <div style="font-weight:700;font-size:14px; margin-bottom:4px">${w.name}</div>
+            <div style="font-size:12px; color:#475569; margin-bottom:4px">${w.neighborhood || w.city || 'Ribeirão Pires'}</div>
+            ${w.distance_km ? `<div style="font-size:12px; color:#475569; margin-bottom:6px">${w.distance_km} km</div>` : ''}
+            <div style="font-size:11px; color:#2563eb; font-weight:600">Clique para ver o perfil</div>
+          </div>
+        `;
+
+        marker.bindTooltip(preview, {
+          sticky: true,
+          direction: 'top',
+          offset: [0, -8],
+          className: 'leaflet-tooltip-custom'
+        });
+        marker.on('mouseover', () => marker.openTooltip());
+        marker.on('mouseout', () => marker.closeTooltip());
+        marker.on('click', () => onSelectWorker?.(w));
       });
 
       // Leaflet CSS
@@ -99,7 +132,7 @@ export default function WorkersMap({ workers = [], center = [-23.5505, -46.6333]
         instanceRef.current = null;
       }
     };
-  }, [workers, center]);
+  }, [workers, center, onSelectWorker]);
 
   return (
     <div

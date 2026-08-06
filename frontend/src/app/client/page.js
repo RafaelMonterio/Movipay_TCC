@@ -2,8 +2,10 @@
 import { useEffect, useState, lazy, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import StatCard from '@/components/ui/StatCard';
+import Modal from '@/components/ui/Modal';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/services/api';
 import { formatCurrency, formatStatus } from '@/utils/formatters';
@@ -16,6 +18,7 @@ const LEVEL_NAMES = ['Iniciante','Bronze','Prata','Ouro','Platina','Diamante'];
 const THRESHOLDS  = [0,100,300,600,1000,2000];
 
 export default function ClientHomePage() {
+  const router = useRouter();
   const { user } = useAuth();
   const [orders,  setOrders]  = useState([]);
   const [points,  setPoints]  = useState(0);
@@ -23,6 +26,9 @@ export default function ClientHomePage() {
   const [quotes,  setQuotes]  = useState([]);
   const [loading, setLoading] = useState(true);
   const [center, setCenter] = useState([-23.7060, -46.3690]);
+  const [selectedWorker, setSelectedWorker] = useState(null);
+  const [workerDetail, setWorkerDetail] = useState(null);
+  const [loadingWorkerDetail, setLoadingWorkerDetail] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -59,6 +65,19 @@ export default function ClientHomePage() {
 
   const nearbyWorkers = workers.filter(w => typeof w.distance_km === 'number' && w.distance_km <= 1);
   const mapCenter = center;
+
+  async function openWorkerProfile(worker) {
+    setSelectedWorker(worker);
+    setLoadingWorkerDetail(true);
+    try {
+      const { data } = await api.get(`/workers/${worker.id}`);
+      setWorkerDetail(data);
+    } catch {
+      setWorkerDetail(null);
+    } finally {
+      setLoadingWorkerDetail(false);
+    }
+  }
 
   return (
     <DashboardLayout>
@@ -103,7 +122,7 @@ export default function ClientHomePage() {
                 <p className="text-slate-400 text-sm">Carregando mapa...</p>
               </div>
             }>
-              <WorkersMap workers={workers} center={mapCenter} />
+              <WorkersMap workers={workers} center={mapCenter} onSelectWorker={openWorkerProfile} />
             </Suspense>
           </div>
 
@@ -280,6 +299,70 @@ export default function ClientHomePage() {
           )}
         </div>
       </div>
+
+      <Modal open={!!selectedWorker} onClose={() => { setSelectedWorker(null); setWorkerDetail(null); }} title="Perfil do profissional" size="lg">
+        {loadingWorkerDetail ? (
+          <div className="flex items-center justify-center py-12">
+            <p className="text-3xl animate-spin">⏳</p>
+          </div>
+        ) : workerDetail ? (
+          <div className="space-y-5">
+            <div className="flex items-start gap-4">
+              {workerDetail.avatar_url ? (
+                <img src={workerDetail.avatar_url} alt={workerDetail.name} className="w-16 h-16 rounded-full object-cover flex-shrink-0" />
+              ) : (
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-worker to-amber-400 flex items-center justify-center text-white font-black text-2xl flex-shrink-0">
+                  {workerDetail.name?.charAt(0)}
+                </div>
+              )}
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="text-xl font-black text-slate-800">{workerDetail.name}</p>
+                  {workerDetail.is_verified && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-client/10 text-client">✓ Verificado</span>}
+                </div>
+                {workerDetail.avg_rating > 0 && (
+                  <p className="text-amber-400 text-sm mt-1">
+                    {'★'.repeat(Math.round(workerDetail.avg_rating))}{'☆'.repeat(5 - Math.round(workerDetail.avg_rating))}
+                    <span className="text-slate-400 ml-1">{parseFloat(workerDetail.avg_rating).toFixed(1)} · {workerDetail.total_reviews} avaliações</span>
+                  </p>
+                )}
+                {workerDetail.neighborhood && <p className="text-sm text-slate-400 mt-1">📍 {workerDetail.neighborhood}, {workerDetail.city}</p>}
+              </div>
+            </div>
+
+            {workerDetail.bio && (
+              <div className="bg-slate-50 rounded-xl p-4">
+                <p className="text-sm text-slate-700 leading-relaxed">{workerDetail.bio}</p>
+              </div>
+            )}
+
+            {workerDetail.services?.length > 0 && (
+              <div>
+                <p className="text-sm font-bold text-slate-800 mb-2">🛠️ Serviços</p>
+                <div className="space-y-2">
+                  {workerDetail.services.map(s => (
+                    <div key={s.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                      <span className="text-sm text-slate-700">{s.category_icon} {s.title}</span>
+                      <span className="font-black text-client">{formatCurrency(s.price)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-col gap-2">
+              <button onClick={() => router.push(`/client/workers?workerId=${workerDetail.id}`)}
+                className="w-full bg-slate-900 text-white font-bold py-3 rounded-xl hover:bg-slate-800 transition-all">
+                Abrir perfil completo
+              </button>
+              <button onClick={() => { setSelectedWorker(null); setWorkerDetail(null); }}
+                className="w-full bg-client text-white font-bold py-3 rounded-xl hover:bg-indigo-600 transition-all">
+                Fechar
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </Modal>
     </DashboardLayout>
   );
 }

@@ -4,6 +4,32 @@
 -- Todos com senha "123456" (hash bcrypt)
 -- ============================================================
 
+-- Atualiza usuários existentes para Ribeirão Pires
+UPDATE users
+SET city = 'Ribeirão Pires',
+    lat = CASE
+      WHEN email = 'carlos@teste.com' THEN -23.7061
+      WHEN email = 'maria@teste.com' THEN -23.7042
+      WHEN email = 'joao@teste.com' THEN -23.7075
+      WHEN email = 'anati@teste.com' THEN -23.7052
+      ELSE lat
+    END,
+    lng = CASE
+      WHEN email = 'carlos@teste.com' THEN -46.3685
+      WHEN email = 'maria@teste.com' THEN -46.3698
+      WHEN email = 'joao@teste.com' THEN -46.3653
+      WHEN email = 'anati@teste.com' THEN -46.3690
+      ELSE lng
+    END,
+    neighborhood = CASE
+      WHEN email = 'carlos@teste.com' THEN 'Centro'
+      WHEN email = 'maria@teste.com' THEN 'Parque São Vicente'
+      WHEN email = 'joao@teste.com' THEN 'Jardim Ruyce'
+      WHEN email = 'anati@teste.com' THEN 'Vila Bela'
+      ELSE neighborhood
+    END
+WHERE mode = 'worker' AND email IN ('carlos@teste.com', 'maria@teste.com', 'joao@teste.com', 'anati@teste.com');
+
 -- Insere os trabalhadores
 INSERT INTO users (name, email, password_hash, mode, points, phone, bio, lat, lng, city, neighborhood, is_verified, is_available, avg_rating, total_orders)
 VALUES

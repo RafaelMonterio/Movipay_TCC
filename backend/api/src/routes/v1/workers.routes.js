@@ -3,6 +3,22 @@ const { query } = require('../../db/pool');
 const { authMiddleware } = require('../../middleware/auth');
 const router = express.Router();
 
+const RIBEIRAO_PIRES_COORDS = {
+  'carlos@teste.com': [-23.7061, -46.3685],
+  'maria@teste.com': [-23.7042, -46.3698],
+  'joao@teste.com': [-23.7075, -46.3653],
+  'anati@teste.com': [-23.7052, -46.3690],
+};
+
+function normalizeWorkerLocation(worker) {
+  if (!worker) return worker;
+  const fallback = RIBEIRAO_PIRES_COORDS[worker.email];
+  if (fallback) {
+    return { ...worker, lat: fallback[0], lng: fallback[1] };
+  }
+  return worker;
+}
+
 // GET /api/v1/workers — lista com filtros de localização e disponibilidade
 router.get('/', async (req, res) => {
   const { category, available, lat, lng, radius = 10 } = req.query;
@@ -30,9 +46,10 @@ router.get('/', async (req, res) => {
     sql += ` GROUP BY u.id ORDER BY u.avg_rating DESC NULLS LAST, u.total_orders DESC`;
 
     const { rows } = await query(sql, params);
+    const normalizedRows = rows.map(normalizeWorkerLocation);
 
     // Calcula distância se lat/lng fornecidos
-    let workers = rows;
+    let workers = normalizedRows;
     if (lat && lng) {
       workers = rows.map(w => ({
         ...w,
@@ -58,6 +75,8 @@ router.get('/:id', async (req, res) => {
     );
     if (!u) return res.status(404).json({ error: 'Trabalhador não encontrado' });
 
+    const normalizedUser = normalizeWorkerLocation(u);
+
     const [svcs, reviews, photos, slots] = await Promise.all([
       query(`SELECT s.*, c.name AS category, c.icon AS category_icon
              FROM services s LEFT JOIN categories c ON c.id = s.category_id
@@ -70,7 +89,7 @@ router.get('/:id', async (req, res) => {
       query(`SELECT * FROM availability_slots WHERE worker_id = $1 ORDER BY weekday, hour_start`, [req.params.id]),
     ]);
 
-    res.json({ ...u, services: svcs.rows, reviews: reviews.rows, photos: photos.rows, availability: slots.rows });
+    res.json({ ...normalizedUser, services: svcs.rows, reviews: reviews.rows, photos: photos.rows, availability: slots.rows });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

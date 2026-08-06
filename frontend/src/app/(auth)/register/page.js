@@ -1,25 +1,30 @@
 'use client';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/Toast';
 import { useForm, rules } from '@/hooks/useForm';
 
 const STEPS = ['Dados', 'Perfil', 'Detalhes'];
 
-function StepData({ form }) {
+function StepData({ form, inputRefs, restoreFocus }) {
   const Field = ({ name, label, type = 'text', placeholder, required }) => (
     <div>
       <label className="text-sm font-semibold text-slate-700 block mb-1.5">
         {label} {required && <span className="text-red-400">*</span>}
       </label>
       <input
+        ref={el => {
+          inputRefs.current[name] = el;
+        }}
         name={name}
         type={type}
         autoComplete={name === 'email' ? 'email' : name === 'password' || name === 'confirmPassword' ? 'new-password' : name === 'phone' ? 'tel' : 'name'}
         value={form.values[name]}
-        onChange={e => form.handleChange(name, e.target.value)}
+        onChange={e => {
+          form.handleChange(name, e.target.value);
+          restoreFocus(name);
+        }}
         onBlur={() => form.handleBlur(name)}
         placeholder={placeholder}
         spellCheck={false}
@@ -163,6 +168,7 @@ export default function RegisterPage() {
   const [step, setStep]     = useState(0);
   const [mode, setMode]     = useState('client');
   const [loading, setLoading] = useState(false);
+  const inputRefs = useRef({});
 
   const form = useForm(
     { name:'', email:'', phone:'', password:'', confirmPassword:'', bio:'', city:'', category:'limpeza', referral:'' },
@@ -177,6 +183,18 @@ export default function RegisterPage() {
       ],
     }
   );
+
+  function restoreFocus(name) {
+    requestAnimationFrame(() => {
+      const input = inputRefs.current[name];
+      if (!input) return;
+      if (document.activeElement !== input) {
+        input.focus();
+        const len = input.value?.length || 0;
+        input.setSelectionRange?.(len, len);
+      }
+    });
+  }
 
   function validateStep0() {
     const fields = ['name','email','phone','password','confirmPassword'];
@@ -263,23 +281,18 @@ export default function RegisterPage() {
               style={{ width: `${((step + 1) / 3) * 100}%` }} />
 
             <div className="p-7">
-              <AnimatePresence mode="wait">
-                <motion.div key={step}
-                  initial={{ opacity:0, x:20 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-20 }}
-                  transition={{ duration:0.2 }}
-                >
-                  <h2 className="text-2xl font-black text-slate-800 mb-1">
-                    {step === 0 ? 'Criar sua conta' : step === 1 ? 'Qual é o seu perfil?' : 'Últimos detalhes'}
-                  </h2>
-                  <p className="text-slate-400 text-sm mb-6">
-                    {step === 0 ? 'Passo 1 de 3 — Dados básicos' : step === 1 ? 'Passo 2 de 3 — Você pode mudar depois' : 'Passo 3 de 3 — Quase lá!'}
-                  </p>
+              <div>
+                <h2 className="text-2xl font-black text-slate-800 mb-1">
+                  {step === 0 ? 'Criar sua conta' : step === 1 ? 'Qual é o seu perfil?' : 'Últimos detalhes'}
+                </h2>
+                <p className="text-slate-400 text-sm mb-6">
+                  {step === 0 ? 'Passo 1 de 3 — Dados básicos' : step === 1 ? 'Passo 2 de 3 — Você pode mudar depois' : 'Passo 3 de 3 — Quase lá!'}
+                </p>
 
-                  {step === 0 && <StepData form={form} />}
-                  {step === 1 && <StepMode mode={mode} setMode={setMode} />}
-                  {step === 2 && <StepDetails mode={mode} form={form} />}
-                </motion.div>
-              </AnimatePresence>
+                {step === 0 && <StepData form={form} inputRefs={inputRefs} restoreFocus={restoreFocus} />}
+                {step === 1 && <StepMode mode={mode} setMode={setMode} />}
+                {step === 2 && <StepDetails mode={mode} form={form} />}
+              </div>
 
               {/* Actions */}
               <div className="flex gap-3 mt-6">

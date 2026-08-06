@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import Modal from '@/components/ui/Modal';
@@ -10,6 +11,7 @@ import api from '@/services/api';
 
 export default function WorkersPage() {
   const toast = useToast();
+  const searchParams = useSearchParams();
   const [workers,  setWorkers]  = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [loading,  setLoading]  = useState(true);
@@ -25,6 +27,15 @@ export default function WorkersPage() {
       .catch(() => toast('Erro ao carregar trabalhadores', 'error'))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    const workerId = searchParams.get('workerId');
+    if (!workerId || loading || workers.length === 0) return;
+    const match = workers.find(w => String(w.id) === workerId);
+    if (match) {
+      openProfile(match);
+    }
+  }, [searchParams, loading, workers]);
 
   useEffect(() => {
     let list = workers;
