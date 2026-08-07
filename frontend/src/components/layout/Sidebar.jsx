@@ -9,9 +9,9 @@ const clientLinks = [
   { href:'/client',         icon:'🏠', label:'Início' },
   { href:'/client/services',icon:'🔍', label:'Serviços' },
   { href:'/client/quotes',  icon:'📋', label:'Orçamentos' },
-  { href:'/client/workers', icon:'👷', label:'Trabalhadores' },
   { href:'/client/orders',  icon:'🛒', label:'Pedidos' },
   { href:'/client/chat',    icon:'💬', label:'Chat' },
+  { href:'/client/profile', icon:'👤', label:'Perfil' },
 ];
 const workerLinks = [
   { href:'/worker',          icon:'🏠', label:'Início' },
@@ -20,6 +20,7 @@ const workerLinks = [
   { href:'/worker/earnings', icon:'💰', label:'Ganhos' },
   { href:'/worker/calendar', icon:'📅', label:'Calendário' },
   { href:'/worker/chat',     icon:'💬', label:'Chat' },
+  { href:'/worker/profile',  icon:'👤', label:'Perfil' },
 ];
 
 export default function Sidebar() {
@@ -27,8 +28,9 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [hovered, setHovered] = useState(false);
   const isWorker = user?.mode === 'worker';
-  const links    = isWorker ? workerLinks : clientLinks;
-  const accent   = isWorker ? 'text-worker' : 'text-client';
+  const links = isWorker ? workerLinks : clientLinks;
+  const mobileLinks = isWorker ? workerLinks.slice(0, 5) : [clientLinks[0], clientLinks[1], clientLinks[2], clientLinks[3], clientLinks[5]];
+  const accent = isWorker ? 'text-worker' : 'text-client';
   const accentBg = isWorker ? 'bg-worker/10' : 'bg-client/10';
 
   return (
@@ -140,7 +142,7 @@ export default function Sidebar() {
 
       {/* ── Mobile bottom nav ─────────────── */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-100 flex items-center justify-around px-1 h-16">
-        {links.slice(0, 5).map(l => {
+        {mobileLinks.map(l => {
           const active = pathname === l.href ||
             (l.href !== '/client' && l.href !== '/worker' && pathname.startsWith(l.href));
           return (
