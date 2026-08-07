@@ -16,7 +16,7 @@ const WEEKDAYS = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 const HOURS    = Array.from({ length: 14 }, (_, i) => i + 6); // 6h–19h
 
 export default function WorkerProfilePage() {
-  const { user, logout } = useAuth();
+  const { user, logout, switchMode } = useAuth();
   const toast = useToast();
   const photoRef = useRef(null);
 
@@ -181,9 +181,15 @@ export default function WorkerProfilePage() {
                     <span className="ml-1 text-xs opacity-60">(clique para alterar)</span>
                   </button>
                 </div>
-                <button onClick={() => setEditing(!editing)} className="text-sm font-semibold text-client hover:underline flex-shrink-0">
-                  {editing ? 'Cancelar' : '✏️ Editar'}
-                </button>
+                <div className="flex flex-col items-end gap-2">
+                  <button onClick={() => switchMode('client')}
+                    className="text-xs font-semibold text-client bg-client/10 px-3 py-1.5 rounded-full hover:bg-client/15 transition-all">
+                    Trocar para cliente
+                  </button>
+                  <button onClick={() => setEditing(!editing)} className="text-sm font-semibold text-client hover:underline flex-shrink-0">
+                    {editing ? 'Cancelar' : '✏️ Editar'}
+                  </button>
+                </div>
               </div>
 
               {profile?.bio && !editing && (

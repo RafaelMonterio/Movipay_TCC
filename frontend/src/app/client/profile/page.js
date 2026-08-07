@@ -11,7 +11,7 @@ import { useForm, rules } from '@/hooks/useForm';
 import api from '@/services/api';
 
 export default function ClientProfilePage() {
-  const { user, logout } = useAuth();
+  const { user, logout, switchMode } = useAuth();
   const toast = useToast();
   const [profile, setProfile] = useState(null);
   const [orders, setOrders]   = useState([]);
@@ -88,10 +88,16 @@ export default function ClientProfilePage() {
                   </span>
                 </div>
               </div>
-              <button onClick={() => setEditing(!editing)}
-                className="text-sm font-semibold text-client hover:underline flex-shrink-0">
-                {editing ? 'Cancelar' : '✏️ Editar'}
-              </button>
+              <div className="flex flex-col items-end gap-2">
+                <button onClick={() => switchMode('worker')}
+                  className="text-xs font-semibold text-worker bg-worker/10 px-3 py-1.5 rounded-full hover:bg-worker/15 transition-all">
+                  Trocar para trabalhador
+                </button>
+                <button onClick={() => setEditing(!editing)}
+                  className="text-sm font-semibold text-client hover:underline flex-shrink-0">
+                  {editing ? 'Cancelar' : '✏️ Editar'}
+                </button>
+              </div>
             </motion.div>
 
             {/* Bio */}

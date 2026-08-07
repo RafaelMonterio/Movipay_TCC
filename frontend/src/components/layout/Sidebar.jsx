@@ -12,7 +12,6 @@ const clientLinks = [
   { href:'/client/workers', icon:'👷', label:'Trabalhadores' },
   { href:'/client/orders',  icon:'🛒', label:'Pedidos' },
   { href:'/client/chat',    icon:'💬', label:'Chat' },
-  { href:'/client/profile', icon:'👤', label:'Perfil' },
 ];
 const workerLinks = [
   { href:'/worker',          icon:'🏠', label:'Início' },
@@ -21,11 +20,10 @@ const workerLinks = [
   { href:'/worker/earnings', icon:'💰', label:'Ganhos' },
   { href:'/worker/calendar', icon:'📅', label:'Calendário' },
   { href:'/worker/chat',     icon:'💬', label:'Chat' },
-  { href:'/worker/profile',  icon:'👤', label:'Perfil' },
 ];
 
 export default function Sidebar() {
-  const { user, logout, switchMode } = useAuth();
+  const { user, logout } = useAuth();
   const pathname = usePathname();
   const [hovered, setHovered] = useState(false);
   const isWorker = user?.mode === 'worker';
@@ -35,13 +33,12 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* ── Desktop ───────────────────────── */}
       <motion.aside
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         animate={{ width: hovered ? 220 : 68 }}
         transition={{ duration: 0.22, ease: 'easeInOut' }}
-        className="hidden lg:flex flex-col flex-shrink-0 h-screen sticky top-0 overflow-hidden bg-white z-30"
+        className="hidden lg:flex fixed left-0 top-0 h-screen flex-col overflow-hidden bg-white z-40 border-r border-slate-100 shadow-lg"
       >
         {/* Logo */}
         <div className="flex items-center h-16 px-[22px] flex-shrink-0 border-b border-slate-50">
@@ -110,25 +107,6 @@ export default function Sidebar() {
 
         {/* Footer */}
         <div className="px-2 pb-4 space-y-0.5 flex-shrink-0 border-t border-slate-50 pt-2">
-          <button onClick={() => switchMode?.(isWorker ? 'client' : 'worker')}
-            className={`flex items-center h-10 w-full px-3 rounded-xl transition-all ${
-              isWorker ? 'text-client hover:bg-client/5' : 'text-worker hover:bg-worker/5'
-            }`}
-          >
-            <span className="text-xl flex-shrink-0">{isWorker ? '📱' : '🔧'}</span>
-            <AnimatePresence>
-              {hovered && (
-                <motion.span key="switch-label"
-                  initial={{ opacity:0, x:-6 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-6 }}
-                  transition={{ duration:0.12 }}
-                  className="ml-3 text-sm font-medium whitespace-nowrap overflow-hidden"
-                >
-                  {isWorker ? 'Modo Cliente' : 'Modo Trabalhador'}
-                </motion.span>
-              )}
-            </AnimatePresence>
-          </button>
-
           <button onClick={logout}
             className="flex items-center h-10 w-full px-3 rounded-xl text-red-400 hover:bg-red-50 transition-all"
           >
