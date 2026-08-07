@@ -30,10 +30,10 @@ export default function DashboardLayout({ children }) {
   const profileHref = user?.mode === 'worker' ? '/worker/profile' : '/client/profile';
 
   return (
-    <div className="relative flex min-h-screen bg-slate-50">
+    <div className="relative min-h-screen bg-slate-50 lg:pl-[88px]">
       <Sidebar />
 
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex flex-col min-w-0 w-full">
         <header className="sticky top-0 z-20 bg-white/80 backdrop-blur-sm border-b border-slate-100 flex items-center justify-end gap-2 px-4 md:px-6 h-14 flex-shrink-0">
           <button
             type="button"
@@ -55,9 +55,11 @@ export default function DashboardLayout({ children }) {
         </header>
 
         <main className="flex-1 overflow-auto pb-20 lg:pb-0">
-          <ErrorBoundary>
-            {children}
-          </ErrorBoundary>
+          <div className="w-full max-w-[1220px] mx-auto">
+            <ErrorBoundary>
+              {children}
+            </ErrorBoundary>
+          </div>
         </main>
       </div>
 

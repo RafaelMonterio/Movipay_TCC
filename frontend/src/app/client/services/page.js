@@ -1,190 +1,133 @@
 'use client';
-import { useEffect, useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import DashboardLayout from '@/components/layout/DashboardLayout';
-import { GridSkeleton } from '@/components/ui/Skeleton';
-import { useToast } from '@/components/ui/Toast';
-import { formatCurrency } from '@/utils/formatters';
-import api from '@/services/api';
-import orderService from '@/services/orderService';
 
-const SORT_OPTIONS = [
-  { value: 'default',    label: 'Padrão' },
-  { value: 'price_asc',  label: 'Menor preço' },
-  { value: 'price_desc', label: 'Maior preço' },
-  { value: 'rating',     label: 'Melhor avaliado' },
+import { useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
+import DashboardLayout from '@/components/layout/DashboardLayout';
+
+const categoryGroups = [
+  {
+    title: 'Conveniência',
+    cards: [
+      { name: 'Farmácia', subtitle: 'Receba rápido', icon: '💊', accent: 'from-amber-200 via-amber-300 to-amber-500', badge: '24 min' },
+      { name: 'Mercado', subtitle: 'Entrega em até 30 min', icon: '🛒', accent: 'from-emerald-700 via-emerald-600 to-emerald-500', badge: '30 min' },
+      { name: 'Bebidas geladas', subtitle: 'Entrega grátis', icon: '🥤', accent: 'from-blue-600 via-sky-500 to-indigo-500', badge: 'Grátis' },
+      { name: 'Barbeiro', subtitle: 'Cabelo, barba e estética', icon: '✂️', accent: 'from-rose-500 via-red-500 to-red-600', badge: 'Hoje' },
+      { name: 'Faxina', subtitle: 'Casa e escritório', icon: '🧽', accent: 'from-sky-500 via-cyan-500 to-teal-500', badge: 'Próximo' },
+      { name: 'Pintura', subtitle: 'Reformas e acabamento', icon: '🎨', accent: 'from-violet-500 via-purple-500 to-fuchsia-500', badge: 'Top' },
+    ],
+  },
+  {
+    title: 'Fornecedores',
+    cards: [
+      { name: 'Mercadinhos de rua', subtitle: 'Produtos locais', icon: '🏪', accent: 'from-orange-500 via-amber-500 to-yellow-400', badge: 'Mais perto' },
+      { name: 'Padarias', subtitle: 'Pães e doces frescos', icon: '🥐', accent: 'from-amber-500 via-orange-400 to-orange-300', badge: 'Fresquinho' },
+      { name: 'Marcenarias', subtitle: 'Móveis e reformas', icon: '🪵', accent: 'from-yellow-700 via-amber-600 to-orange-500', badge: 'Sob medida' },
+      { name: 'Artesanatos', subtitle: 'Itens únicos e feitos à mão', icon: '🎨', accent: 'from-pink-500 via-rose-400 to-red-400', badge: 'Único' },
+      { name: 'Comidas artesanais', subtitle: 'Receitas e sabores especiais', icon: '🍽️', accent: 'from-red-500 via-orange-500 to-yellow-400', badge: 'Chef' },
+      { name: 'Verdureiras', subtitle: 'Legumes e frutas frescas', icon: '🥬', accent: 'from-lime-500 via-emerald-500 to-green-600', badge: 'Natural' },
+    ],
+  },
+  {
+    title: 'Serviços digitais',
+    cards: [
+      { name: 'Design gráfico', subtitle: 'Identidade visual e artes', icon: '🖌️', accent: 'from-violet-500 via-purple-500 to-indigo-600', badge: 'Popular' },
+      { name: 'Marketing digital', subtitle: 'Gestão e campanhas', icon: '📈', accent: 'from-cyan-500 via-sky-500 to-blue-600', badge: 'Growth' },
+      { name: 'Criação de sites', subtitle: 'Landing pages e lojas', icon: '💻', accent: 'from-slate-700 via-slate-800 to-slate-900', badge: 'Web' },
+      { name: 'Edição de vídeo', subtitle: 'Reels e anúncios', icon: '🎬', accent: 'from-pink-600 via-red-500 to-orange-500', badge: 'Shorts' },
+      { name: 'SEO', subtitle: 'Posicionamento e tráfego', icon: '🔎', accent: 'from-teal-500 via-emerald-500 to-green-600', badge: 'Ranking' },
+      { name: 'Suporte técnico', subtitle: 'Configuração e ajuda', icon: '🛠️', accent: 'from-indigo-500 via-blue-500 to-cyan-500', badge: '24/7' },
+    ],
+  },
 ];
 
 export default function ClientServicesPage() {
-  const toast = useToast();
-  const [services, setServices]     = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading]       = useState(true);
-  const [contracting, setContracting] = useState(null);
+  const [query, setQuery] = useState('');
 
-  // Filtros
-  const [query, setQuery]       = useState('');
-  const [category, setCategory] = useState('');
-  const [maxPrice, setMaxPrice] = useState('');
-  const [sort, setSort]         = useState('default');
-  const [showFilters, setShowFilters] = useState(false);
+  const filteredGroups = useMemo(() => {
+    const q = query.trim().toLowerCase();
 
-  useEffect(() => {
-    Promise.all([
-      api.get('/services').then(r => setServices(r.data.services)),
-      api.get('/workers').then(r => {
-        // Extrai categorias únicas dos serviços
-        const cats = [...new Set(r.data.workers.flatMap(w => w.services?.map(s => s.category) || []).filter(Boolean))];
-        setCategories(cats);
-      }),
-    ])
-    .catch(() => toast('Erro ao carregar serviços', 'error'))
-    .finally(() => setLoading(false));
-  }, []);
+    if (!q) return categoryGroups;
 
-  const filtered = useMemo(() => {
-    let list = [...services];
-    if (query) list = list.filter(s =>
-      s.title.toLowerCase().includes(query.toLowerCase()) ||
-      (s.category || '').toLowerCase().includes(query.toLowerCase()) ||
-      (s.worker_name || '').toLowerCase().includes(query.toLowerCase())
-    );
-    if (category) list = list.filter(s => s.category === category);
-    if (maxPrice)  list = list.filter(s => parseFloat(s.price) <= parseFloat(maxPrice));
-    switch (sort) {
-      case 'price_asc':  list.sort((a, b) => a.price - b.price); break;
-      case 'price_desc': list.sort((a, b) => b.price - a.price); break;
-      case 'rating':     list.sort((a, b) => (b.avg_rating || 0) - (a.avg_rating || 0)); break;
-    }
-    return list;
-  }, [services, query, category, maxPrice, sort]);
-
-  const hasActiveFilters = category || maxPrice || sort !== 'default';
-
-  async function handleContract(service) {
-    try {
-      setContracting(service.id);
-      await orderService.create(service.id);
-      toast(`Pedido para "${service.title}" criado!`, 'success');
-    } catch (err) {
-      toast(err?.response?.data?.error || 'Erro ao criar pedido', 'error');
-    } finally {
-      setContracting(null);
-    }
-  }
-
-  function clearFilters() {
-    setCategory(''); setMaxPrice(''); setSort('default');
-  }
+    return categoryGroups
+      .map((group) => ({
+        ...group,
+        cards: group.cards.filter((card) =>
+          card.name.toLowerCase().includes(q) ||
+          group.title.toLowerCase().includes(q) ||
+          card.subtitle.toLowerCase().includes(q)
+        ),
+      }))
+      .filter((group) => group.cards.length > 0);
+  }, [query]);
 
   return (
     <DashboardLayout>
-      <div className="p-4 md:p-8 space-y-6">
-        <motion.div initial={{ opacity:0, y:-16 }} animate={{ opacity:1, y:0 }}>
-          <h1 className="text-2xl md:text-3xl font-black text-slate-800">Buscar Serviços</h1>
-          <p className="text-slate-500 mt-1 text-sm">{filtered.length} serviço{filtered.length !== 1 ? 's' : ''} encontrado{filtered.length !== 1 ? 's' : ''}</p>
-        </motion.div>
-
-        {/* Search + filter toggle */}
-        <div className="flex gap-3 items-center">
-          <input type="text" placeholder="🔍  Buscar serviço, categoria ou profissional..."
-            value={query} onChange={e => setQuery(e.target.value)}
-            className="flex-1 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-client/30 focus:border-client transition-all"
-          />
-          <button onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
-              hasActiveFilters
-                ? 'bg-client text-white border-client'
-                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-            }`}>
-            ⚙️ Filtros {hasActiveFilters && `(${[category,maxPrice,sort!=='default'].filter(Boolean).length})`}
-          </button>
+      <div className="w-full px-4 pb-20 pt-5 md:px-8 lg:px-10">
+        <div className="mx-auto max-w-[760px]">
+          <div className="relative flex items-center gap-3 rounded-[28px] border border-slate-200 bg-white px-4 py-3 shadow-sm">
+            <span className="text-2xl text-slate-500">⌕</span>
+            <input
+              type="text"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Mercado perto de mim"
+              className="w-full border-0 bg-transparent text-lg text-slate-700 placeholder:text-slate-400 focus:outline-none"
+            />
+          </div>
         </div>
 
-        {/* Filters panel */}
-        <AnimatePresence>
-          {showFilters && (
-            <motion.div initial={{ opacity:0, height:0 }} animate={{ opacity:1, height:'auto' }} exit={{ opacity:0, height:0 }}
-              className="bg-white border border-slate-200 rounded-2xl p-5"
-            >
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="text-xs font-semibold text-slate-500 uppercase mb-1.5 block">Categoria</label>
-                  <select value={category} onChange={e => setCategory(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-client">
-                    <option value="">Todas</option>
-                    {categories.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-slate-500 uppercase mb-1.5 block">Preço máximo (R$)</label>
-                  <input type="number" placeholder="Ex: 200" value={maxPrice} onChange={e => setMaxPrice(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-client"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-slate-500 uppercase mb-1.5 block">Ordenar por</label>
-                  <select value={sort} onChange={e => setSort(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-client">
-                    {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
-                </div>
-              </div>
-              {hasActiveFilters && (
-                <button onClick={clearFilters} className="mt-3 text-xs text-red-500 hover:underline font-semibold">
-                  ✕ Limpar filtros
-                </button>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Results */}
-        {loading ? <GridSkeleton count={6} /> : filtered.length === 0 ? (
-          <div className="text-center py-20">
-            <p className="text-4xl mb-3">🔍</p>
-            <p className="text-slate-500">Nenhum serviço encontrado.</p>
-            {hasActiveFilters && (
-              <button onClick={clearFilters} className="mt-3 text-client text-sm font-semibold hover:underline">
-                Limpar filtros
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filtered.map((s, i) => (
-              <motion.div key={s.id} initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }} transition={{ delay: Math.min(i * 0.04, 0.3) }}
-                className="bg-white rounded-2xl border border-slate-100 p-5 flex flex-col gap-4 hover:shadow-md transition-all"
+        <div className="mx-auto mt-8 max-w-[1100px] space-y-8">
+          {filteredGroups.length === 0 ? (
+            <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-10 text-center text-slate-500">
+              Nenhuma categoria encontrada para “{query}”.
+            </div>
+          ) : (
+            filteredGroups.map((group, groupIndex) => (
+              <motion.section
+                key={group.title}
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: groupIndex * 0.04 }}
+                className="space-y-4"
               >
-                <div className="flex-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{s.category_icon} {s.category}</span>
-                      <h3 className="text-base font-bold text-slate-800 mt-1 leading-snug">{s.title}</h3>
-                    </div>
-                  </div>
-                  <p className="text-sm text-slate-500 mt-1">por {s.worker_name}</p>
-                  {s.avg_rating > 0 && (
-                    <p className="text-xs text-amber-500 mt-1">
-                      {'★'.repeat(Math.round(s.avg_rating))}{'☆'.repeat(5-Math.round(s.avg_rating))} {parseFloat(s.avg_rating).toFixed(1)}
-                    </p>
-                  )}
-                  <p className="text-2xl font-black text-client mt-3">{formatCurrency(s.price)}</p>
-                  {s.price_type !== 'fixed' && (
-                    <span className="text-xs text-slate-400">
-                      {s.price_type === 'hourly' ? '/ hora' : 'a combinar'}
-                    </span>
-                  )}
+                <h2 className="px-1 text-[2rem] font-black tracking-[-0.04em] text-slate-900">
+                  {group.title}
+                </h2>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  {group.cards.map((card) => (
+                    <button
+                      key={card.name}
+                      type="button"
+                      className={`group relative overflow-hidden rounded-[28px] border border-slate-200 bg-gradient-to-r ${card.accent} p-5 text-left text-white shadow-sm transition-transform duration-200 hover:-translate-y-0.5`}
+                    >
+                      <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-white/10" />
+                      <div className="absolute -bottom-6 -right-6 h-24 w-24 rounded-full bg-black/10" />
+
+                      <div className="relative z-10 flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-[1.5rem] font-black leading-tight tracking-[-0.04em]">
+                            {card.name}
+                          </p>
+                        </div>
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 text-[1.8rem] shadow-inner">
+                          {card.icon}
+                        </div>
+                      </div>
+
+                      <div className="relative z-10 mt-4 flex items-center justify-between gap-3">
+                        <p className="text-sm font-medium text-white/90">{card.subtitle}</p>
+                        <span className="rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-white">
+                          {card.badge}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
                 </div>
-                <button onClick={() => handleContract(s)} disabled={contracting === s.id}
-                  className="w-full bg-client text-white font-bold py-2.5 rounded-xl hover:bg-indigo-600 transition-all disabled:opacity-60 text-sm flex items-center justify-center gap-2">
-                  {contracting === s.id ? <span className="animate-spin">⏳</span> : '📋'}
-                  Contratar
-                </button>
-              </motion.div>
-            ))}
-          </div>
-        )}
+              </motion.section>
+            ))
+          )}
+        </div>
       </div>
     </DashboardLayout>
   );
