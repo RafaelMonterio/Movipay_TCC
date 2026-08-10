@@ -27,11 +27,11 @@ export default function DashboardLayout({ children }) {
   if (!user) return null;
 
   return (
-    <div className="relative min-h-screen bg-slate-50 lg:pl-[88px]">
+    <div className="relative min-h-screen bg-slate-50 lg:pl-[250px]">
       <Sidebar />
 
       <div className="flex flex-col min-w-0 w-full">
-        <header className="sticky top-0 z-20 bg-white/80 backdrop-blur-sm border-b border-slate-100 flex items-center justify-end gap-2 px-4 md:px-6 h-14 flex-shrink-0">
+        <header className="sticky top-0 z-20 bg-white border-b border-slate-100 flex items-center justify-end gap-2 px-4 md:px-6 h-14 flex-shrink-0">
           <NotificationBell />
         </header>
 

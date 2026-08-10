@@ -27,6 +27,7 @@ export default function Sidebar() {
   const { user, logout } = useAuth();
   const pathname = usePathname();
   const [hovered, setHovered] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const isWorker = user?.mode === 'worker';
   const links = isWorker ? workerLinks : clientLinks;
   const mobileLinks = isWorker ? workerLinks.slice(0, 5) : [clientLinks[0], clientLinks[1], clientLinks[2], clientLinks[3], clientLinks[5]];
@@ -35,112 +36,92 @@ export default function Sidebar() {
 
   return (
     <>
-      <motion.aside
+      <aside
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
-        animate={{ width: hovered ? 220 : 68 }}
-        transition={{ duration: 0.22, ease: 'easeInOut' }}
-        className="hidden lg:flex fixed left-0 top-0 h-screen flex-col overflow-hidden bg-white z-40 border-r border-slate-100 shadow-lg"
+        className="hidden lg:flex fixed left-0 top-0 h-screen flex-col z-40 border-r border-white/60 shadow-xl overflow-hidden"
+        style={{
+          width: collapsed ? 88 : 250,
+          transition: 'width 260ms ease',
+          background: 'linear-gradient(180deg, #FFFDF7 0%, #F5FBEF 100%)',
+        }}
       >
-        {/* Logo */}
-        <div className="flex items-center h-16 px-[22px] flex-shrink-0 border-b border-slate-50">
-          <span className="text-2xl flex-shrink-0">🐜</span>
-          <AnimatePresence>
-            {hovered && (
-              <motion.span key="logo-text"
-                initial={{ opacity:0, x:-6 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-6 }}
-                transition={{ duration:0.12 }}
-                className="ml-3 font-black text-slate-800 text-lg whitespace-nowrap"
-              >
-                MoviPay
-              </motion.span>
+        <div className="flex items-center h-20 px-4 flex-shrink-0 border-b border-[#E8EEDB] relative">
+          <div className="relative flex items-center justify-center w-full">
+            {collapsed ? (
+              <div className="flex items-center justify-center">
+                <img src="/img/logo.png" alt="" className="w-10 h-10 rounded-full object-cover ring-2 ring-[#E6F1DD]" />
+              </div>
+            ) : (
+              <span className="flex items-center whitespace-nowrap">
+                <img src="/img/logo.png" alt="" className="w-10 h-10 rounded-full object-cover ring-2 ring-[#E6F1DD]" />
+                <span className="ml-3 font-black text-slate-800 text-2xl whitespace-nowrap">
+                  <span className="text-[#FF7A00]">Movi</span><span className="text-[#22D31B]">Pay</span>
+                </span>
+              </span>
             )}
-          </AnimatePresence>
+          </div>
         </div>
 
-        {/* Mode badge */}
-        <div className="px-3 pt-3 pb-1 flex-shrink-0">
-          <AnimatePresence>
-            {hovered && (
-              <motion.div key="mode-badge"
-                initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
-                className={`text-xs font-semibold px-2 py-0.5 rounded-full ${accentBg} ${accent} inline-block whitespace-nowrap`}
-              >
-                {isWorker ? '🔧 Trabalhador' : '📱 Cliente'}
-              </motion.div>
-            )}
-          </AnimatePresence>
+        <div className="px-2 py-2 flex-shrink-0 flex items-center justify-center">
+          <button
+            onClick={() => setCollapsed(v => !v)}
+            className="group flex items-center justify-center h-12 w-12 rounded-full bg-gradient-to-r from-[#EAF7DE] to-[#FFF0D8] border-2 border-[#B4D3A2] text-[#2D562C] transition-all hover:scale-105 shadow-md"
+            aria-label={collapsed ? 'Abrir menu' : 'Recolher menu'}
+          >
+            <span className="text-[20px] font-black transition-transform group-hover:scale-110">
+              {collapsed ? '›' : '‹'}
+            </span>
+          </button>
         </div>
 
-        {/* Links */}
-        <nav className="flex-1 px-2 py-1 space-y-0.5 overflow-y-auto overflow-x-hidden">
+        <nav className="flex-1 px-3 py-2 space-y-1">
           {links.map(l => {
             const active = pathname === l.href ||
               (l.href !== '/client' && l.href !== '/worker' && pathname.startsWith(l.href));
             return (
               <Link key={l.href} href={l.href}
-                className={`flex items-center h-11 px-3 rounded-xl transition-all group relative ${
-                  active ? `${accentBg} ${accent} font-semibold` : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
+                className={`flex items-center ${collapsed ? 'justify-center' : ''} h-12 px-3 rounded-2xl transition-all group relative ${
+                  active ? 'bg-gradient-to-r from-[#E8F9D2] to-[#FFE3BD] text-[#304b2a] font-bold shadow-inner border border-[#BCE9A4]' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
                 }`}
+                title={collapsed ? l.label : undefined}
               >
                 <span className="text-xl flex-shrink-0">{l.icon}</span>
-                <AnimatePresence>
-                  {hovered && (
-                    <motion.span key={`lbl-${l.href}`}
-                      initial={{ opacity:0, x:-6 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-6 }}
-                      transition={{ duration:0.12 }}
-                      className="ml-3 text-sm whitespace-nowrap overflow-hidden"
-                    >
-                      {l.label}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-                {/* Tooltip colapsado */}
-                {!hovered && (
-                  <div className="absolute left-full ml-2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg
-                    opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 transition-opacity">
+                {!collapsed && (
+                  <span className="ml-3 text-sm whitespace-nowrap overflow-hidden">
                     {l.label}
-                  </div>
+                  </span>
                 )}
               </Link>
             );
           })}
         </nav>
 
-        {/* Footer */}
-        <div className="px-2 pb-4 space-y-0.5 flex-shrink-0 border-t border-slate-50 pt-2">
+        <div className="px-3 pb-4 space-y-2 flex-shrink-0 border-t border-[#DDEDD7] pt-3">
           <button onClick={logout}
-            className="flex items-center h-10 w-full px-3 rounded-xl text-red-400 hover:bg-red-50 transition-all"
+            className="flex items-center justify-center h-11 w-full px-3 rounded-2xl text-white bg-gradient-to-r from-[#FF7A00] to-[#E9B05A] transition-all font-bold text-sm shadow-md hover:shadow-lg"
           >
-            <span className="text-xl flex-shrink-0">🚪</span>
-            <AnimatePresence>
-              {hovered && (
-                <motion.span key="logout-label"
-                  initial={{ opacity:0, x:-6 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-6 }}
-                  transition={{ duration:0.12 }}
-                  className="ml-3 text-sm font-medium whitespace-nowrap overflow-hidden"
-                >
-                  Sair
-                </motion.span>
-              )}
-            </AnimatePresence>
+            {!collapsed && <span className="mr-2">Sair</span>}
+            {collapsed && <span className="text-base">↵</span>}
           </button>
 
-          <AnimatePresence>
-            {hovered && (
-              <motion.div key="user-info"
-                initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
-                className="px-3 pt-2"
-              >
-                <p className="text-xs font-semibold text-slate-600 truncate">{user?.name}</p>
-                <p className="text-xs text-slate-400 truncate">{user?.email}</p>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </motion.aside>
+          {!collapsed && (
+            <>
+              <div className="flex items-center justify-center gap-2 py-1">
+                <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-red-500 text-white text-[11px] font-black">!</span>
+                <span className="text-[11px] font-bold text-slate-500">1 error</span>
+                <span className="text-slate-400">×</span>
+              </div>
 
-      {/* ── Mobile bottom nav ─────────────── */}
+              <div className="px-3 pt-1">
+                <p className="text-[11px] font-semibold text-slate-600 truncate">{user?.name}</p>
+                <p className="text-[10px] text-slate-400 truncate">{user?.email}</p>
+              </div>
+            </>
+          )}
+        </div>
+      </aside>
+
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-100 flex items-center justify-around px-1 h-16">
         {mobileLinks.map(l => {
           const active = pathname === l.href ||
