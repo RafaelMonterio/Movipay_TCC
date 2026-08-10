@@ -92,7 +92,7 @@ function RadarCanvas({ darkMode }) {
 
     /* dots representing workers/services in the radar */
     const dots = [
-      { r: 95,  angle: 0.4,  label: 'Limpeza',    icon: '🧹', color: ORANGE, size: 7,  pulse: true  },
+      { r: 95,  angle: 0.4,  label: 'Limpeza',    icon: '🧹', color: ORANGE,  size: 7,  pulse: true  },
       { r: 140, angle: 1.9,  label: 'Elétrica',   icon: '⚡',  color: GREEN,  size: 6,  pulse: false },
       { r: 78,  angle: 3.3,  label: 'Jardim',     icon: '🌿',  color: ORANGE, size: 5,  pulse: false },
       { r: 170, angle: 4.7,  label: 'Mudança',    icon: '📦',  color: GREEN,  size: 8,  pulse: true  },
@@ -364,7 +364,7 @@ function FloatingCard({ icon, label, rating, dist, delay, x, y, theme }) {
 function AccessibilityButton({ isOpen, onClick, theme }) {
   return (
     <motion.div
-      style={{ position: 'fixed', top: 20, right: 20, zIndex: 200, cursor: 'pointer', width: 50, height: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: theme.cardBg, border: `1.5px solid ${theme.cardBorder}`, backdropFilter: 'blur(8px)' }}
+      style={{ position: 'fixed', bottom: 20, right: 20, zIndex: 200, cursor: 'pointer', width: 50, height: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: theme.cardBg, border: `1.5px solid ${theme.cardBorder}`, backdropFilter: 'blur(8px)' }}
       whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.92 }} onClick={onClick} role="button" aria-label="Acessibilidade"
     >
       <motion.img src="/img/logo.png" alt="" style={{ width: 32, height: 32, objectFit: 'contain' }} animate={isOpen ? { rotate: 180 } : { rotate: 0 }} transition={{ duration: 0.35 }} draggable={false} />
@@ -382,6 +382,10 @@ function AccessibilityMenu({ isOpen, onClose, darkMode, setDarkMode, theme }) {
   useEffect(() => {
     if (typeof document === 'undefined') return;
     const html = document.documentElement;
+    html.dataset.darkMode = String(darkMode);
+    html.dataset.highContrast = String(hc);
+    html.dataset.daltonism = proto ? 'protanopia' : deut ? 'deuteranopia' : trit ? 'tritanopia' : 'none';
+
     let filters = [];
     if (hc) filters.push('contrast(1.8)');
     if (proto) filters.push('url(#protanopia)');
@@ -390,7 +394,7 @@ function AccessibilityMenu({ isOpen, onClose, darkMode, setDarkMode, theme }) {
     html.style.filter = filters.join(' ');
     html.style.fontSize = fs !== 100 ? fs + '%' : '';
     return () => { html.style.filter = ''; html.style.fontSize = ''; };
-  }, [hc, proto, deut, trit, fs]);
+  }, [hc, proto, deut, trit, fs, darkMode]);
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -664,18 +668,7 @@ export default function LandingPage() {
 
       {/* ── NAVBAR ──────────────────────────────────────────────────── */}
       <nav style={{ position: 'sticky', top: 0, zIndex: 100, borderBottom: navSolid ? `1px solid ${theme.navBorder}` : '1px solid transparent', background: navSolid ? theme.navBg : 'transparent', transition: 'all 0.35s' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <img src="/img/logo.png" alt="MoviPay" style={{ width: 34, height: 34, borderRadius: '50%' }} />
-            <span style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '1.15rem' }}>
-              <span style={{ color: '#FF7A00' }}>Movi</span><span style={{ color: '#22D31B' }}>Pay</span>
-            </span>
-          </div>
-          <div className="hide-mobile" style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <a href="#como-funciona" className="nav-link">Como funciona</a>
-            <a href="#servicos" className="nav-link">Serviços</a>
-            <a href="#depoimentos" className="nav-link">Avaliações</a>
-          </div>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button onClick={toggleTheme} style={{ width: 38, height: 38, borderRadius: '50%', background: 'transparent', border: `1px solid ${theme.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'border-color 0.2s' }} aria-label="Alternar tema">
               <Icon name={darkMode ? 'sun' : 'moon'} size={16} color={theme.mono} />
@@ -910,7 +903,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ══════════════════════════════════════════════════════════════ */}
+      {/* ═══════════════════════════════════════════════════ */}
       {/* ── DEPOIMENTOS ──────────────────────────────────────────────── */}
       {/* ══════════════════════════════════════════════════════════════ */}
       <section id="depoimentos" style={{ background: theme.bg, padding: '84px 0', transition: 'background 0.4s' }}>

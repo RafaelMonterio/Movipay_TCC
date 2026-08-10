@@ -74,7 +74,7 @@ function StickFigureAnt({ isOpen, onClick, theme, darkMode }) {
       className="stick-ant-container"
       style={{
         position: 'fixed',
-        top: 20,
+        bottom: 20,
         right: 20,
         zIndex: 200,
         cursor: 'pointer',
@@ -147,6 +147,9 @@ function AccessibilityMenu({ isOpen, onClose, darkMode, setDarkMode, theme }) {
     html.style.filter = '';
     html.style.webkitFilter = '';
     html.style.fontSize = '';
+    html.dataset.darkMode = String(darkMode);
+    html.dataset.highContrast = String(highContrast);
+    html.dataset.daltonism = protanopia ? 'protanopia' : deuteranopia ? 'deuteranopia' : tritanopia ? 'tritanopia' : 'none';
 
     let filters = [];
 
@@ -176,8 +179,11 @@ function AccessibilityMenu({ isOpen, onClose, darkMode, setDarkMode, theme }) {
       html.style.filter = '';
       html.style.webkitFilter = '';
       html.style.fontSize = '';
+      html.dataset.darkMode = String(darkMode);
+      html.dataset.highContrast = 'false';
+      html.dataset.daltonism = 'none';
     };
-  }, [highContrast, protanopia, deuteranopia, tritanopia, fontSize]);
+  }, [highContrast, protanopia, deuteranopia, tritanopia, fontSize, darkMode]);
 
   // SVG filters for color blindness
   useEffect(() => {
@@ -1022,6 +1028,13 @@ export default function LandingPage() {
     if (saved === 'dark') setDarkMode(true);
   }, []);
 
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    document.documentElement.dataset.darkMode = String(darkMode);
+    document.documentElement.dataset.highContrast = 'false';
+    document.documentElement.dataset.daltonism = 'none';
+  }, [darkMode]);
+
   function toggleTheme() {
     setDarkMode((prev) => {
       const next = !prev;
@@ -1245,7 +1258,7 @@ export default function LandingPage() {
           .grid-4 { grid-template-columns: repeat(2, 1fr) !important; }
           .grid-8 { grid-template-columns: repeat(4, 1fr) !important; }
           .accessibility-menu { width: 280px !important; right: 10px !important; top: 80px !important; }
-          .stick-ant-container { top: 12px !important; right: 12px !important; width: 52px !important; height: 52px !important; }
+          .stick-ant-container { bottom: 12px !important; right: 12px !important; width: 52px !important; height: 52px !important; top: auto !important; }
         }
       `}</style>
 
@@ -1272,17 +1285,8 @@ export default function LandingPage() {
       />
 
       {/* ── NAVBAR ───────────────────────────────────────────────────── */}
-      <nav style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
-        backdropFilter: 'blur(16px)',
-        borderBottom: navSolid ? `1px solid ${theme.navBorder}` : '1px solid transparent',
-        background: navSolid ? theme.navBg : 'transparent',
-        transition: 'background 0.4s, border-color 0.4s',
-      }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', height: 68, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-
+      <nav style={{ position: 'sticky', top: 0, zIndex: 100, borderBottom: navSolid ? `1px solid ${theme.navBorder}` : '1px solid transparent', background: navSolid ? theme.navBg : 'transparent', transition: 'all 0.35s' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <motion.img
               src="/img/logo.png" alt="MoviPay"

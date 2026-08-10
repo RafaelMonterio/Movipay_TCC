@@ -8,9 +8,6 @@ const categoryGroups = [
   {
     title: 'Conveniência',
     cards: [
-      { name: 'Farmácia', subtitle: 'Receba rápido', icon: '💊', accent: 'from-amber-200 via-amber-300 to-amber-500', badge: '24 min' },
-      { name: 'Mercado', subtitle: 'Entrega em até 30 min', icon: '🛒', accent: 'from-emerald-700 via-emerald-600 to-emerald-500', badge: '30 min' },
-      { name: 'Bebidas geladas', subtitle: 'Entrega grátis', icon: '🥤', accent: 'from-blue-600 via-sky-500 to-indigo-500', badge: 'Grátis' },
       { name: 'Barbeiro', subtitle: 'Cabelo, barba e estética', icon: '✂️', accent: 'from-rose-500 via-red-500 to-red-600', badge: 'Hoje' },
       { name: 'Faxina', subtitle: 'Casa e escritório', icon: '🧽', accent: 'from-sky-500 via-cyan-500 to-teal-500', badge: 'Próximo' },
       { name: 'Pintura', subtitle: 'Reformas e acabamento', icon: '🎨', accent: 'from-violet-500 via-purple-500 to-fuchsia-500', badge: 'Top' },
