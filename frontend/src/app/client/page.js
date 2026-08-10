@@ -670,6 +670,7 @@ export default function LandingPage() {
       <nav style={{ position: 'sticky', top: 0, zIndex: 100, borderBottom: navSolid ? `1px solid ${theme.navBorder}` : '1px solid transparent', background: navSolid ? theme.navBg : 'transparent', transition: 'all 0.35s' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Link href="#servicos" className="btn-primary" style={{ padding: '9px 18px', fontSize: '0.83rem' }}>Buscar serviço</Link>
             <button onClick={toggleTheme} style={{ width: 38, height: 38, borderRadius: '50%', background: 'transparent', border: `1px solid ${theme.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'border-color 0.2s' }} aria-label="Alternar tema">
               <Icon name={darkMode ? 'sun' : 'moon'} size={16} color={theme.mono} />
             </button>
@@ -704,7 +705,6 @@ export default function LandingPage() {
                 )}
               </AnimatePresence>
             </div>
-            <Link href="#servicos" className="btn-primary" style={{ padding: '9px 18px', fontSize: '0.83rem' }}>Buscar serviço</Link>
           </div>
         </div>
       </nav>
