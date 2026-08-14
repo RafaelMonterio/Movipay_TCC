@@ -21,7 +21,7 @@ function resolveWorkerPosition(worker) {
 }
 
 // Leaflet só funciona no browser (sem SSR)
-export default function WorkersMap({ workers = [], center = [-23.7060, -46.3690], onSelectWorker }) {
+export default function WorkersMap({ workers = [], center = [-23.7060, -46.3690], onSelectWorker, height = 280 }) {
   const mapRef     = useRef(null);
   const instanceRef = useRef(null);
 
@@ -138,7 +138,7 @@ export default function WorkersMap({ workers = [], center = [-23.7060, -46.3690]
     <div
       ref={mapRef}
       className="w-full rounded-2xl overflow-hidden"
-      style={{ height: 280 }}
+      style={{ height, width: '100%' }}
     />
   );
 }

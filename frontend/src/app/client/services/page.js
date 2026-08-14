@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 
@@ -1082,9 +1083,15 @@ function Stars({ nota }) {
 }
 
 /* ─── CARD DE PRESTADOR ─────────────────────────────────────────────── */
-function PrestadorCard({ prestador, index }) {
+function PrestadorCard({ prestador, index, servico }) {
+  const router = useRouter();
   const [expandido, setExpandido] = useState(false);
   const [contratado, setContratado] = useState(false);
+
+  const abrirPerfil = () => {
+    const perfilId = `${servico.id}-${prestador.id}`;
+    router.push(`/client/workers/${perfilId}`);
+  };
 
   return (
     <motion.div
@@ -1103,8 +1110,13 @@ function PrestadorCard({ prestador, index }) {
     >
       <div style={{ padding: '20px 20px 0' }}>
         <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-          <motion.div
-            style={{ flexShrink: 0, position: 'relative' }}
+          <motion.button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              abrirPerfil();
+            }}
+            style={{ flexShrink: 0, position: 'relative', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}
             whileHover={{ scale: 1.05 }}
             transition={{ type: 'spring', stiffness: 300 }}
           >
@@ -1140,10 +1152,15 @@ function PrestadorCard({ prestador, index }) {
               animate={{ scale: [1, 1.2, 1] }}
               transition={{ duration: 2, repeat: Infinity }}
             />
-          </motion.div>
+          </motion.button>
 
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                abrirPerfil();
+              }}
               style={{
                 fontFamily: 'var(--display)',
                 fontSize: '1.05rem',
@@ -1154,10 +1171,16 @@ function PrestadorCard({ prestador, index }) {
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
+                width: '100%',
+                textAlign: 'left',
+                background: 'transparent',
+                border: 'none',
+                padding: 0,
+                cursor: 'pointer',
               }}
             >
               {prestador.nome}
-            </p>
+            </button>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <Stars nota={prestador.nota} />
@@ -1287,48 +1310,80 @@ function PrestadorCard({ prestador, index }) {
           ))}
         </div>
 
-        <motion.button
-          onClick={() => setContratado((v) => !v)}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.97 }}
-          style={{
-            width: '100%',
-            padding: '13px 20px',
-            borderRadius: 14,
-            border: 'none',
-            background: contratado ? 'linear-gradient(135deg, #22D31B, #16A34A)' : 'linear-gradient(135deg, #FF7A00, #FF9A33)',
-            color: '#fff',
-            fontFamily: 'var(--body)',
-            fontSize: '0.9rem',
-            fontWeight: 800,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-            boxShadow: contratado ? '0 6px 20px rgba(34,211,27,0.35)' : '0 6px 20px rgba(255,122,0,0.35)',
-            transition: 'all 0.3s',
-          }}
-        >
-          {contratado ? (
-            <>
-              <Icon name="checkCircle" size={18} color="#fff" />
-              <motion.span
-                animate={{ scale: [1, 1.05, 1] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
-              >
-                Solicitado! Aguardando confirmação
-              </motion.span>
-            </>
-          ) : (
-            <>
-              Contratar agora
-              <motion.span animate={{ x: [0, 4, 0] }} transition={{ duration: 1.4, repeat: Infinity }}>
-                →
-              </motion.span>
-            </>
-          )}
-        </motion.button>
+        <div style={{ display: 'flex', gap: 10, width: '100%' }}>
+          <motion.button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              abrirPerfil();
+            }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.97 }}
+            style={{
+              flex: 1,
+              padding: '13px 16px',
+              borderRadius: 14,
+              border: '1px solid rgba(23,36,26,0.10)',
+              background: '#fff',
+              color: '#17241A',
+              fontFamily: 'var(--body)',
+              fontSize: '0.82rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              transition: 'all 0.3s',
+            }}
+          >
+            Ver perfil
+          </motion.button>
+
+          <motion.button
+            type="button"
+            onClick={() => setContratado((v) => !v)}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.97 }}
+            style={{
+              flex: 2,
+              padding: '13px 20px',
+              borderRadius: 14,
+              border: 'none',
+              background: contratado ? 'linear-gradient(135deg, #22D31B, #16A34A)' : 'linear-gradient(135deg, #FF7A00, #FF9A33)',
+              color: '#fff',
+              fontFamily: 'var(--body)',
+              fontSize: '0.9rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              boxShadow: contratado ? '0 6px 20px rgba(34,211,27,0.35)' : '0 6px 20px rgba(255,122,0,0.35)',
+              transition: 'all 0.3s',
+            }}
+          >
+            {contratado ? (
+              <>
+                <Icon name="checkCircle" size={18} color="#fff" />
+                <motion.span
+                  animate={{ scale: [1, 1.05, 1] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                >
+                  Solicitado! Aguardando confirmação
+                </motion.span>
+              </>
+            ) : (
+              <>
+                Contratar agora
+                <motion.span animate={{ x: [0, 4, 0] }} transition={{ duration: 1.4, repeat: Infinity }}>
+                  →
+                </motion.span>
+              </>
+            )}
+          </motion.button>
+        </div>
       </div>
     </motion.div>
   );
@@ -1514,7 +1569,7 @@ function PrestadoresView({ servico, grupo, onVoltar }) {
           }}
         >
           {prestadores.map((p, i) => (
-            <PrestadorCard key={p.id} prestador={p} index={i} />
+            <PrestadorCard key={`${servico.id}-${p.id}`} prestador={p} index={i} servico={servico} />
           ))}
         </div>
       ) : (

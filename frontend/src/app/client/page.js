@@ -5,6 +5,7 @@
   import { motion, useScroll, useInView, AnimatePresence } from 'framer-motion';
   import { useAuth } from '@/context/AuthContext';
   import Sidebar from '@/components/layout/Sidebar';
+  import WorkersMap from '@/components/map/WorkersMap';
 
   /* ─── SVG ICONS ─────────────────────────────────────────────────────── */
   function Icon({ name, size = 24, color = 'currentColor', strokeWidth = 1.8, style }) {
@@ -34,6 +35,30 @@
       case 'paint': return <svg {...p}><rect x="3" y="4" width="12" height="6" rx="1" /><line x1="9" y1="10" x2="9" y2="16" /><rect x="6" y="16" width="6" height="5" rx="1" /></svg>;
       default: return null;
     }
+  }
+
+  const CLIENT_MAP_WORKERS = [
+    { id: 1, name: 'Limpeza', neighborhood: 'Centro', distance_km: 0.3, avg_rating: 4.9, is_available: true, lat: -23.7048, lng: -46.3671 },
+    { id: 2, name: 'Elétrica', neighborhood: 'Vila Nova', distance_km: 0.7, avg_rating: 4.8, is_available: true, lat: -23.7032, lng: -46.3642 },
+    { id: 3, name: 'Pedreiro', neighborhood: 'Jardim das Flores', distance_km: 1.1, avg_rating: 4.7, is_available: true, lat: -23.7073, lng: -46.3709 },
+  ];
+
+  function FunctionalMapPanel({ theme }) {
+    return (
+      <motion.div
+        className="radar-col"
+        style={{ flex: '0 0 560px', position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+        initial={{ opacity: 0, scale: 0.88 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.7, delay: 0.2 }}
+      >
+        <div style={{ position: 'relative', width: 560, height: 560, borderRadius: '50%', overflow: 'hidden', border: '1px solid rgba(23,36,26,0.09)', boxShadow: '0 30px 80px rgba(0,0,0,0.12)', background: '#f5f8f5' }}>
+          <WorkersMap workers={CLIENT_MAP_WORKERS} center={[-23.7058, -46.3685]} onSelectWorker={() => {}} height={560} />
+        </div>
+
+        <FloatingCard icon="broom" label="Limpeza" rating="4.9" dist="0.3km" delay={1.2} x="-150px" y="60px" theme={theme} />
+        <FloatingCard icon="bolt" label="Elétrica" rating="4.8" dist="0.7km" delay={1.5} x="490px" y="100px" theme={theme} />
+        <FloatingCard icon="hammer" label="Pedreiro" rating="4.7" dist="1.1km" delay={1.8} x="-140px" y="360px" theme={theme} />
+      </motion.div>
+    );
   }
 
   /* ─── ANIMATED COUNTER ───────────────────────────────────────────────── */
@@ -769,19 +794,8 @@
                 </div>
               </motion.div>
 
-              {/* RIGHT — radar + floating cards */}
-              <motion.div
-                className="radar-col"
-                style={{ flex: '0 0 560px', position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
-                initial={{ opacity: 0, scale: 0.88 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.7, delay: 0.2 }}
-              >
-                <RadarCanvas darkMode={darkMode} />
-
-                {/* floating service cards */}
-                <FloatingCard icon="broom"  label="Limpeza"  rating="4.9" dist="0.3km" delay={1.2} x="-150px" y="60px"  theme={theme} />
-                <FloatingCard icon="bolt"   label="Elétrica" rating="4.8" dist="0.7km" delay={1.5} x="490px"  y="100px" theme={theme} />
-                <FloatingCard icon="hammer" label="Pedreiro" rating="4.7" dist="1.1km" delay={1.8} x="-140px" y="360px" theme={theme} />
-              </motion.div>
+              {/* RIGHT — mapa funcional + floating cards */}
+              <FunctionalMapPanel theme={theme} />
 
             </div>
           </div>

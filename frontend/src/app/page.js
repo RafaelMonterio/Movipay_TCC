@@ -1001,6 +1001,250 @@ function SparkleDivider({ theme }) {
   );
 }
 
+function RadarCanvas({ darkMode }) {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const W = 560, H = 560;
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    const cx = W / 2, cy = H / 2;
+
+    const ORANGE = '#FF7A00';
+    const GREEN = '#22D31B';
+    const BG = darkMode ? '#121A0F' : '#FAF6EC';
+    const RING_STROKE = darkMode ? 'rgba(255,122,0,0.25)' : 'rgba(255,122,0,0.2)';
+    const TEXT_COL = darkMode ? 'rgba(243,239,226,0.5)' : 'rgba(23,36,26,0.4)';
+
+    const dots = [
+      { r: 95,  angle: 0.4,  label: 'Limpeza', icon: '🧹', color: ORANGE, size: 7, pulse: true },
+      { r: 140, angle: 1.9,  label: 'Elétrica', icon: '⚡', color: GREEN, size: 6, pulse: false },
+      { r: 78,  angle: 3.3,  label: 'Jardim', icon: '🌿', color: ORANGE, size: 5, pulse: false },
+      { r: 170, angle: 4.7,  label: 'Mudança', icon: '📦', color: GREEN, size: 8, pulse: true },
+      { r: 120, angle: 5.8,  label: 'Motoboy', icon: '🏍', color: ORANGE, size: 6, pulse: false },
+      { r: 55,  angle: 2.5,  label: 'Manicure', icon: '✨', color: GREEN, size: 5, pulse: false },
+      { r: 195, angle: 0.9,  label: 'Pedreiro', icon: '🔨', color: ORANGE, size: 7, pulse: true },
+      { r: 160, angle: 3.9,  label: 'Cabelo', icon: '✂️', color: GREEN, size: 5, pulse: false },
+    ].map(d => ({ ...d, x: cx + Math.cos(d.angle) * d.r, y: cy + Math.sin(d.angle) * d.r, baseAngle: d.angle, pulsePhase: Math.random() * Math.PI * 2 }));
+
+    let sweep = 0;
+    const pings = [];
+    let frame = 0;
+    let animId;
+
+    function drawRings() {
+      [220, 170, 120, 70].forEach((r, i) => {
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.strokeStyle = RING_STROKE;
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
+
+        ctx.fillStyle = TEXT_COL;
+        ctx.font = '500 10px "IBM Plex Mono", monospace';
+        const distance = [1.5, 1.0, 0.6, 0.3][i];
+        ctx.fillText(`${distance.toFixed(1)}km`, cx + r + 4, cy - 4);
+      });
+
+      [0, Math.PI / 2].forEach(a => {
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(a) * 220, cy + Math.sin(a) * 220);
+        ctx.lineTo(cx - Math.cos(a) * 220, cy - Math.sin(a) * 220);
+        ctx.strokeStyle = RING_STROKE;
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+      });
+    }
+
+    function drawSweepTrail() {
+      const steps = 80;
+      for (let i = 0; i < steps; i++) {
+        const a = sweep - (i / steps) * (Math.PI * 0.7);
+        const alpha = (1 - i / steps) * 0.25;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, 220, a, a + (Math.PI * 0.7) / steps);
+        ctx.closePath();
+        ctx.fillStyle = darkMode ? `rgba(255,122,0,${alpha * 0.7})` : `rgba(255,122,0,${alpha * 0.5})`;
+        ctx.fill();
+      }
+
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(sweep) * 222, cy + Math.sin(sweep) * 222);
+      ctx.strokeStyle = ORANGE;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(cx + Math.cos(sweep) * 222, cy + Math.sin(sweep) * 222, 3, 0, Math.PI * 2);
+      ctx.fillStyle = ORANGE;
+      ctx.fill();
+    }
+
+    function drawDots() {
+      dots.forEach(d => {
+        const drift = Math.sin(frame * 0.008 + d.pulsePhase) * 3;
+        const dx = d.x + Math.cos(d.baseAngle + Math.PI / 2) * drift;
+        const dy = d.y + Math.sin(d.baseAngle + Math.PI / 2) * drift;
+
+        if (d.pulse) {
+          const pulseScale = 1 + 0.5 * Math.abs(Math.sin(frame * 0.04 + d.pulsePhase));
+          ctx.beginPath();
+          ctx.arc(dx, dy, d.size * pulseScale + 4, 0, Math.PI * 2);
+          ctx.strokeStyle = d.color + '44';
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
+        }
+
+        ctx.beginPath();
+        ctx.arc(dx, dy, d.size, 0, Math.PI * 2);
+        ctx.fillStyle = d.color;
+        ctx.fill();
+        ctx.strokeStyle = darkMode ? '#121A0F' : '#FAF6EC';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      });
+    }
+
+    function drawPings() {
+      for (let i = pings.length - 1; i >= 0; i--) {
+        const p = pings[i];
+        p.life--;
+        p.r += 1.4;
+        const alpha = p.life / p.maxLife;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(34,211,27,${alpha * 0.8})`;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        if (p.life <= 0) pings.splice(i, 1);
+      }
+    }
+
+    function drawCenter() {
+      ctx.beginPath();
+      ctx.arc(cx, cy, 22, 0, Math.PI * 2);
+      ctx.fillStyle = darkMode ? '#1A2417' : '#fff';
+      ctx.fill();
+      ctx.strokeStyle = ORANGE;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.fillStyle = ORANGE;
+      ctx.font = '700 8px "IBM Plex Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('YOU', cx, cy + 3);
+      ctx.textAlign = 'left';
+    }
+
+    function loop() {
+      frame++;
+      ctx.clearRect(0, 0, W, H);
+      ctx.fillStyle = BG;
+      ctx.fillRect(0, 0, W, H);
+
+      drawRings();
+      drawSweepTrail();
+
+      dots.forEach(d => {
+        const da = ((sweep - d.baseAngle) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+        if (da < 0.06) {
+          pings.push({ x: d.x, y: d.y, r: d.size, life: 48, maxLife: 48 });
+        }
+      });
+
+      drawPings();
+      drawDots();
+      drawCenter();
+
+      sweep += 0.018;
+      if (sweep > Math.PI * 2) sweep -= Math.PI * 2;
+
+      animId = requestAnimationFrame(loop);
+    }
+
+    loop();
+
+    const resize = () => {
+      const cw = Math.min(canvas.parentElement?.clientWidth || W, W);
+      canvas.style.width = cw + 'px';
+      canvas.style.height = cw + 'px';
+    };
+    window.addEventListener('resize', resize);
+    resize();
+
+    return () => {
+      cancelAnimationFrame(animId);
+      window.removeEventListener('resize', resize);
+    };
+  }, [darkMode]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{ display: 'block', width: '100%', height: 'auto', borderRadius: '50%', maxWidth: 560 }}
+    />
+  );
+}
+
+function FloatingCard({ icon, label, rating, dist, delay, x, y, theme }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.7, y: 20 }}
+      animate={{ opacity: 1, scale: 1, y: [0, -8, 0] }}
+      transition={{ delay, duration: 4 + delay, repeat: Infinity, ease: 'easeInOut', type: 'spring', stiffness: 120 }}
+      style={{
+        position: 'absolute', left: x, top: y,
+        background: 'rgba(255,255,255,0.9)',
+        border: '1px solid rgba(23,36,26,0.09)',
+        borderRadius: 12, padding: '10px 14px',
+        display: 'flex', alignItems: 'center', gap: 10,
+        boxShadow: '0 8px 32px rgba(0,0,0,0.10)',
+        minWidth: 160, zIndex: 3,
+        backdropFilter: 'blur(6px)',
+      }}
+    >
+      <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(255,122,0,0.094)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Icon name={icon} size={17} color="#FF7A00" />
+      </div>
+      <div>
+        <p style={{ fontWeight: 700, fontSize: '0.82rem', color: '#17241A', margin: 0 }}>{label}</p>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 2 }}>
+          <Icon name="star" size={10} color="#FF7A00" />
+          <span style={{ fontFamily: 'var(--mono)', fontSize: '0.68rem', color: '#5B6B57' }}>{rating} · {dist}</span>
+        </div>
+      </div>
+      <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22D31B', marginLeft: 'auto', flexShrink: 0 }} />
+    </motion.div>
+  );
+}
+
+function HeroMapPanel({ darkMode, theme }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 30, scale: 0.96 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      transition={{ duration: 0.7, delay: 0.25 }}
+      style={{ position: 'relative', width: '100%', maxWidth: 560, margin: '0 auto' }}
+    >
+      <div style={{ position: 'relative', width: '100%', height: 560, borderRadius: 32, overflow: 'hidden', border: '1px solid rgba(23,36,26,0.09)', boxShadow: '0 30px 80px rgba(0,0,0,0.12)', background: 'linear-gradient(180deg, rgba(255,255,255,0.72), rgba(244,248,246,0.75))', backdropFilter: 'blur(10px)' }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at center, rgba(34,211,27,0.10), transparent 52%)' }} />
+        <div style={{ position: 'absolute', inset: 0 }}>
+          <RadarCanvas darkMode={darkMode} />
+        </div>
+      </div>
+
+      <FloatingCard icon="broom" label="Limpeza" rating="4.9" dist="0.3km" delay={1.2} x="-26px" y="58px" theme={theme} />
+      <FloatingCard icon="bolt" label="Elétrica" rating="4.8" dist="0.7km" delay={1.5} x="490px" y="110px" theme={theme} />
+      <FloatingCard icon="wrench" label="Pedreiro" rating="4.7" dist="1.1km" delay={1.8} x="-18px" y="360px" theme={theme} />
+    </motion.div>
+  );
+}
+
 /* ─── MAIN COMPONENT ─────────────────────────────────────────────────── */
 export default function LandingPage() {
   const { user, loading } = useAuth();
@@ -1353,75 +1597,77 @@ export default function LandingPage() {
           }} animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 8, repeat: Infinity, delay: 1 }} />
         </div>
 
-        <div style={{ position: 'relative', zIndex: 1, maxWidth: 1200, margin: '0 auto', padding: '80px 24px 0', textAlign: 'center', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ position: 'relative', zIndex: 1, maxWidth: 1200, margin: '0 auto', padding: '80px 24px 0', flex: 1, display: 'flex', alignItems: 'center' }}>
+          <div style={{ width: '100%', display: 'grid', gridTemplateColumns: 'minmax(0, 1.05fr) minmax(0, 0.95fr)', alignItems: 'center', gap: 40 }}>
+            <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }} style={{ textAlign: 'left' }}>
 
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }}>
+              <motion.div
+                className="section-label"
+                style={{ margin: '0 0 24px' }}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2 }}
+              >
+                <img src="/img/logo.png" alt="" style={{ width: 18, height: 18, borderRadius: '50%' }} />
+                Serviços locais, agora mais simples
+              </motion.div>
 
-            <motion.div
-              className="section-label"
-              style={{ margin: '0 auto 24px' }}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2 }}
-            >
-              <img src="/img/logo.png" alt="" style={{ width: 18, height: 18, borderRadius: '50%' }} />
-              Serviços locais, agora mais simples
+              <h1
+                className="hero-title"
+                style={{ fontWeight: 900, fontSize: '4.5rem', lineHeight: 1.08, letterSpacing: '-0.04em', marginBottom: 24 }}
+              >
+                Conectando quem{' '}
+                <span style={{ display: 'block' }}>
+                  <span className="gradient-text">precisa com quem sabe</span>
+                </span>
+              </h1>
+
+              <p style={{ fontSize: '1.2rem', color: theme.textMuted, maxWidth: 560, margin: '0 0 40px', lineHeight: 1.65 }}>
+                Encontre profissionais qualificados perto de você em segundos.
+                Elétrica, limpeza, pintura e muito mais — com segurança total.
+              </p>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 64 }}>
+                <Link href="/register" className="btn-primary" style={{ fontSize: '1.05rem' }}>
+                  Começar agora — é grátis
+                  <Icon name="arrowRight" size={18} className="arrow-icon" />
+                </Link>
+                <Link href="/login" className="btn-outline" style={{ fontSize: '1.05rem' }}>
+                  Já tenho conta
+                </Link>
+              </div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                style={{ display: 'flex', flexWrap: 'wrap', gap: 40, alignItems: 'center' }}
+              >
+                {STATS.map((s, i) => (
+                  <div key={i} style={{ textAlign: 'left' }}>
+                    <p style={{ fontSize: '2.2rem', fontWeight: 900, color: '#FF7A00', margin: 0 }}>
+                      <AnimatedCounter target={s.value} suffix={s.suffix} decimal={s.decimal} />
+                    </p>
+                    <p style={{ fontSize: '0.8rem', color: theme.textMuted, marginTop: 4, fontWeight: 500 }}>{s.label}</p>
+                  </div>
+                ))}
+              </motion.div>
+
             </motion.div>
 
-            <h1
-              className="hero-title"
-              style={{ fontWeight: 900, fontSize: '4.5rem', lineHeight: 1.08, letterSpacing: '-0.04em', marginBottom: 24 }}
-            >
-              Conectando quem{' '}
-              <span style={{ display: 'block' }}>
-                <span className="gradient-text">precisa com quem sabe</span>
-              </span>
-            </h1>
-
-            <p style={{ fontSize: '1.2rem', color: theme.textMuted, maxWidth: 560, margin: '0 auto 40px', lineHeight: 1.65 }}>
-              Encontre profissionais qualificados perto de você em segundos.
-              Elétrica, limpeza, pintura e muito mais — com segurança total.
-            </p>
-
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, justifyContent: 'center', marginBottom: 64 }}>
-              <Link href="/register" className="btn-primary" style={{ fontSize: '1.05rem' }}>
-                Começar agora — é grátis
-                <Icon name="arrowRight" size={18} className="arrow-icon" />
-              </Link>
-              <Link href="/login" className="btn-outline" style={{ fontSize: '1.05rem' }}>
-                Já tenho conta
-              </Link>
-            </div>
-
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 40, marginBottom: 40 }}
-          >
-            {STATS.map((s, i) => (
-              <div key={i} style={{ textAlign: 'center' }}>
-                <p style={{ fontSize: '2.2rem', fontWeight: 900, color: '#FF7A00' }}>
-                  <AnimatedCounter target={s.value} suffix={s.suffix} decimal={s.decimal} />
-                </p>
-                <p style={{ fontSize: '0.8rem', color: theme.textMuted, marginTop: 4, fontWeight: 500 }}>{s.label}</p>
-              </div>
-            ))}
-          </motion.div>
-
-          <motion.div
-            className="scroll-hint hide-mobile"
-            style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.2 }}
-          >
-            <Icon name="chevronDown" size={22} color={theme.textMuted} />
-          </motion.div>
-
+            <HeroMapPanel darkMode={darkMode} theme={theme} />
+          </div>
         </div>
+
+        <motion.div
+          className="scroll-hint hide-mobile"
+          style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'center', marginBottom: 12 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.2 }}
+        >
+          <Icon name="chevronDown" size={22} color={theme.textMuted} />
+        </motion.div>
 
         {/* Canvas com formigas - substituindo a ForestScene */}
         <FormigaCanvas />
