@@ -61,9 +61,9 @@ export default function LoginScreen() {
         </Pressable>
 
         <View style={[styles.hint, { borderColor: theme.border }]}>
-          <Text style={[styles.hintTitle, { color: theme.textSecondary }]}>Contas de teste:</Text>
-          <Text style={[styles.hintText, { color: theme.textDisabled }]}>ana@teste.com / 123456 (cliente)</Text>
-          <Text style={[styles.hintText, { color: theme.textDisabled }]}>bruno@teste.com / 123456 (trabalhador)</Text>
+          <Text style={[styles.hintTitle, { color: theme.textSecondary }]}>📋 Contas de teste (sem backend):</Text>
+          <Text style={[styles.hintText, { color: theme.textDisabled }]}>teste@movipay.com / teste123</Text>
+          <Text style={[styles.hintText, { color: theme.textDisabled }]}>empresa@movipay.com / teste123</Text>
         </View>
       </View>
     </ScrollView>
