@@ -1231,8 +1231,8 @@ function HeroMapPanel({ darkMode, theme }) {
       transition={{ duration: 0.7, delay: 0.25 }}
       style={{ position: 'relative', width: '100%', maxWidth: 560, margin: '0 auto' }}
     >
-      <div style={{ position: 'relative', width: '100%', height: 560, borderRadius: 32, overflow: 'hidden', border: '1px solid rgba(23,36,26,0.09)', boxShadow: '0 30px 80px rgba(0,0,0,0.12)', background: 'linear-gradient(180deg, rgba(255,255,255,0.72), rgba(244,248,246,0.75))', backdropFilter: 'blur(10px)' }}>
-        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at center, rgba(34,211,27,0.10), transparent 52%)' }} />
+      <div style={{ position: 'relative', width: '100%', height: 560, borderRadius: 32, overflow: 'hidden', border: 'none', boxShadow: 'none', background: 'transparent', backdropFilter: 'none' }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'transparent' }} />
         <div style={{ position: 'absolute', inset: 0 }}>
           <RadarCanvas darkMode={darkMode} />
         </div>

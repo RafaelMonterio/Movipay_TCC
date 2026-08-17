@@ -4,6 +4,7 @@ import { useMemo, useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import Modal from '@/components/ui/Modal';
 
 /* ─── DESIGN TOKENS ─────────────────────────────────────────────────── */
 // Fraunces (display), Inter (body), IBM Plex Mono (mono)
@@ -270,7 +271,7 @@ const prestadoresPorServico = {
     {
       id: 1,
       nome: 'Carlos "Navalha" Mendes',
-      foto: '/img/prestadores/barbeiro1.jpg',
+      foto: '/img/cabeleireiro.jpg',
       iniciais: 'CM',
       avatarGrad: 'linear-gradient(135deg, #FF7A00, #FF4500)',
       nota: 4.9,
@@ -288,7 +289,7 @@ const prestadoresPorServico = {
     {
       id: 2,
       nome: 'Diego Ferreira',
-      foto: '/img/prestadores/barbeiro2.jpg',
+      foto: '/img/cabeleireiro_half.jpg',
       iniciais: 'DF',
       avatarGrad: 'linear-gradient(135deg, #7C3AED, #4F46E5)',
       nota: 4.8,
@@ -306,7 +307,7 @@ const prestadoresPorServico = {
     {
       id: 3,
       nome: 'Rafael "Rê" Santos',
-      foto: '/img/prestadores/barbeiro3.jpg',
+      foto: '/img/cabeleireiro.jpg',
       iniciais: 'RS',
       avatarGrad: 'linear-gradient(135deg, #059669, #0891B2)',
       nota: 5.0,
@@ -1087,6 +1088,22 @@ function PrestadorCard({ prestador, index, servico }) {
   const router = useRouter();
   const [expandido, setExpandido] = useState(false);
   const [contratado, setContratado] = useState(false);
+  const [bookingOpen, setBookingOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState('Seg, 19 ago');
+  const [selectedHour, setSelectedHour] = useState('09:00');
+  const [selectedPlan, setSelectedPlan] = useState('Completo');
+
+  const bookingDates = ['Seg, 19 ago', 'Qua, 21 ago', 'Sex, 23 ago'];
+  const bookingHours = {
+    'Seg, 19 ago': ['09:00', '11:30', '14:00', '18:30'],
+    'Qua, 21 ago': ['08:45', '10:15', '13:00', '16:45'],
+    'Sex, 23 ago': ['09:30', '12:00', '15:30', '18:00'],
+  };
+  const servicePlans = [
+    { id: 'Completo', title: 'Serviço completo', description: 'Atendimento completo e tudo incluso', price: 'R$ 220,00' },
+    { id: 'Básico', title: 'Básico', description: 'Atendimento essencial', price: 'R$ 150,00' },
+    { id: 'Premium', title: 'Premium', description: 'Mais reforço e acabamento', price: 'R$ 290,00' },
+  ];
 
   const abrirPerfil = () => {
     const perfilId = `${servico.id}-${prestador.id}`;
@@ -1342,7 +1359,7 @@ function PrestadorCard({ prestador, index, servico }) {
 
           <motion.button
             type="button"
-            onClick={() => setContratado((v) => !v)}
+            onClick={() => setBookingOpen(true)}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
             style={{
@@ -1376,7 +1393,7 @@ function PrestadorCard({ prestador, index, servico }) {
               </>
             ) : (
               <>
-                Contratar agora
+                Agendar serviço
                 <motion.span animate={{ x: [0, 4, 0] }} transition={{ duration: 1.4, repeat: Infinity }}>
                   →
                 </motion.span>
@@ -1385,6 +1402,108 @@ function PrestadorCard({ prestador, index, servico }) {
           </motion.button>
         </div>
       </div>
+
+      <Modal open={bookingOpen} onClose={() => setBookingOpen(false)} title={`Agendar serviço com ${prestador.nome}`} size="md">
+        <div className="space-y-5">
+          <div>
+            <p className="text-sm font-semibold text-slate-700 mb-2">1. Escolha a data</p>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {bookingDates.map((date) => (
+                <button
+                  key={date}
+                  type="button"
+                  onClick={() => {
+                    setSelectedDate(date);
+                    setSelectedHour(bookingHours[date][0]);
+                  }}
+                  className={`rounded-xl border px-3 py-2 text-sm font-medium text-left transition-all ${
+                    selectedDate === date ? 'border-client bg-client/5 text-client' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                  }`}
+                >
+                  {date}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="text-sm font-semibold text-slate-700 mb-2">2. Horários disponíveis</p>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {(bookingHours[selectedDate] || []).map((slot) => (
+                <button
+                  key={slot}
+                  type="button"
+                  onClick={() => setSelectedHour(slot)}
+                  className={`rounded-xl border px-3 py-2 text-sm font-medium text-center transition-all ${
+                    selectedHour === slot ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                  }`}
+                >
+                  {slot}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="text-sm font-semibold text-slate-700 mb-2">3. Tipo de serviço</p>
+            <div className="space-y-2">
+              {servicePlans.map((plan) => (
+                <button
+                  key={plan.id}
+                  type="button"
+                  onClick={() => setSelectedPlan(plan.id)}
+                  className={`w-full rounded-2xl border p-3 text-left transition-all ${
+                    selectedPlan === plan.id ? 'border-client bg-client/5 text-client' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="font-semibold">{plan.title}</p>
+                      <p className="text-xs mt-0.5 opacity-80">{plan.description}</p>
+                    </div>
+                    <span className="text-sm font-bold">{plan.price}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4 text-sm text-slate-600">
+            <div className="flex items-center justify-between gap-3">
+              <span>Prestador</span>
+              <strong className="text-slate-800">{prestador.nome}</strong>
+            </div>
+            <div className="flex items-center justify-between gap-3 mt-2">
+              <span>Data</span>
+              <strong className="text-slate-800">{selectedDate}</strong>
+            </div>
+            <div className="flex items-center justify-between gap-3 mt-2">
+              <span>Horário</span>
+              <strong className="text-slate-800">{selectedHour}</strong>
+            </div>
+            <div className="flex items-center justify-between gap-3 mt-2">
+              <span>Tipo</span>
+              <strong className="text-slate-800">{selectedPlan}</strong>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button type="button" onClick={() => setBookingOpen(false)} className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium">
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setBookingOpen(false);
+                setContratado(true);
+              }}
+              className="px-4 py-2 rounded-xl bg-client text-white font-semibold hover:bg-indigo-600"
+            >
+              Confirmar agendamento
+            </button>
+          </div>
+        </div>
+      </Modal>
     </motion.div>
   );
 }
@@ -1415,6 +1534,33 @@ function PrestadoresView({ servico, grupo, onVoltar }) {
         transition={{ type: 'spring', stiffness: 200 }}
       >
         <ParticleBackground />
+
+        <div
+          style={{
+            position: 'absolute',
+            right: 0,
+            bottom: 0,
+            width: '34%',
+            height: '100%',
+            pointerEvents: 'none',
+            zIndex: 1,
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'flex-end',
+          }}
+        >
+          <img
+            src="/img/cabeleireiro_half.jpg"
+            alt="Barbeiro"
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              opacity: 0.9,
+              filter: 'saturate(0.9) contrast(1.05)',
+            }}
+          />
+        </div>
 
         <div style={{ position: 'relative', zIndex: 2 }}>
           <motion.button

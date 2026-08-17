@@ -19,7 +19,7 @@ const FALLBACK_PROFILES = {
   'barbeiro-1': {
     id: 'barbeiro-1',
     name: 'Carlos "Navalha" Mendes',
-    avatar_url: '/img/prestadores/barbeiro1.jpg',
+    avatar_url: '/img/cabeleireiro.jpg',
     bio: 'Especialista em cortes modernos e barba estilizada. Atendo no conforto da sua casa com kit profissional completo.',
     avg_rating: 4.9,
     total_reviews: 312,
@@ -39,7 +39,7 @@ const FALLBACK_PROFILES = {
   'barbeiro-2': {
     id: 'barbeiro-2',
     name: 'Diego Ferreira',
-    avatar_url: '/img/prestadores/barbeiro2.jpg',
+    avatar_url: '/img/cabeleireiro_half.jpg',
     bio: 'Barbeiro certificado com foco em cortes clássicos e contemporâneos.',
     avg_rating: 4.8,
     total_reviews: 198,
@@ -59,7 +59,7 @@ const FALLBACK_PROFILES = {
   'barbeiro-3': {
     id: 'barbeiro-3',
     name: 'Rafael "Rê" Santos',
-    avatar_url: '/img/prestadores/barbeiro3.jpg',
+    avatar_url: '/img/cabeleireiro.jpg',
     bio: 'Único com nota 5.0 no bairro! Especializado em cortes afro e crespos.',
     avg_rating: 5,
     total_reviews: 87,
@@ -177,7 +177,15 @@ export default function WorkerDetailPage() {
   const [bookingOpen, setBookingOpen] = useState(false);
   const [contractOpen, setContractOpen] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
-  const [selectedSlot, setSelectedSlot] = useState('Hoje • 18:30');
+  const bookingDates = ['Seg, 19 ago', 'Qua, 21 ago', 'Sex, 23 ago'];
+  const bookingHours = {
+    'Seg, 19 ago': ['09:00', '11:30', '14:00', '18:30'],
+    'Qua, 21 ago': ['08:45', '10:15', '13:00', '16:45'],
+    'Sex, 23 ago': ['09:30', '12:00', '15:30', '18:00'],
+  };
+  const [selectedDate, setSelectedDate] = useState(bookingDates[0]);
+  const [selectedSlot, setSelectedSlot] = useState(bookingHours[bookingDates[0]][0]);
+  const [selectedServiceType, setSelectedServiceType] = useState('Completo');
   const [scheduled, setScheduled] = useState(false);
 
   useEffect(() => {
@@ -270,10 +278,10 @@ export default function WorkerDetailPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setContractOpen(true)}
+                onClick={() => setBookingOpen(true)}
                 className="bg-client text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-600 transition-all"
               >
-                Contratar agora
+                Agendar serviço
               </button>
             </div>
           </div>
@@ -490,21 +498,70 @@ export default function WorkerDetailPage() {
         </div>
       </div>
 
-      <Modal open={bookingOpen} onClose={() => setBookingOpen(false)} title={`Agendar com ${worker.name}`} size="md">
-        <div className="space-y-4">
+      <Modal open={bookingOpen} onClose={() => setBookingOpen(false)} title={`Agendar serviço com ${worker.name}`} size="md">
+        <div className="space-y-5">
           <div>
-            <p className="text-sm font-semibold text-slate-700 mb-2">Escolha um horário</p>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {bookingSlots.map((slot) => (
+            <p className="text-sm font-semibold text-slate-700 mb-2">1. Escolha a data</p>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {bookingDates.map((date) => (
+                <button
+                  key={date}
+                  type="button"
+                  onClick={() => {
+                    setSelectedDate(date);
+                    setSelectedSlot(bookingHours[date][0]);
+                  }}
+                  className={`rounded-xl border px-3 py-2 text-sm font-medium text-left transition-all ${
+                    selectedDate === date ? 'border-client bg-client/5 text-client' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                  }`}
+                >
+                  {date}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="text-sm font-semibold text-slate-700 mb-2">2. Horários disponíveis</p>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {(bookingHours[selectedDate] || []).map((slot) => (
                 <button
                   key={slot}
                   type="button"
                   onClick={() => setSelectedSlot(slot)}
-                  className={`rounded-xl border px-3 py-2 text-sm font-medium text-left transition-all ${
-                    selectedSlot === slot ? 'border-client bg-client/5 text-client' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                  className={`rounded-xl border px-3 py-2 text-sm font-medium text-center transition-all ${
+                    selectedSlot === slot ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
                   }`}
                 >
                   {slot}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="text-sm font-semibold text-slate-700 mb-2">3. Tipo de serviço</p>
+            <div className="space-y-2">
+              {[
+                { id: 'Completo', title: 'Serviço completo', description: 'Tudo incluso e atendimento total', price: worker.services?.[0] ? formatCurrency(worker.services[0].price) : 'Sob consulta' },
+                { id: 'Básico', title: 'Básico', description: 'Atendimento essencial com foco no necessário', price: 'R$ 120,00' },
+                { id: 'Premium', title: 'Premium', description: 'Mais cuidado, revisão e acabamento refinado', price: 'R$ 220,00' },
+              ].map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => setSelectedServiceType(option.id)}
+                  className={`w-full rounded-2xl border p-3 text-left transition-all ${
+                    selectedServiceType === option.id ? 'border-client bg-client/5 text-client' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="font-semibold">{option.title}</p>
+                      <p className="text-xs mt-0.5 opacity-80">{option.description}</p>
+                    </div>
+                    <span className="text-sm font-bold">{option.price}</span>
+                  </div>
                 </button>
               ))}
             </div>
@@ -516,8 +573,16 @@ export default function WorkerDetailPage() {
               <strong className="text-slate-800">{worker.services?.[0]?.title || 'Atendimento personalizado'}</strong>
             </div>
             <div className="flex items-center justify-between gap-3 mt-2">
+              <span>Data</span>
+              <strong className="text-slate-800">{selectedDate}</strong>
+            </div>
+            <div className="flex items-center justify-between gap-3 mt-2">
               <span>Horário</span>
               <strong className="text-slate-800">{selectedSlot}</strong>
+            </div>
+            <div className="flex items-center justify-between gap-3 mt-2">
+              <span>Tipo</span>
+              <strong className="text-slate-800">{selectedServiceType}</strong>
             </div>
           </div>
 

@@ -38,25 +38,110 @@
   }
 
   const CLIENT_MAP_WORKERS = [
-    { id: 1, name: 'Limpeza', neighborhood: 'Centro', distance_km: 0.3, avg_rating: 4.9, is_available: true, lat: -23.7048, lng: -46.3671 },
-    { id: 2, name: 'Elétrica', neighborhood: 'Vila Nova', distance_km: 0.7, avg_rating: 4.8, is_available: true, lat: -23.7032, lng: -46.3642 },
-    { id: 3, name: 'Pedreiro', neighborhood: 'Jardim das Flores', distance_km: 1.1, avg_rating: 4.7, is_available: true, lat: -23.7073, lng: -46.3709 },
+    {
+      id: 1,
+      name: 'Marina Souza',
+      role: 'Cabeleireira',
+      specialty: 'Cortes e styling',
+      service: 'Barbearia',
+      emoji: '✂️',
+      photo: '/img/cabeleireiro.jpg',
+      neighborhood: 'Centro',
+      distance_km: 0.3,
+      avg_rating: 4.9,
+      is_available: true,
+      lat: -23.7048,
+      lng: -46.3671,
+    },
+    {
+      id: 2,
+      name: 'Eduardo Ramos',
+      role: 'Eletricista',
+      specialty: 'Instalações e revisões',
+      service: 'Elétrica',
+      emoji: '⚡',
+      photo: '/img/eletricista.jpg',
+      neighborhood: 'Vila Nova',
+      distance_km: 0.7,
+      avg_rating: 4.8,
+      is_available: true,
+      lat: -23.7032,
+      lng: -46.3642,
+    },
+    {
+      id: 3,
+      name: 'Thiago Alves',
+      role: 'Pedreiro',
+      specialty: 'Reformas e acabamento',
+      service: 'Pedreiro',
+      emoji: '🧱',
+      photo: '/img/pedreiro.jpg',
+      neighborhood: 'Jardim das Flores',
+      distance_km: 1.1,
+      avg_rating: 4.7,
+      is_available: true,
+      lat: -23.7073,
+      lng: -46.3709,
+    },
   ];
 
   function FunctionalMapPanel({ theme }) {
+    const [selectedWorker, setSelectedWorker] = useState(CLIENT_MAP_WORKERS[0]);
+
     return (
       <motion.div
         className="radar-col"
         style={{ flex: '0 0 560px', position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
         initial={{ opacity: 0, scale: 0.88 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.7, delay: 0.2 }}
       >
-        <div style={{ position: 'relative', width: 560, height: 560, borderRadius: '50%', overflow: 'hidden', border: '1px solid rgba(23,36,26,0.09)', boxShadow: '0 30px 80px rgba(0,0,0,0.12)', background: '#f5f8f5' }}>
-          <WorkersMap workers={CLIENT_MAP_WORKERS} center={[-23.7058, -46.3685]} onSelectWorker={() => {}} height={560} />
-        </div>
+        <div style={{ position: 'relative', width: 560, height: 560, borderRadius: '50%', overflow: 'hidden', border: 'none', boxShadow: 'none', background: 'transparent' }}>
+          <WorkersMap
+            workers={CLIENT_MAP_WORKERS}
+            center={[-23.7058, -46.3685]}
+            onSelectWorker={setSelectedWorker}
+            selectedWorkerId={selectedWorker?.id}
+            height={560}
+          />
 
-        <FloatingCard icon="broom" label="Limpeza" rating="4.9" dist="0.3km" delay={1.2} x="-150px" y="60px" theme={theme} />
-        <FloatingCard icon="bolt" label="Elétrica" rating="4.8" dist="0.7km" delay={1.5} x="490px" y="100px" theme={theme} />
-        <FloatingCard icon="hammer" label="Pedreiro" rating="4.7" dist="1.1km" delay={1.8} x="-140px" y="360px" theme={theme} />
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35 }}
+            style={{
+              position: 'absolute',
+              left: 26,
+              bottom: 26,
+              width: 240,
+              background: 'rgba(15, 23, 42, 0.9)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 18,
+              boxShadow: '0 20px 50px rgba(15,23,42,0.25)',
+              padding: 12,
+              backdropFilter: 'blur(10px)',
+              zIndex: 400,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <img
+                src={selectedWorker.photo}
+                alt={selectedWorker.name}
+                style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', border: '2px solid #FF7A00' }}
+              />
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: '0.78rem', color: '#FF7A00', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                  {selectedWorker.role}
+                </div>
+                <div style={{ fontFamily: 'var(--display)', fontSize: '1.2rem', color: '#fff', lineHeight: 1.1, marginTop: 2 }}>
+                  {selectedWorker.name}
+                </div>
+              </div>
+            </div>
+            <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+              <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.7)' }}>{selectedWorker.specialty}</span>
+              <span style={{ fontSize: '1.1rem' }}>{selectedWorker.emoji}</span>
+            </div>
+          </motion.div>
+        </div>
       </motion.div>
     );
   }

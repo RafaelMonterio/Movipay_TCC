@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 
 const clientLinks = [
-  { href:'/client',         icon:'🏠', label:'Início' },
+  { href:'/client',         icon:'🏠', label:'Home' },
   { href:'/client/services',icon:'🔍', label:'Serviços' },
   { href:'/client/quotes',  icon:'📋', label:'Orçamentos' },
   { href:'/client/orders',  icon:'🛒', label:'Pedidos' },

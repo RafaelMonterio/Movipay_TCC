@@ -21,7 +21,7 @@ function resolveWorkerPosition(worker) {
 }
 
 // Leaflet só funciona no browser (sem SSR)
-export default function WorkersMap({ workers = [], center = [-23.7060, -46.3690], onSelectWorker, height = 280 }) {
+export default function WorkersMap({ workers = [], center = [-23.7060, -46.3690], onSelectWorker, height = 280, selectedWorkerId = null }) {
   const mapRef     = useRef(null);
   const instanceRef = useRef(null);
 
@@ -81,39 +81,53 @@ export default function WorkersMap({ workers = [], center = [-23.7060, -46.3690]
         if (!position) return;
 
         const [lat, lng] = position;
-        const emoji = w.is_available ? '🧰' : '🛠️';
+        const emoji = w.emoji || (w.is_available ? '🧰' : '🛠️');
         const workerIcon = L.divIcon({
           html: `<div style="
-            width:34px;height:34px;border-radius:50%;
-            background:#fff;border:2px solid #2563eb;
-            box-shadow:0 4px 12px rgba(15,23,42,0.18);
+            width:38px;height:38px;border-radius:50%;
+            background:#fff;border:3px solid #FF7A00;
+            box-shadow:0 8px 18px rgba(255,122,0,0.25);
             display:flex;align-items:center;justify-content:center;
-            font-size:18px;
+            font-size:20px;
           ">${emoji}</div>`,
-          iconSize: [34, 34],
-          iconAnchor: [17, 17],
+          iconSize: [38, 38],
+          iconAnchor: [19, 19],
           className: '',
         });
 
         const marker = L.marker([lat, lng], { icon: workerIcon }).addTo(map);
+        const photo = w.photo || w.avatar_url || '/img/cabeleireiro.jpg';
         const preview = `
-          <div style="min-width:170px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height:1.4; color:#0f172a">
-            <div style="font-weight:700;font-size:14px; margin-bottom:4px">${w.name}</div>
-            <div style="font-size:12px; color:#475569; margin-bottom:4px">${w.neighborhood || w.city || 'Ribeirão Pires'}</div>
-            ${w.distance_km ? `<div style="font-size:12px; color:#475569; margin-bottom:6px">${w.distance_km} km</div>` : ''}
-            <div style="font-size:11px; color:#2563eb; font-weight:600">Clique para ver o perfil</div>
+          <div style="width:210px; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color:#111827;">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+              <img src="${photo}" alt="${w.name}" style="width:42px; height:42px; border-radius:50%; object-fit:cover; border:2px solid #FF7A00;" />
+              <div>
+                <div style="font-weight:800; font-size:14px; line-height:1.2;">${w.name}</div>
+                <div style="font-size:11px; color:#475569; margin-top:2px;">${w.role || w.specialty || w.service || 'Profissional'}</div>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; font-size:11px; color:#475569; margin-top:4px;">
+              <span>📍 ${w.neighborhood || w.city || 'Ribeirão Pires'}</span>
+              <span>${w.distance_km ? `${w.distance_km} km` : 'Próximo'}</span>
+            </div>
           </div>
         `;
 
-        marker.bindTooltip(preview, {
-          sticky: true,
-          direction: 'top',
-          offset: [0, -8],
-          className: 'leaflet-tooltip-custom'
+        marker.bindPopup(preview, {
+          closeButton: true,
+          offset: [0, -12],
+          className: 'leaflet-popup-custom',
+          autoPan: true,
         });
-        marker.on('mouseover', () => marker.openTooltip());
-        marker.on('mouseout', () => marker.closeTooltip());
-        marker.on('click', () => onSelectWorker?.(w));
+
+        marker.on('click', () => {
+          onSelectWorker?.(w);
+          marker.openPopup();
+        });
+
+        if (selectedWorkerId && String(w.id) === String(selectedWorkerId)) {
+          marker.openPopup();
+        }
       });
 
       // Leaflet CSS
@@ -132,7 +146,7 @@ export default function WorkersMap({ workers = [], center = [-23.7060, -46.3690]
         instanceRef.current = null;
       }
     };
-  }, [workers, center, onSelectWorker]);
+  }, [workers, center, onSelectWorker, selectedWorkerId]);
 
   return (
     <div
