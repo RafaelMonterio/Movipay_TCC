@@ -17,8 +17,8 @@
     "axios": "^1.6.2",
     "expo": "~54.0.0",
     "expo-status-bar": "~3.0.9",
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
     "react-native": "0.81.5",
     "react-native-calendars": "^1.1303.0",
     "react-native-gesture-handler": "~2.28.0",
@@ -33,6 +33,12 @@
     "@babel/core": "^7.20.0",
     "@expo/ngrok": "^4.1.0",
     "babel-preset-expo": "~54.0.0"
+  },
+  "overrides": {
+    "brace-expansion": "5.0.9",
+    "js-yaml": "5.3.0",
+    "uuid": "14.0.1",
+    "postcss": "8.5.26"
   },
   "engines": {
     "node": ">=18.0.0"
