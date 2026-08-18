@@ -15,3 +15,7 @@ backend cadasatro trabalhador
 Tela buscar servoçiços
 
 modo escuro sidebar
+
+Api google maps
+
+Tela do trablahdor: Serviços disponiveis funcionais
