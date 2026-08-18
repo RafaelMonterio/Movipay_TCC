@@ -97,12 +97,13 @@ export default function WorkersMap({ workers = [], center = [-23.7060, -46.3690]
 
         const marker = L.marker([lat, lng], { icon: workerIcon }).addTo(map);
         const photo = w.photo || w.avatar_url || '/img/cabeleireiro.jpg';
+        const profilePath = w.profileId ? `/client/workers/${w.profileId}` : '#';
         const preview = `
           <div style="width:210px; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color:#111827;">
             <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
               <img src="${photo}" alt="${w.name}" style="width:42px; height:42px; border-radius:50%; object-fit:cover; border:2px solid #FF7A00;" />
               <div>
-                <div style="font-weight:800; font-size:14px; line-height:1.2;">${w.name}</div>
+                <a href="${profilePath}" style="display:block; font-weight:800; font-size:14px; line-height:1.2; color:#111827; text-decoration:none;">${w.name}</a>
                 <div style="font-size:11px; color:#475569; margin-top:2px;">${w.role || w.specialty || w.service || 'Profissional'}</div>
               </div>
             </div>
@@ -110,6 +111,7 @@ export default function WorkersMap({ workers = [], center = [-23.7060, -46.3690]
               <span>📍 ${w.neighborhood || w.city || 'Ribeirão Pires'}</span>
               <span>${w.distance_km ? `${w.distance_km} km` : 'Próximo'}</span>
             </div>
+            <a href="${profilePath}" style="display:block; margin-top:10px; background:#FF7A00; color:#fff; text-align:center; border-radius:10px; padding:8px 10px; font-size:11px; font-weight:700; text-decoration:none;">Ver perfil completo</a>
           </div>
         `;
 

@@ -1120,9 +1120,11 @@ function PrestadorCard({ prestador, index, servico }) {
         background: 'rgba(255,255,255,0.95)',
         borderRadius: 24,
         border: '1px solid rgba(255,122,0,0.12)',
-        overflow: 'hidden',
+        overflow: 'visible',
         boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
         transition: 'box-shadow 0.3s, transform 0.3s',
+        position: 'relative',
+        zIndex: bookingOpen ? 10 : 1,
       }}
     >
       <div style={{ padding: '20px 20px 0' }}>

@@ -40,6 +40,7 @@
   const CLIENT_MAP_WORKERS = [
     {
       id: 1,
+      profileId: 'barbeiro-1',
       name: 'Marina Souza',
       role: 'Cabeleireira',
       specialty: 'Cortes e styling',
@@ -55,6 +56,7 @@
     },
     {
       id: 2,
+      profileId: 'faxina-1',
       name: 'Eduardo Ramos',
       role: 'Eletricista',
       specialty: 'Instalações e revisões',
@@ -70,6 +72,7 @@
     },
     {
       id: 3,
+      profileId: 'pintura-1',
       name: 'Thiago Alves',
       role: 'Pedreiro',
       specialty: 'Reformas e acabamento',
@@ -86,7 +89,8 @@
   ];
 
   function FunctionalMapPanel({ theme }) {
-    const [selectedWorker, setSelectedWorker] = useState(CLIENT_MAP_WORKERS[0]);
+    const router = useRouter();
+    const [selectedWorker, setSelectedWorker] = useState(null);
 
     return (
       <motion.div
@@ -103,44 +107,79 @@
             height={560}
           />
 
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35 }}
-            style={{
-              position: 'absolute',
-              left: 26,
-              bottom: 26,
-              width: 240,
-              background: 'rgba(15, 23, 42, 0.9)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: 18,
-              boxShadow: '0 20px 50px rgba(15,23,42,0.25)',
-              padding: 12,
-              backdropFilter: 'blur(10px)',
-              zIndex: 400,
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <img
-                src={selectedWorker.photo}
-                alt={selectedWorker.name}
-                style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', border: '2px solid #FF7A00' }}
-              />
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: '0.78rem', color: '#FF7A00', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                  {selectedWorker.role}
-                </div>
-                <div style={{ fontFamily: 'var(--display)', fontSize: '1.2rem', color: '#fff', lineHeight: 1.1, marginTop: 2 }}>
-                  {selectedWorker.name}
+          {selectedWorker && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35 }}
+              style={{
+                position: 'absolute',
+                left: 26,
+                bottom: 26,
+                width: 240,
+                background: 'rgba(15, 23, 42, 0.9)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: 18,
+                boxShadow: '0 20px 50px rgba(15,23,42,0.25)',
+                padding: 12,
+                backdropFilter: 'blur(10px)',
+                zIndex: 400,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <img
+                  src={selectedWorker.photo}
+                  alt={selectedWorker.name}
+                  style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', border: '2px solid #FF7A00' }}
+                />
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: '0.78rem', color: '#FF7A00', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                    {selectedWorker.role}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/client/workers/${selectedWorker.profileId}`)}
+                    style={{
+                      fontFamily: 'var(--display)',
+                      fontSize: '1.2rem',
+                      color: '#fff',
+                      lineHeight: 1.1,
+                      marginTop: 2,
+                      background: 'transparent',
+                      border: 'none',
+                      padding: 0,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                    }}
+                  >
+                    {selectedWorker.name}
+                  </button>
                 </div>
               </div>
-            </div>
-            <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-              <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.7)' }}>{selectedWorker.specialty}</span>
-              <span style={{ fontSize: '1.1rem' }}>{selectedWorker.emoji}</span>
-            </div>
-          </motion.div>
+              <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.7)' }}>{selectedWorker.specialty}</span>
+                <span style={{ fontSize: '1.1rem' }}>{selectedWorker.emoji}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => router.push(`/client/workers/${selectedWorker.profileId}`)}
+                style={{
+                  marginTop: 12,
+                  width: '100%',
+                  border: 'none',
+                  borderRadius: 10,
+                  background: 'linear-gradient(135deg, #FF7A00, #FF9A33)',
+                  color: '#fff',
+                  fontWeight: 800,
+                  fontSize: '0.72rem',
+                  padding: '9px 10px',
+                  cursor: 'pointer',
+                }}
+              >
+                Ver perfil completo
+              </button>
+            </motion.div>
+          )}
         </div>
       </motion.div>
     );
