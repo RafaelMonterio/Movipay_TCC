@@ -272,13 +272,6 @@ export default function WorkerDetailPage() {
               <button
                 type="button"
                 onClick={() => setBookingOpen(true)}
-                className="border border-client/20 bg-client/5 text-client px-4 py-2 rounded-xl text-sm font-semibold hover:bg-client/10 transition-all"
-              >
-                Agendar
-              </button>
-              <button
-                type="button"
-                onClick={() => setBookingOpen(true)}
                 className="bg-client text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-600 transition-all"
               >
                 Agendar serviço
@@ -502,29 +495,45 @@ export default function WorkerDetailPage() {
         <div className="space-y-5">
           <div>
             <p className="text-sm font-semibold text-slate-700 mb-2">1. Escolha a data</p>
-            <div className="grid gap-2 sm:grid-cols-3">
-              {bookingDates.map((date) => (
-                <button
-                  key={date}
-                  type="button"
-                  onClick={() => {
-                    setSelectedDate(date);
-                    setSelectedSlot(bookingHours[date][0]);
-                  }}
-                  className={`rounded-xl border px-3 py-2 text-sm font-medium text-left transition-all ${
-                    selectedDate === date ? 'border-client bg-client/5 text-client' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
-                  }`}
-                >
-                  {date}
-                </button>
-              ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                {/* Mini calendar (reuse logic from worker calendar) */}
+                <CalendarMini selected={selectedDate} onSelect={(y,m,d) => {
+                  const dayStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                  // Map available bookingDates (strings) to day label if possible, else set ISO
+                  setSelectedDate(dayStr);
+                  // reset slot
+                  const firstSlot = Object.values(bookingHours)[0]?.[0] || (bookingSlots[0]);
+                  setSelectedSlot(firstSlot);
+                }} />
+              </div>
+              <div>
+                <p className="text-sm text-slate-500 mb-2">Datas sugeridas</p>
+                <div className="grid gap-2">
+                  {bookingDates.map((date) => (
+                    <button
+                      key={date}
+                      type="button"
+                      onClick={() => {
+                        setSelectedDate(date);
+                        setSelectedSlot(bookingHours[date][0]);
+                      }}
+                      className={`rounded-xl border px-3 py-2 text-sm font-medium text-left transition-all ${
+                        selectedDate === date ? 'border-client bg-client/5 text-client' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                      }`}
+                    >
+                      {date}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 
           <div>
             <p className="text-sm font-semibold text-slate-700 mb-2">2. Horários disponíveis</p>
             <div className="grid gap-2 sm:grid-cols-3">
-              {(bookingHours[selectedDate] || []).map((slot) => (
+              {(bookingHours[selectedDate] || bookingSlots || []).map((slot) => (
                 <button
                   key={slot}
                   type="button"
@@ -662,5 +671,41 @@ export default function WorkerDetailPage() {
         </div>
       </Modal>
     </DashboardLayout>
+  );
+}
+
+function CalendarMini({ selected, onSelect }) {
+  const today = new Date();
+  const [year, setYear] = useState(today.getFullYear());
+  const [month, setMonth] = useState(today.getMonth());
+  const { first, total } = getMonthDays(year, month);
+
+  function prevMonth() { if (month === 0) { setMonth(11); setYear(y => y - 1); } else setMonth(m => m - 1); }
+  function nextMonth() { if (month === 11) { setMonth(0); setYear(y => y + 1); } else setMonth(m => m + 1); }
+
+  return (
+    <div className="bg-white border rounded-2xl p-3">
+      <div className="flex items-center justify-between mb-2">
+        <button onClick={prevMonth} className="w-8 h-8 rounded-xl bg-slate-100">‹</button>
+        <div className="text-sm font-semibold">{MONTHS[month]} {year}</div>
+        <button onClick={nextMonth} className="w-8 h-8 rounded-xl bg-slate-100">›</button>
+      </div>
+      <div className="grid grid-cols-7 text-xs text-slate-400 mb-2">
+        {DAYS.map(d => <div key={d} className="text-center py-1">{d}</div>)}
+      </div>
+      <div className="grid grid-cols-7 gap-1">
+        {[...Array(first)].map((_, i) => <div key={`b${i}`} />)}
+        {[...Array(total)].map((_, i) => {
+          const day = i + 1;
+          const isToday = day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+          const label = `${year}-${String(month + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+          return (
+            <button key={label} onClick={() => onSelect?.(year, month, day)} className={`aspect-square rounded-xl text-sm flex items-center justify-center ${isToday ? 'bg-amber-100 text-amber-700' : 'hover:bg-slate-100'}`}>
+              {day}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
