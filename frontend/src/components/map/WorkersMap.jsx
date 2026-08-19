@@ -132,6 +132,11 @@ export default function WorkersMap({ workers = [], center = [-23.7060, -46.3690]
         }
       });
 
+      // Preserve current zoom/center when map props update
+      const savedView = map.getCenter ? { center: map.getCenter(), zoom: map.getZoom() } : null;
+      // Apply saved view after markers rendered
+      if (savedView) map.setView(savedView.center, savedView.zoom);
+
       // Leaflet CSS
       if (!document.querySelector('#leaflet-css')) {
         const link = document.createElement('link');

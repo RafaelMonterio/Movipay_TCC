@@ -145,16 +145,20 @@ routerU.get('/:id', authMiddleware, async (req, res) => {
 routerU.patch('/:id', authMiddleware, async (req, res) => {
   if (req.user.id !== parseInt(req.params.id))
     return res.status(403).json({ error: 'Sem permissão para editar este usuário' });
-  const { name, bio, phone } = req.body;
+  const { name, bio, phone, avatar_url, lat, lng, neighborhood } = req.body;
   try {
     const { rows } = await q(
       `UPDATE users SET
          name = COALESCE($1, name),
          bio  = COALESCE($2, bio),
          phone = COALESCE($3, phone),
+         avatar_url = COALESCE($4, avatar_url),
+         lat = COALESCE($5, lat),
+         lng = COALESCE($6, lng),
+         neighborhood = COALESCE($7, neighborhood),
          updated_at = NOW()
-       WHERE id = $4 RETURNING id, name, email, mode, points, bio, phone`,
-      [name, bio, phone, req.user.id]
+       WHERE id = $8 RETURNING id, name, email, mode, points, bio, phone, avatar_url, lat, lng, neighborhood`,
+      [name, bio, phone, avatar_url, lat, lng, neighborhood, req.user.id]
     );
     res.json(rows[0]);
   } catch (err) { res.status(500).json({ error: err.message }); }

@@ -15,6 +15,11 @@ router.post('/register', async (req, res) => {
     phone = '',
     bio = '',
     city = '',
+    avatar_url = null,
+    lat = null,
+    lng = null,
+    neighborhood = null,
+    category = null,
   } = req.body;
 
   const normalizedMode = ['client', 'worker'].includes(mode) ? mode : 'client';

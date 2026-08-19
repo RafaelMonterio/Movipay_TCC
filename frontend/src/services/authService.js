@@ -106,6 +106,11 @@ const authService = {
       points: 0,
       phone: payload.phone || '',
       bio: payload.bio || '',
+      avatar_url: payload.avatar_url || '',
+      lat: payload.lat || null,
+      lng: payload.lng || null,
+      neighborhood: payload.neighborhood || '',
+      category: payload.category || '',
     };
 
     db[email] = newUser;
