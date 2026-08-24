@@ -2,11 +2,14 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
+import { useTheme, getThemeColors } from '@/context/ThemeContext';
 import api from '@/services/api';
 import { formatDate } from '@/utils/formatters';
 
 export default function NotificationBell() {
   const { user } = useAuth();
+  const { darkMode } = useTheme();
+  const colors = getThemeColors(darkMode);
   const [open, setOpen]           = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unread, setUnread]       = useState(0);
@@ -62,10 +65,25 @@ export default function NotificationBell() {
     setUnread(0);
   }
 
+  // Theme colors
+  const bellBtnBg = darkMode ? 'rgba(243,239,226,0.08)' : 'rgba(23,36,26,0.06)';
+  const bellBtnBgHover = darkMode ? 'rgba(243,239,226,0.15)' : 'rgba(23,36,26,0.12)';
+  const panelBg = colors.cardBg;
+  const panelBorder = colors.cardBorder;
+  const dividerColor = darkMode ? 'rgba(243,239,226,0.08)' : 'rgba(23,36,26,0.06)';
+  const hoverBg = darkMode ? 'rgba(243,239,226,0.05)' : 'rgba(23,36,26,0.04)';
+
   return (
     <div className="relative">
       <button onClick={() => { setOpen(!open); if (!open) loadNotifications(); }}
-        className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-all relative"
+        className="w-9 h-9 rounded-xl flex items-center justify-center transition-all relative"
+        style={{
+          background: bellBtnBg,
+          color: colors.text,
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.background = bellBtnBgHover}
+        onMouseLeave={(e) => e.currentTarget.style.background = bellBtnBg}
+        aria-label="Notificações"
       >
         🔔
         {unread > 0 && (
@@ -82,10 +100,14 @@ export default function NotificationBell() {
           <>
             <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
             <motion.div initial={{ opacity: 0, y: 8, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.95 }}
-              className="absolute right-0 top-11 w-80 bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden z-40"
+              className="absolute right-0 top-11 w-80 rounded-2xl shadow-xl overflow-hidden z-40"
+              style={{
+                background: panelBg,
+                border: `1px solid ${panelBorder}`,
+              }}
             >
-              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
-                <p className="font-bold text-slate-800 text-sm">Notificações</p>
+              <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: `1px solid ${dividerColor}` }}>
+                <p className="font-bold text-sm" style={{ color: colors.text }}>Notificações</p>
                 {unread > 0 && (
                   <button onClick={markAllRead} className="text-xs text-client hover:underline">Marcar todas como lidas</button>
                 )}
@@ -95,19 +117,31 @@ export default function NotificationBell() {
                 {notifications.length === 0 ? (
                   <div className="p-6 text-center">
                     <p className="text-2xl mb-2">🔕</p>
-                    <p className="text-slate-400 text-sm">Nenhuma notificação</p>
+                    <p className="text-sm" style={{ color: colors.textMuted }}>Nenhuma notificação</p>
                   </div>
                 ) : (
                   notifications.map(n => (
                     <button key={n.id} onClick={() => markRead(n.id)}
-                      className={`w-full text-left flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition-all border-b border-slate-50 ${!n.read ? 'bg-client/5' : ''}`}
+                      className={`w-full text-left flex items-start gap-3 px-4 py-3 transition-all ${!n.read ? '' : ''}`}
+                      style={{
+                        borderBottom: `1px solid ${dividerColor}`,
+                        background: !n.read ? 'rgba(255,122,0,0.08)' : 'transparent',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (n.read) e.currentTarget.style.background = hoverBg;
+                      }}
+                      onMouseLeave={(e) => {
+                        if (n.read) e.currentTarget.style.background = 'transparent';
+                      }}
                     >
                       <span className="text-lg flex-shrink-0">{n.icon}</span>
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm leading-snug ${n.read ? 'text-slate-600' : 'text-slate-800 font-semibold'}`}>{n.title}</p>
-                        <p className="text-xs text-slate-400 mt-0.5">{formatDate(n.time)}</p>
+                        <p className={`text-sm leading-snug ${n.read ? '' : 'font-semibold'}`} style={{ color: n.read ? colors.textMuted : colors.text }}>
+                          {n.title}
+                        </p>
+                        <p className="text-xs mt-0.5" style={{ color: colors.textMuted }}>{formatDate(n.time)}</p>
                       </div>
-                      {!n.read && <span className="w-2 h-2 rounded-full bg-client flex-shrink-0 mt-1.5" />}
+                      {!n.read && <span className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5" style={{ backgroundColor: '#FF7A00' }} />}
                     </button>
                   ))
                 )}

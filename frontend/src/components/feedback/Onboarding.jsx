@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
+import { useTheme, getThemeColors } from '@/context/ThemeContext';
 import { useRouter } from 'next/navigation';
 
 const STEPS = [
@@ -33,6 +34,8 @@ const STEPS = [
 
 export default function OnboardingModal() {
   const { isFirstLogin, dismissOnboarding } = useAuth();
+  const { darkMode } = useTheme();
+  const colors = getThemeColors(darkMode);
   const [step, setStep] = useState(0);
   const router = useRouter();
 
@@ -58,7 +61,11 @@ export default function OnboardingModal() {
 
         {/* Modal */}
         <motion.div initial={{ opacity: 0, scale: 0.9, y: 24 }} animate={{ opacity: 1, scale: 1, y: 0 }}
-          className="relative w-full max-w-sm bg-white rounded-3xl overflow-hidden shadow-2xl"
+          className="relative w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl"
+          style={{
+            backgroundColor: colors.cardBg,
+            border: `1px solid ${colors.cardBorder}`,
+          }}
         >
           {/* Gradient header */}
           <div className={`bg-gradient-to-br ${current.color} p-10 text-center`}>
@@ -70,8 +77,8 @@ export default function OnboardingModal() {
           <div className="p-7 text-center">
             <AnimatePresence mode="wait">
               <motion.div key={step} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
-                <h2 className="text-xl font-black text-slate-800 mb-3">{current.title}</h2>
-                <p className="text-slate-500 text-sm leading-relaxed">{current.body}</p>
+                <h2 className="text-xl font-black mb-3" style={{ color: colors.text }}>{current.title}</h2>
+                <p className="text-sm leading-relaxed" style={{ color: colors.textMuted }}>{current.body}</p>
               </motion.div>
             </AnimatePresence>
 
@@ -79,8 +86,10 @@ export default function OnboardingModal() {
             <div className="flex items-center justify-center gap-2 my-6">
               {STEPS.map((_, i) => (
                 <div key={i} className={`rounded-full transition-all ${
-                  i === step ? 'w-6 h-2 bg-indigo-500' : 'w-2 h-2 bg-slate-200'
-                }`} />
+                  i === step ? 'w-6 h-2 bg-indigo-500' : 'w-2 h-2'
+                }`}
+                style={{ backgroundColor: i === step ? '#6366F1' : colors.line }}
+                />
               ))}
             </div>
 
@@ -88,7 +97,14 @@ export default function OnboardingModal() {
             <div className="flex gap-3">
               {!isLast && (
                 <button onClick={dismissOnboarding}
-                  className="flex-1 border border-slate-200 text-slate-500 font-semibold py-2.5 rounded-xl hover:bg-slate-50 text-sm transition-all">
+                  className="flex-1 border font-semibold py-2.5 rounded-xl text-sm transition-all"
+                  style={{
+                    borderColor: colors.line,
+                    color: colors.textMuted,
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = darkMode ? 'rgba(243,239,226,0.05)' : 'rgba(23,36,26,0.04)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                >
                   Pular
                 </button>
               )}

@@ -2,41 +2,57 @@
 import { useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
+import { useTheme, getThemeColors } from '@/context/ThemeContext';
 import Sidebar from './Sidebar';
 import OnboardingModal from '@/components/feedback/Onboarding';
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
 import NotificationBell from '@/components/feedback/NotificationBell';
+import AccessibilityControls from '@/components/accessibility/AccessibilityControls';
 
 export default function DashboardLayout({ children }) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const { darkMode } = useTheme();
+  const themeColors = getThemeColors(darkMode);
 
   useEffect(() => {
     if (!loading && !user) router.push('/login');
-  }, [user, loading]);
+  }, [user, loading, router]);
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <div className="text-center space-y-3">
-        <p className="text-4xl animate-bounce">🐜</p>
-        <p className="text-slate-400 text-sm">Carregando...</p>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: themeColors.bg, transition: 'background 0.4s' }}>
+      <div style={{ textAlign: 'center', spaceY: '12px' }}>
+        <p style={{ fontSize: '64px', animation: 'bounce 1s infinite' }}>🐜</p>
+        <p style={{ fontSize: '0.875rem', color: themeColors.textMuted }}>Carregando...</p>
       </div>
     </div>
   );
 
   if (!user) return null;
 
+  const bg = themeColors.bg;
+  const headerBg = themeColors.headerBg;
+  const headerBorder = themeColors.headerBorder;
+
   return (
-    <div className="relative min-h-screen bg-slate-50 lg:pl-[250px]">
+    <div style={{ position: 'relative', minHeight: '100vh', background: bg, transition: 'background 0.4s', color: themeColors.text }}>
       <Sidebar />
 
-      <div className="flex flex-col min-w-0 w-full">
-        <header className="sticky top-0 z-20 bg-white border-b border-slate-100 flex items-center justify-end gap-2 px-4 md:px-6 h-14 flex-shrink-0">
+      <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, width: '100%' }}>
+        <header style={{
+          position: 'sticky', top: 0, zIndex: 20,
+          background: headerBg,
+          borderBottom: `1px solid ${headerBorder}`,
+          backdropFilter: 'blur(12px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
+          gap: 8, padding: '0 16px 0 24px', height: 56, flexShrink: 0,
+          transition: 'background 0.4s, border-color 0.4s',
+        }}>
           <NotificationBell />
         </header>
 
-        <main className="flex-1 overflow-auto pb-20 lg:pb-0">
-          <div className="w-full max-w-[1220px] mx-auto">
+        <main style={{ flex: 1, overflow: 'auto', paddingBottom: 0 }}>
+          <div style={{ width: '100%', maxWidth: '1220px', margin: '0 auto' }}>
             <ErrorBoundary>
               {children}
             </ErrorBoundary>
@@ -45,6 +61,7 @@ export default function DashboardLayout({ children }) {
       </div>
 
       <OnboardingModal />
+      <AccessibilityControls />
     </div>
   );
 }

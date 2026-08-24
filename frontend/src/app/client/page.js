@@ -1,13 +1,15 @@
   'use client';
-  import { useEffect, useRef, useState } from 'react';
-  import { useRouter } from 'next/navigation';
-  import Link from 'next/link';
-  import { motion, useScroll, useInView, AnimatePresence } from 'framer-motion';
-  import { useAuth } from '@/context/AuthContext';
-  import Sidebar from '@/components/layout/Sidebar';
-  import WorkersMap from '@/components/map/WorkersMap';
+import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { motion, useScroll, useInView, AnimatePresence } from 'framer-motion';
+import { useAuth } from '@/context/AuthContext';
+import Sidebar from '@/components/layout/Sidebar';
+import WorkersMap from '@/components/map/WorkersMap';
+import { useTheme, getThemeColors } from '@/context/ThemeContext';
+import AccessibilityControls from '@/components/accessibility/AccessibilityControls';
 
-  /* ─── SVG ICONS ─────────────────────────────────────────────────────── */
+/* ─── SVG ICONS ─────────────────────────────────────────────────────── */
   function Icon({ name, size = 24, color = 'currentColor', strokeWidth = 1.8, style }) {
     const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth, strokeLinecap: 'round', strokeLinejoin: 'round', style };
     switch (name) {
@@ -88,7 +90,7 @@
     },
   ];
 
-  function FunctionalMapPanel({ theme }) {
+  function FunctionalMapPanel({ themeColors }) {
     const router = useRouter();
     const [selectedWorker, setSelectedWorker] = useState(null);
 
@@ -117,8 +119,8 @@
                 left: 26,
                 bottom: 26,
                 width: 240,
-                background: 'rgba(15, 23, 42, 0.9)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                background: themeColors.cardBg,
+                border: `1px solid ${themeColors.cardBorder}`,
                 borderRadius: 18,
                 boxShadow: '0 20px 50px rgba(15,23,42,0.25)',
                 padding: 12,
@@ -142,7 +144,7 @@
                     style={{
                       fontFamily: 'var(--display)',
                       fontSize: '1.2rem',
-                      color: '#fff',
+                      color: themeColors.text,
                       lineHeight: 1.1,
                       marginTop: 2,
                       background: 'transparent',
@@ -157,7 +159,7 @@
                 </div>
               </div>
               <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.7)' }}>{selectedWorker.specialty}</span>
+                <span style={{ fontSize: '0.72rem', color: themeColors.textMuted }}>{selectedWorker.specialty}</span>
                 <span style={{ fontSize: '1.1rem' }}>{selectedWorker.emoji}</span>
               </div>
               <button
@@ -221,7 +223,7 @@
   }
 
   /* ─── RADAR CANVAS — o coração visual da landing ─────────────────────── */
-  function RadarCanvas({ darkMode }) {
+  function RadarCanvas({ themeColors }) {
     const canvasRef = useRef(null);
 
     useEffect(() => {
@@ -234,10 +236,10 @@
 
       const ORANGE = '#FF7A00';
       const GREEN = '#22D31B';
-      const BG = darkMode ? '#121A0F' : '#FAF6EC';
-      const RING = darkMode ? 'rgba(255,122,0,0.15)' : 'rgba(255,122,0,0.12)';
-      const RING_STROKE = darkMode ? 'rgba(255,122,0,0.25)' : 'rgba(255,122,0,0.2)';
-      const TEXT_COL = darkMode ? 'rgba(243,239,226,0.5)' : 'rgba(23,36,26,0.4)';
+      const BG = themeColors.bg;
+      const RING = themeColors.line;
+      const RING_STROKE = themeColors.line;
+      const TEXT_COL = themeColors.textMuted;
 
       /* dots representing workers/services in the radar */
       const dots = [
@@ -294,7 +296,7 @@
           ctx.moveTo(cx, cy);
           ctx.arc(cx, cy, 220, a, a + (Math.PI * 0.7) / TRAIL_STEPS);
           ctx.closePath();
-          ctx.fillStyle = darkMode ? `rgba(255,122,0,${alpha * 0.7})` : `rgba(255,122,0,${alpha * 0.5})`;
+          ctx.fillStyle = `rgba(255,122,0,${alpha * 0.5})`;
           ctx.fill();
         }
         /* sweep line */
@@ -333,7 +335,7 @@
           ctx.arc(dx, dy, d.size, 0, Math.PI * 2);
           ctx.fillStyle = d.color;
           ctx.fill();
-          ctx.strokeStyle = darkMode ? '#121A0F' : '#FAF6EC';
+          ctx.strokeStyle = themeColors.bg;
           ctx.lineWidth = 1.5;
           ctx.stroke();
         });
@@ -358,7 +360,7 @@
         /* center circle */
         ctx.beginPath();
         ctx.arc(cx, cy, 22, 0, Math.PI * 2);
-        ctx.fillStyle = darkMode ? '#1A2417' : '#fff';
+        ctx.fillStyle = themeColors.cardBg;
         ctx.fill();
         ctx.strokeStyle = ORANGE;
         ctx.lineWidth = 2;
@@ -409,7 +411,7 @@
       window.addEventListener('resize', resize); resize();
 
       return () => { cancelAnimationFrame(animId); window.removeEventListener('resize', resize); };
-    }, [darkMode]);
+    }, [themeColors]);
 
     return (
       <canvas
@@ -420,7 +422,7 @@
   }
 
   /* ─── PARTICLE FIELD — fundo do hero ──────────────────────────────────── */
-  function ParticleField({ darkMode }) {
+  function ParticleField({ themeColors }) {
     const canvasRef = useRef(null);
     useEffect(() => {
       const canvas = canvasRef.current;
@@ -430,8 +432,8 @@
       canvas.width = W; canvas.height = H;
       const ctx = canvas.getContext('2d');
 
-      const PARTICLE_COLOR = darkMode ? 'rgba(255,122,0,' : 'rgba(255,122,0,';
-      const LINE_COLOR = darkMode ? 'rgba(34,211,27,' : 'rgba(34,211,27,';
+      const PARTICLE_COLOR = 'rgba(255,122,0,';
+      const LINE_COLOR = 'rgba(34,211,27,';
 
       const pts = Array.from({ length: 42 }, () => ({
         x: Math.random() * W, y: Math.random() * H,
@@ -469,7 +471,7 @@
       }
       loop();
       return () => cancelAnimationFrame(animId);
-    }, [darkMode]);
+    }, [themeColors]);
 
     return (
       <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }} />
@@ -510,96 +512,7 @@
   }
 
   /* ─── ACCESSIBILITY MENU ─────────────────────────────────────────────── */
-  function AccessibilityButton({ isOpen, onClick, theme }) {
-    return (
-      <motion.div
-        style={{ position: 'fixed', bottom: 20, right: 20, zIndex: 200, cursor: 'pointer', width: 50, height: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: theme.cardBg, border: `1.5px solid ${theme.cardBorder}`, backdropFilter: 'blur(8px)' }}
-        whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.92 }} onClick={onClick} role="button" aria-label="Acessibilidade"
-      >
-        <motion.img src="/img/logo.png" alt="" style={{ width: 32, height: 32, objectFit: 'contain' }} animate={isOpen ? { rotate: 180 } : { rotate: 0 }} transition={{ duration: 0.35 }} draggable={false} />
-      </motion.div>
-    );
-  }
-
-  function AccessibilityMenu({ isOpen, onClose, darkMode, setDarkMode, theme }) {
-    const [hc, setHc] = useState(false);
-    const [fs, setFs] = useState(100);
-    const [proto, setProto] = useState(false);
-    const [deut, setDeut] = useState(false);
-    const [trit, setTrit] = useState(false);
-
-    useEffect(() => {
-      if (typeof document === 'undefined') return;
-      const html = document.documentElement;
-      html.dataset.darkMode = String(darkMode);
-      html.dataset.highContrast = String(hc);
-      html.dataset.daltonism = proto ? 'protanopia' : deut ? 'deuteranopia' : trit ? 'tritanopia' : 'none';
-
-      let filters = [];
-      if (hc) filters.push('contrast(1.8)');
-      if (proto) filters.push('url(#protanopia)');
-      else if (deut) filters.push('url(#deuteranopia)');
-      else if (trit) filters.push('url(#tritanopia)');
-      html.style.filter = filters.join(' ');
-      html.style.fontSize = fs !== 100 ? fs + '%' : '';
-      return () => { html.style.filter = ''; html.style.fontSize = ''; };
-    }, [hc, proto, deut, trit, fs, darkMode]);
-
-    useEffect(() => {
-      if (typeof document === 'undefined') return;
-      let svg = document.getElementById('cb-filters-lp');
-      if (!svg) {
-        svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.id = 'cb-filters-lp';
-        svg.style.cssText = 'position:absolute;width:0;height:0;';
-        svg.innerHTML = `<filter id="protanopia"><feColorMatrix type="matrix" values="0.567 0.433 0 0 0 0.558 0.442 0 0 0 0 0.242 0.758 0 0 0 0 0 1 0"/></filter><filter id="deuteranopia"><feColorMatrix type="matrix" values="0.625 0.375 0 0 0 0.7 0.3 0 0 0 0 0.3 0.7 0 0 0 0 0 1 0"/></filter><filter id="tritanopia"><feColorMatrix type="matrix" values="0.95 0.05 0 0 0 0 0.433 0.567 0 0 0 0.475 0.525 0 0 0 0 0 1 0"/></filter>`;
-        document.body.prepend(svg);
-      }
-    }, []);
-
-    return (
-      <AnimatePresence>
-        {isOpen && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(3px)', zIndex: 150 }} onClick={onClose} />
-            <motion.div
-              initial={{ opacity: 0, x: 40, scale: 0.95 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: 40, scale: 0.95 }}
-              transition={{ type: 'spring', damping: 26, stiffness: 320 }}
-              style={{ position: 'fixed', top: 78, right: 20, width: 290, background: theme.cardBg, borderRadius: 12, border: `1px solid ${theme.cardBorder}`, padding: 20, zIndex: 160, maxHeight: 'calc(100vh - 100px)', overflowY: 'auto' }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: theme.mono }}>Acessibilidade</span>
-                <button onClick={onClose} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: theme.textMuted }}><Icon name="x" size={15} color={theme.textMuted} /></button>
-              </div>
-              {[
-                { label: `Modo ${darkMode ? 'Claro' : 'Escuro'}`, active: darkMode, toggle: () => setDarkMode(d => !d) },
-                { label: 'Alto Contraste', active: hc, toggle: () => setHc(v => !v) },
-                { label: 'Protanopia', active: proto, toggle: () => { setProto(v => !v); setDeut(false); setTrit(false); } },
-                { label: 'Deuteranopia', active: deut, toggle: () => { setDeut(v => !v); setProto(false); setTrit(false); } },
-                { label: 'Tritanopia', active: trit, toggle: () => { setTrit(v => !v); setProto(false); setDeut(false); } },
-              ].map((item, i) => (
-                <div key={i} onClick={item.toggle} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', borderRadius: 8, cursor: 'pointer', marginBottom: 4, background: item.active ? '#FF7A0014' : 'transparent', border: `1px solid ${item.active ? '#FF7A0044' : 'transparent'}` }}>
-                  <span style={{ fontSize: '0.84rem', fontWeight: item.active ? 700 : 500, color: theme.text }}>{item.label}</span>
-                  {item.active && <Icon name="checkCircle" size={14} color="#FF7A00" />}
-                </div>
-              ))}
-              <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${theme.line}` }}>
-                <p style={{ fontFamily: 'var(--mono)', fontSize: '0.68rem', color: theme.textMuted, marginBottom: 8, fontWeight: 600 }}>TAMANHO DA FONTE</p>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  {[{ v: 80, l: 'A', s: 11 }, { v: 100, l: 'A', s: 13 }, { v: 120, l: 'A', s: 16 }, { v: 140, l: 'A', s: 19 }].map(o => (
-                    <button key={o.v} onClick={() => setFs(o.v)} style={{ flex: 1, padding: '7px 0', borderRadius: 6, border: `1px solid ${fs === o.v ? '#FF7A00' : theme.line}`, background: fs === o.v ? '#FF7A0014' : 'transparent', color: fs === o.v ? '#FF7A00' : theme.text, fontSize: o.s, fontWeight: fs === o.v ? 800 : 600, cursor: 'pointer' }}>{o.l}</button>
-                  ))}
-                </div>
-              </div>
-              <button onClick={() => { setHc(false); setProto(false); setDeut(false); setTrit(false); setFs(100); if (darkMode) setDarkMode(false); }} style={{ marginTop: 12, width: '100%', padding: '8px', borderRadius: 8, border: `1px solid ${theme.line}`, background: 'transparent', color: theme.textMuted, fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}>
-                Restaurar padrões
-              </button>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    );
-  }
+  // Using global AccessibilityControls from @/components/accessibility/AccessibilityControls
 
   /* ─── DATA ───────────────────────────────────────────────────────────── */
   const CATEGORIES = [
@@ -636,49 +549,37 @@
   /* ─── MAIN ───────────────────────────────────────────────────────────── */
   export default function LandingPage() {
     const { user, loading, logout } = useAuth();
+    const { darkMode, toggleTheme: globalToggleTheme } = useTheme();
+    const colors = getThemeColors(darkMode);
     const router = useRouter();
     const { scrollY, scrollYProgress } = useScroll();
     const [navSolid, setNavSolid] = useState(false);
-    const [darkMode, setDarkMode] = useState(false);
-    const [accessibilityOpen, setAccessibilityOpen] = useState(false);
     const [profileOpen, setProfileOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
 
     useEffect(() => { if (!loading && user) router.push(user.mode === 'worker' ? '/worker' : '/client'); }, [user, loading]);
     useEffect(() => { const u = scrollY.on('change', v => setNavSolid(v > 40)); return u; }, [scrollY]);
-    useEffect(() => {
-      if (typeof window === 'undefined') return;
-      const saved = window.localStorage.getItem('movipay-theme');
-      if (saved === 'dark') setDarkMode(true);
-    }, []);
-
-    function toggleTheme() {
-      setDarkMode(prev => {
-        const next = !prev;
-        if (typeof window !== 'undefined') window.localStorage.setItem('movipay-theme', next ? 'dark' : 'light');
-        return next;
-      });
-    }
 
     function getInitials(name = '') {
       if (!name) return 'MP';
       return name.split(/\s+/).slice(0, 2).map(p => p[0]).join('').toUpperCase();
     }
 
-    const theme = darkMode ? {
-      bg: '#121A0F', bgAlt: '#0D130B', bgAlt2: '#0F1A0C',
-      text: '#F3EFE2', textMuted: '#8AA085',
-      cardBg: 'rgba(26,36,23,0.85)', cardBorder: 'rgba(243,239,226,0.09)',
-      navBg: 'rgba(18,26,15,0.94)', navBorder: 'rgba(243,239,226,0.07)',
-      line: 'rgba(243,239,226,0.13)', mono: '#FFB627',
-      orange: '#FF7A00', green: '#22D31B', inputBg: '#1A2417',
-    } : {
-      bg: '#FAF6EC', bgAlt: '#F1EAD9', bgAlt2: '#F5F1E5',
-      text: '#17241A', textMuted: '#5B6B57',
-      cardBg: 'rgba(255,255,255,0.90)', cardBorder: 'rgba(23,36,26,0.09)',
-      navBg: 'rgba(250,246,236,0.92)', navBorder: 'rgba(23,36,26,0.07)',
-      line: 'rgba(23,36,26,0.13)', mono: '#8A4A00',
-      orange: '#FF7A00', green: '#22D31B', inputBg: '#FFFFFF',
+    const theme = {
+      bg: colors.bg,
+      bgAlt: darkMode ? '#0D130B' : '#F1EAD9',
+      bgAlt2: darkMode ? '#0F1A0C' : '#F5F1E5',
+      text: colors.text,
+      textMuted: colors.textMuted,
+      cardBg: colors.cardBg,
+      cardBorder: colors.cardBorder,
+      navBg: darkMode ? 'rgba(18,26,15,0.94)' : 'rgba(250,246,236,0.92)',
+      navBorder: darkMode ? 'rgba(243,239,226,0.07)' : 'rgba(23,36,26,0.07)',
+      line: colors.line,
+      mono: colors.mono,
+      orange: colors.orange,
+      green: colors.green,
+      inputBg: darkMode ? '#1A2417' : '#FFFFFF',
     };
 
     if (loading) return (
@@ -812,16 +713,15 @@
         <motion.div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 2, transformOrigin: '0%', zIndex: 400, background: 'linear-gradient(90deg, #FF7A00, #22D31B)', scaleX: scrollYProgress }} />
 
         {/* accessibility */}
-        <AccessibilityButton isOpen={accessibilityOpen} onClick={() => setAccessibilityOpen(o => !o)} theme={theme} />
-        <AccessibilityMenu isOpen={accessibilityOpen} onClose={() => setAccessibilityOpen(false)} darkMode={darkMode} setDarkMode={setDarkMode} theme={theme} />
+        <AccessibilityControls />
 
         {/* ── NAVBAR ──────────────────────────────────────────────────── */}
         <nav style={{ position: 'sticky', top: 0, zIndex: 100, borderBottom: navSolid ? `1px solid ${theme.navBorder}` : '1px solid transparent', background: navSolid ? theme.navBg : 'transparent', transition: 'all 0.35s' }}>
           <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <Link href="#servicos" className="btn-primary" style={{ padding: '9px 18px', fontSize: '0.83rem' }}>Buscar serviço</Link>
-              <button onClick={toggleTheme} style={{ width: 38, height: 38, borderRadius: '50%', background: 'transparent', border: `1px solid ${theme.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'border-color 0.2s' }} aria-label="Alternar tema">
-                <Icon name={darkMode ? 'sun' : 'moon'} size={16} color={theme.mono} />
+              <button onClick={globalToggleTheme} style={{ width: 38, height: 38, borderRadius: '50%', background: 'transparent', border: `1px solid ${theme.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'border-color 0.2s' }} aria-label="Alternar tema">
+                <Icon name={colors.darkMode ? 'sun' : 'moon'} size={16} color={theme.mono} />
               </button>
               <div style={{ position: 'relative' }}>
                 <button onClick={() => setProfileOpen(v => !v)} style={{ width: 38, height: 38, borderRadius: '50%', background: '#FF7A00', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, boxShadow: '0 6px 14px rgba(255,122,0,0.16)' }} aria-label="Abrir perfil">
@@ -862,7 +762,7 @@
         {/* ── HERO — split layout: texto esquerda, radar direita ─────── */}
         {/* ══════════════════════════════════════════════════════════════ */}
         <section style={{ position: 'relative', overflow: 'hidden', minHeight: '88vh', display: 'flex', alignItems: 'center' }}>
-          <ParticleField darkMode={darkMode} />
+          <ParticleField themeColors={colors} />
 
           <div style={{ position: 'relative', zIndex: 2, maxWidth: 1200, margin: '0 auto', padding: '64px 24px', width: '100%' }}>
             <div className="hero-split" style={{ display: 'flex', alignItems: 'center', gap: 60 }}>
@@ -919,7 +819,7 @@
               </motion.div>
 
               {/* RIGHT — mapa funcional + floating cards */}
-              <FunctionalMapPanel theme={theme} />
+              <FunctionalMapPanel themeColors={colors} />
 
             </div>
           </div>

@@ -1,8 +1,11 @@
 'use client';
 import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTheme, getThemeColors } from '@/context/ThemeContext';
 
 export default function Modal({ open, onClose, title, children, size = 'md' }) {
+  const { darkMode } = useTheme();
+  const colors = getThemeColors(darkMode);
   const sizes = {
     sm: 'max-w-sm',
     md: 'max-w-lg',
@@ -36,14 +39,30 @@ export default function Modal({ open, onClose, title, children, size = 'md' }) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 16 }}
             transition={{ duration: 0.2 }}
-            className={`relative w-full ${sizes[size]} bg-white rounded-2xl shadow-2xl overflow-hidden`}
+            className={`relative w-full ${sizes[size]} rounded-2xl shadow-2xl overflow-hidden`}
+            style={{
+              backgroundColor: colors.cardBg,
+              border: `1px solid ${colors.cardBorder}`,
+            }}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-              <h2 className="text-lg font-bold text-slate-800">{title}</h2>
+            <div
+              className="flex items-center justify-between px-6 py-4"
+              style={{ borderBottom: `1px solid ${colors.line}` }}
+            >
+              <h2 className="text-lg font-bold" style={{ color: colors.text }}>{title}</h2>
               <button
                 onClick={onClose}
-                className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-all"
+                className="w-8 h-8 flex items-center justify-center rounded-lg transition-all"
+                style={{ color: colors.textMuted }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = darkMode ? 'rgba(243,239,226,0.08)' : 'rgba(23,36,26,0.06)';
+                  e.currentTarget.style.color = colors.text;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = colors.textMuted;
+                }}
               >
                 ✕
               </button>

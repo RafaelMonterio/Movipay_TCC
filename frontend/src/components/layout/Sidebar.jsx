@@ -1,76 +1,80 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
 
 const clientLinks = [
-  { href:'/client',         icon:'🏠', label:'Home' },
-  { href:'/client/services',icon:'🔍', label:'Serviços' },
-  { href:'/client/quotes',  icon:'📋', label:'Orçamentos' },
-  { href:'/client/orders',  icon:'🛒', label:'Pedidos' },
-  { href:'/client/chat',    icon:'💬', label:'Chat' },
-  { href:'/client/profile', icon:'👤', label:'Perfil' },
+  { href: '/client', icon: '🏠', label: 'Home' },
+  { href: '/client/services', icon: '🔍', label: 'Serviços' },
+  { href: '/client/quotes', icon: '📋', label: 'Orçamentos' },
+  { href: '/client/orders', icon: '🛒', label: 'Pedidos' },
+  { href: '/client/chat', icon: '💬', label: 'Chat' },
+  { href: '/client/profile', icon: '👤', label: 'Perfil' },
 ];
+
 const workerLinks = [
-  { href:'/worker',          icon:'🏠', label:'Início' },
-  { href:'/worker/orders',   icon:'📋', label:'Pedidos' },
-  { href:'/worker/quotes',   icon:'🎯', label:'Oportunidades' },
-  { href:'/worker/earnings', icon:'💰', label:'Ganhos' },
-  { href:'/worker/calendar', icon:'📅', label:'Calendário' },
-  { href:'/worker/chat',     icon:'💬', label:'Chat' },
-  { href:'/worker/profile',  icon:'👤', label:'Perfil' },
+  { href: '/worker', icon: '🏠', label: 'Início' },
+  { href: '/worker/orders', icon: '📋', label: 'Pedidos' },
+  { href: '/worker/quotes', icon: '🎯', label: 'Oportunidades' },
+  { href: '/worker/earnings', icon: '💰', label: 'Ganhos' },
+  { href: '/worker/calendar', icon: '📅', label: 'Calendário' },
+  { href: '/worker/chat', icon: '💬', label: 'Chat' },
+  { href: '/worker/profile', icon: '👤', label: 'Perfil' },
 ];
-
-function getAccessibilityState() {
-  if (typeof document === 'undefined') return { dark: false, highContrast: false, daltonism: '' };
-
-  const root = document.documentElement;
-  return {
-    dark: root.dataset.darkMode === 'true',
-    highContrast: root.dataset.highContrast === 'true',
-    daltonism: root.dataset.daltonism || '',
-  };
-}
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
   const pathname = usePathname();
   const [hovered, setHovered] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  const [a11y, setA11y] = useState(getAccessibilityState);
+  const { darkMode, highContrast } = useTheme();
   const isWorker = user?.mode === 'worker';
   const links = isWorker ? workerLinks : clientLinks;
   const mobileLinks = isWorker ? workerLinks.slice(0, 5) : [clientLinks[0], clientLinks[1], clientLinks[2], clientLinks[3], clientLinks[5]];
-  const accent = isWorker ? 'text-worker' : 'text-client';
-  const accentBg = isWorker ? 'bg-worker/10' : 'bg-client/10';
 
-  useEffect(() => {
-    const sync = () => setA11y(getAccessibilityState());
-    sync();
+  // Compute colors based on accessibility state
+  const isDark = darkMode || highContrast;
 
-    if (typeof document === 'undefined') return undefined;
-
-    const observer = new MutationObserver(sync);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['data-dark-mode', 'data-high-contrast', 'data-daltonism'],
-    });
-
-    return () => observer.disconnect();
-  }, []);
-
-  const isDark = a11y.dark || a11y.highContrast;
-  const panelBg = a11y.highContrast
+  const panelBg = highContrast
     ? (isDark ? '#09090B' : '#F8FAFC')
     : (isDark ? 'linear-gradient(180deg, #0F172A 0%, #111827 100%)' : 'linear-gradient(180deg, #FFFDF7 0%, #F5FBEF 100%)');
-  const borderColor = a11y.highContrast ? (isDark ? '#F2F7FF' : '#0F172A') : (isDark ? 'rgba(148,163,184,0.28)' : '#E8EEDB');
-  const textPrimary = a11y.highContrast ? (isDark ? '#F8FAFC' : '#0F172A') : (isDark ? '#E2E8F0' : '#1F2937');
-  const textMuted = a11y.highContrast ? (isDark ? '#CBD5E1' : '#334155') : (isDark ? '#94A3B8' : '#64748B');
-  const buttonStyle = a11y.highContrast
+
+  const borderColor = highContrast
+    ? (isDark ? '#F2F7FF' : '#0F172A')
+    : (isDark ? 'rgba(243,239,226,0.09)' : '#E8EEDB');
+
+  const textPrimary = highContrast
+    ? (isDark ? '#F8FAFC' : '#0F172A')
+    : (isDark ? '#F3EFE2' : '#17241A');
+
+  const textMuted = highContrast
+    ? (isDark ? '#CBD5E1' : '#334155')
+    : (isDark ? '#8AA085' : '#5B6B57');
+
+  const activeBg = isDark
+    ? 'linear-gradient(135deg, rgba(59,130,246,0.18), rgba(45,212,191,0.18))'
+    : 'linear-gradient(135deg, #E8F9D2 0%, #FFE3BD 100%)';
+
+  const activeText = isDark ? '#F8FAFC' : '#304b2a';
+  const activeBorder = isDark ? 'rgba(96,165,250,0.5)' : '#BCE9A4';
+
+  const buttonStyle = highContrast
     ? { background: isDark ? '#F8FAFC' : '#0F172A', color: isDark ? '#0F172A' : '#F8FAFC' }
-    : (isDark ? { background: 'linear-gradient(135deg, #1D4ED8 0%, #0EA5E9 100%)', color: '#F8FAFC' } : { background: 'linear-gradient(135deg, #FF7A00 0%, #E9B05A 100%)', color: '#fff' });
+    : (isDark
+      ? { background: 'linear-gradient(135deg, #3B82F6 0%, #22D3EE 100%)', color: '#F8FAFC' }
+      : { background: 'linear-gradient(135deg, #FF7A00 0%, #FF9A33 100%)', color: '#fff' });
+
+  const toggleButtonBg = isDark
+    ? 'rgba(243,239,226,0.10)'
+    : 'linear-gradient(135deg, #EAF7DE 0%, #FFF0D8 100%)';
+
+  const toggleButtonBorder = isDark
+    ? 'rgba(243,239,226,0.24)'
+    : '#B4D3A2';
+
+  const logoRingColor = isDark ? 'rgba(243,239,226,0.2)' : '#E6F1DD';
 
   return (
     <>
@@ -90,13 +94,13 @@ export default function Sidebar() {
           <div className="relative flex items-center justify-center w-full">
             {collapsed ? (
               <div className="flex items-center justify-center">
-                <img src="/img/logo.png" alt="" className="w-10 h-10 rounded-full object-cover ring-2 ring-[#E6F1DD]" />
+                <img src="/img/logo.png" alt="" className="w-10 h-10 rounded-full object-cover ring-2" style={{ ringColor: logoRingColor }} />
               </div>
             ) : (
               <span className="flex items-center whitespace-nowrap">
-                <img src="/img/logo.png" alt="" className="w-10 h-10 rounded-full object-cover ring-2 ring-[#E6F1DD]" />
-                <span className="ml-3 font-black text-slate-800 text-2xl whitespace-nowrap" style={{ color: textPrimary }}>
-                  <span className="text-[#FF7A00]">Movi</span><span className="text-[#22D31B]">Pay</span>
+                <img src="/img/logo.png" alt="" className="w-10 h-10 rounded-full object-cover ring-2" style={{ ringColor: logoRingColor }} />
+                <span className="ml-3 font-black text-2xl whitespace-nowrap" style={{ color: textPrimary }}>
+                  <span style={{ color: '#FF7A00' }}>Movi</span><span style={{ color: '#22D31B' }}>Pay</span>
                 </span>
               </span>
             )}
@@ -109,8 +113,8 @@ export default function Sidebar() {
             className="group flex items-center justify-center h-12 w-12 rounded-full border-2 transition-all hover:scale-105 shadow-md"
             aria-label={collapsed ? 'Abrir menu' : 'Recolher menu'}
             style={{
-              background: isDark ? 'rgba(148,163,184,0.10)' : 'linear-gradient(135deg, #EAF7DE 0%, #FFF0D8 100%)',
-              borderColor: isDark ? 'rgba(148,163,184,0.24)' : '#B4D3A2',
+              background: toggleButtonBg,
+              borderColor: toggleButtonBorder,
               color: textPrimary,
             }}
           >
@@ -129,17 +133,15 @@ export default function Sidebar() {
                 className={`flex items-center ${collapsed ? 'justify-center' : ''} h-12 px-3 rounded-2xl transition-all group relative`}
                 title={collapsed ? l.label : undefined}
                 style={{
-                  background: active
-                    ? (isDark ? 'linear-gradient(135deg, rgba(59,130,246,0.18), rgba(45,212,191,0.18))' : 'linear-gradient(135deg, #E8F9D2 0%, #FFE3BD 100%)')
-                    : 'transparent',
-                  color: active ? (isDark ? '#F8FAFC' : '#304b2a') : textMuted,
-                  border: active ? `1px solid ${isDark ? 'rgba(96,165,250,0.5)' : '#BCE9A4'}` : '1px solid transparent',
+                  background: active ? activeBg : 'transparent',
+                  color: active ? activeText : textMuted,
+                  border: active ? `1px solid ${activeBorder}` : '1px solid transparent',
                   boxShadow: active ? 'inset 0 1px 0 rgba(255,255,255,0.15)' : 'none',
                 }}
               >
                 <span className="text-xl flex-shrink-0">{l.icon}</span>
                 {!collapsed && (
-                  <span className="ml-3 text-sm whitespace-nowrap overflow-hidden font-medium" style={{ color: active ? (isDark ? '#F8FAFC' : '#304b2a') : textMuted }}>
+                  <span className="ml-3 text-sm whitespace-nowrap overflow-hidden font-medium" style={{ color: active ? activeText : textMuted }}>
                     {l.label}
                   </span>
                 )}
@@ -167,7 +169,7 @@ export default function Sidebar() {
         </div>
       </aside>
 
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-100 flex items-center justify-around px-1 h-16" style={{
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 border-t flex items-center justify-around px-1 h-16" style={{
         background: panelBg,
         borderColor,
       }}>
