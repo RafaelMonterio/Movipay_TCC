@@ -3,6 +3,7 @@ import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/Toast';
+import SvgIcon from '@/components/ui/SvgIcon';
 import { useForm, rules } from '@/hooks/useForm';
 
 const STEPS = ['Dados', 'Perfil', 'Detalhes'];
@@ -35,7 +36,7 @@ function StepData({ form, inputRefs, restoreFocus }) {
         }`}
       />
       {form.errors[name] && form.touched[name] && (
-        <p className="text-xs text-red-500 mt-1">⚠ {form.errors[name]}</p>
+        <p className="text-xs text-red-500 mt-1 flex items-center gap-1"><SvgIcon name="warning" size={12} color="#ef4444" /> {form.errors[name]}</p>
       )}
     </div>
   );
@@ -58,8 +59,8 @@ function StepMode({ mode, setMode }) {
         Como você quer começar? Você pode mudar depois!
       </p>
       {[
-        { value: 'client', icon: '📱', title: 'Sou cliente',      body: 'Quero contratar profissionais para meus serviços', color: 'border-client bg-client/5', check: 'bg-client' },
-        { value: 'worker', icon: '🔧', title: 'Sou trabalhador', body: 'Quero oferecer meus serviços e ganhar dinheiro',   color: 'border-worker bg-worker/5', check: 'bg-worker' },
+        { value: 'client', icon: 'phone', title: 'Sou cliente', body: 'Quero contratar profissionais para meus serviços', color: 'border-client bg-client/5', check: 'bg-client' },
+        { value: 'worker', icon: 'wrench', title: 'Sou trabalhador', body: 'Quero oferecer meus serviços e ganhar dinheiro', color: 'border-worker bg-worker/5', check: 'bg-worker' },
       ].map(opt => (
         <button key={opt.value} onClick={() => setMode(opt.value)}
           className={`w-full p-5 rounded-2xl border-2 text-left transition-all ${
@@ -67,17 +68,19 @@ function StepMode({ mode, setMode }) {
           }`}
         >
           <div className="flex items-center gap-4">
-            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0 ${
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 ${
               mode === opt.value ? 'bg-white/60' : 'bg-slate-100'
             }`}>
-              {opt.icon}
+              <SvgIcon name={opt.icon} size={24} color={mode === opt.value ? '#0f172a' : '#475569'} />
             </div>
             <div className="flex-1">
               <p className="font-black text-slate-800 text-base">{opt.title}</p>
               <p className="text-slate-500 text-sm mt-0.5">{opt.body}</p>
             </div>
             {mode === opt.value && (
-              <div className={`w-6 h-6 rounded-full ${opt.check} flex items-center justify-center text-white text-xs flex-shrink-0`}>✓</div>
+              <div className={`w-6 h-6 rounded-full ${opt.check} flex items-center justify-center text-white text-xs flex-shrink-0`}>
+                <SvgIcon name="check" size={12} color="#fff" />
+              </div>
             )}
           </div>
         </button>
@@ -90,8 +93,8 @@ function StepDetails({ mode, form }) {
   const isWorker = mode === 'worker';
   return (
     <div className="space-y-4">
-      <p className="text-sm text-slate-500">
-        {isWorker ? '🔧 Conte sobre suas habilidades' : '📍 Onde você está?'}
+      <p className="text-sm text-slate-500 flex items-center gap-2">
+        {isWorker ? <><SvgIcon name="wrench" size={14} color="#64748b" /> Conte sobre suas habilidades</> : <><SvgIcon name="pin" size={14} color="#64748b" /> Onde você está?</>}
       </p>
 
       {isWorker ? (
@@ -119,10 +122,10 @@ function StepDetails({ mode, form }) {
               className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-worker/20 focus:border-worker"
             >
               {[
-                ['limpeza','🧹 Limpeza'], ['eletrica','⚡ Elétrica'], ['pintura','🎨 Pintura'],
-                ['encanamento','🔧 Encanamento'], ['jardinagem','🌿 Jardinagem'],
-                ['informatica','💻 Informática'], ['mudanca','📦 Mudança'],
-                ['reforma','🏗️ Reforma'], ['cuidado-pessoal','💆 Cuidado Pessoal'], ['aulas','📚 Aulas'],
+                ['limpeza','Limpeza'], ['eletrica','Elétrica'], ['pintura','Pintura'],
+                ['encanamento','Encanamento'], ['jardinagem','Jardinagem'],
+                ['informatica','Informática'], ['mudanca','Mudança'],
+                ['reforma','Reforma'], ['cuidado-pessoal','Cuidado Pessoal'], ['aulas','Aulas'],
               ].map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
           </div>
@@ -138,7 +141,7 @@ function StepDetails({ mode, form }) {
             />
           </div>
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-            <p className="text-xs font-semibold text-amber-700 mb-1">💡 Dica</p>
+            <p className="text-xs font-semibold text-amber-700 mb-1 flex items-center gap-1"><SvgIcon name="sparkle" size={12} color="#b45309" /> Dica</p>
             <p className="text-xs text-amber-600 leading-relaxed">
               Quanto mais detalhada sua bio, mais clientes você atrai. Mencione experiência, certificações e diferenciais.
             </p>

@@ -1,0 +1,307 @@
+{
+  "base_path": "/icons",
+  "default_size": {
+    "nav": 24,
+    "status": 24,
+    "action": 24,
+    "category": 32,
+    "level": 32,
+    "misc": 32
+  },
+  "items": [
+    {
+      "name": "nav-home",
+      "file": "nav/nav-home.svg",
+      "size": "24x24",
+      "group": "nav"
+    },
+    {
+      "name": "nav-search",
+      "file": "nav/nav-search.svg",
+      "size": "24x24",
+      "group": "nav"
+    },
+    {
+      "name": "nav-orders",
+      "file": "nav/nav-orders.svg",
+      "size": "24x24",
+      "group": "nav"
+    },
+    {
+      "name": "nav-profile",
+      "file": "nav/nav-profile.svg",
+      "size": "24x24",
+      "group": "nav"
+    },
+    {
+      "name": "nav-calendar",
+      "file": "nav/nav-calendar.svg",
+      "size": "24x24",
+      "group": "nav"
+    },
+    {
+      "name": "nav-opportunities",
+      "file": "nav/nav-opportunities.svg",
+      "size": "24x24",
+      "group": "nav"
+    },
+    {
+      "name": "nav-bell",
+      "file": "nav/nav-bell.svg",
+      "size": "24x24",
+      "group": "nav"
+    },
+    {
+      "name": "nav-user-switch",
+      "file": "nav/nav-user-switch.svg",
+      "size": "24x24",
+      "group": "nav"
+    },
+    {
+      "name": "nav-worker",
+      "file": "nav/nav-worker.svg",
+      "size": "24x24",
+      "group": "nav"
+    },
+    {
+      "name": "status-success",
+      "file": "status/status-success.svg",
+      "size": "24x24",
+      "group": "status"
+    },
+    {
+      "name": "status-error",
+      "file": "status/status-error.svg",
+      "size": "24x24",
+      "group": "status"
+    },
+    {
+      "name": "status-warning",
+      "file": "status/status-warning.svg",
+      "size": "24x24",
+      "group": "status"
+    },
+    {
+      "name": "status-info",
+      "file": "status/status-info.svg",
+      "size": "24x24",
+      "group": "status"
+    },
+    {
+      "name": "status-loading",
+      "file": "status/status-loading.svg",
+      "size": "24x24",
+      "group": "status"
+    },
+    {
+      "name": "status-empty",
+      "file": "status/status-empty.svg",
+      "size": "48x48",
+      "group": "status"
+    },
+    {
+      "name": "status-location",
+      "file": "status/status-location.svg",
+      "size": "24x24",
+      "group": "status"
+    },
+    {
+      "name": "status-chat",
+      "file": "status/status-chat.svg",
+      "size": "24x24",
+      "group": "status"
+    },
+    {
+      "name": "status-lock",
+      "file": "status/status-lock.svg",
+      "size": "24x24",
+      "group": "status"
+    },
+    {
+      "name": "status-money",
+      "file": "status/status-money.svg",
+      "size": "24x24",
+      "group": "status"
+    },
+    {
+      "name": "status-chart",
+      "file": "status/status-chart.svg",
+      "size": "24x24",
+      "group": "status"
+    },
+    {
+      "name": "status-star",
+      "file": "status/status-star.svg",
+      "size": "20x20",
+      "group": "status"
+    },
+    {
+      "name": "status-verified",
+      "file": "status/status-verified.svg",
+      "size": "20x20",
+      "group": "status"
+    },
+    {
+      "name": "category-cleaning",
+      "file": "category/category-cleaning.svg",
+      "size": "32x32",
+      "group": "category"
+    },
+    {
+      "name": "category-electric",
+      "file": "category/category-electric.svg",
+      "size": "32x32",
+      "group": "category"
+    },
+    {
+      "name": "category-garden",
+      "file": "category/category-garden.svg",
+      "size": "32x32",
+      "group": "category"
+    },
+    {
+      "name": "category-move",
+      "file": "category/category-move.svg",
+      "size": "32x32",
+      "group": "category"
+    },
+    {
+      "name": "category-hair",
+      "file": "category/category-hair.svg",
+      "size": "32x32",
+      "group": "category"
+    },
+    {
+      "name": "category-brick",
+      "file": "category/category-brick.svg",
+      "size": "32x32",
+      "group": "category"
+    },
+    {
+      "name": "category-paint",
+      "file": "category/category-paint.svg",
+      "size": "32x32",
+      "group": "category"
+    },
+    {
+      "name": "category-pipe",
+      "file": "category/category-pipe.svg",
+      "size": "32x32",
+      "group": "category"
+    },
+    {
+      "name": "category-monitor",
+      "file": "category/category-monitor.svg",
+      "size": "32x32",
+      "group": "category"
+    },
+    {
+      "name": "category-book",
+      "file": "category/category-book.svg",
+      "size": "32x32",
+      "group": "category"
+    },
+    {
+      "name": "category-spa",
+      "file": "category/category-spa.svg",
+      "size": "32x32",
+      "group": "category"
+    },
+    {
+      "name": "category-construction",
+      "file": "category/category-construction.svg",
+      "size": "32x32",
+      "group": "category"
+    },
+    {
+      "name": "category-motorcycle",
+      "file": "category/category-motorcycle.svg",
+      "size": "32x32",
+      "group": "category"
+    },
+    {
+      "name": "category-sparkle",
+      "file": "category/category-sparkle.svg",
+      "size": "32x32",
+      "group": "category"
+    },
+    {
+      "name": "category-hammer",
+      "file": "category/category-hammer.svg",
+      "size": "32x32",
+      "group": "category"
+    },
+    {
+      "name": "category-building",
+      "file": "category/category-building.svg",
+      "size": "32x32",
+      "group": "category"
+    },
+    {
+      "name": "category-magic",
+      "file": "category/category-magic.svg",
+      "size": "32x32",
+      "group": "category"
+    },
+    {
+      "name": "level-seed",
+      "file": "level/level-seed.svg",
+      "size": "32x32",
+      "group": "level"
+    },
+    {
+      "name": "level-bronze",
+      "file": "level/level-bronze.svg",
+      "size": "32x32",
+      "group": "level"
+    },
+    {
+      "name": "level-silver",
+      "file": "level/level-silver.svg",
+      "size": "32x32",
+      "group": "level"
+    },
+    {
+      "name": "level-gold",
+      "file": "level/level-gold.svg",
+      "size": "32x32",
+      "group": "level"
+    },
+    {
+      "name": "level-diamond",
+      "file": "level/level-diamond.svg",
+      "size": "32x32",
+      "group": "level"
+    },
+    {
+      "name": "level-crown",
+      "file": "level/level-crown.svg",
+      "size": "32x32",
+      "group": "level"
+    },
+    {
+      "name": "action-camera",
+      "file": "action/action-camera.svg",
+      "size": "32x32",
+      "group": "action"
+    },
+    {
+      "name": "action-send",
+      "file": "action/action-send.svg",
+      "size": "24x24",
+      "group": "action"
+    },
+    {
+      "name": "action-celebration",
+      "file": "action/action-celebration.svg",
+      "size": "32x32",
+      "group": "action"
+    },
+    {
+      "name": "misc-leaf-soft",
+      "file": "misc/misc-leaf-soft.svg",
+      "size": "32x32",
+      "group": "misc"
+    }
+  ]
+}

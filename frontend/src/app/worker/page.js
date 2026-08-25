@@ -6,6 +6,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/context/AuthContext';
 import orderService from '@/services/orderService';
 import api from '@/services/api';
+import SvgIcon from '@/components/ui/SvgIcon';
 import { formatCurrency, formatStatus } from '@/utils/formatters';
 
 export default function WorkerHomePage() {
@@ -40,8 +41,9 @@ export default function WorkerHomePage() {
 
         {/* Header */}
         <motion.div initial={{ opacity:0, y:-16 }} animate={{ opacity:1, y:0 }}>
-          <h1 className="text-2xl md:text-3xl font-black text-slate-800">
-            Olá, {user?.name?.split(' ')[0]} 👷
+          <h1 className="text-2xl md:text-3xl font-black text-slate-800 flex items-center gap-2">
+            <span>Olá, {user?.name?.split(' ')[0]}</span>
+            <SvgIcon name="user" size={22} color="#0f172a" />
           </h1>
           <p className="text-slate-500 mt-1 text-sm">Painel do trabalhador</p>
         </motion.div>
@@ -52,8 +54,8 @@ export default function WorkerHomePage() {
             className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-5 flex items-center justify-between gap-4"
           >
             <div>
-              <p className="font-bold text-amber-800">
-                🔔 {pending.length} pedido{pending.length > 1 ? 's' : ''} aguardando sua resposta
+              <p className="font-bold text-amber-800 flex items-center gap-2">
+                <SvgIcon name="bell" size={16} color="#92400e" /> {pending.length} pedido{pending.length > 1 ? 's' : ''} aguardando sua resposta
               </p>
               <p className="text-sm text-amber-600 mt-0.5">Responda rápido para não perder a oportunidade!</p>
             </div>
@@ -67,16 +69,16 @@ export default function WorkerHomePage() {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { icon:'🕐', label:'Aguardando',    value: pending.length,             color:'text-amber-500' },
-            { icon:'🔧', label:'Em andamento',  value: accepted.length,            color:'text-blue-500' },
-            { icon:'✅', label:'Concluídos',    value: completed.length,           color:'text-green-500' },
-            { icon:'💵', label:'Este mês',      value: formatCurrency(monthRevenue), color:'text-client' },
+            { icon:'clock', label:'Aguardando', value: pending.length, color:'text-amber-500' },
+            { icon:'wrench', label:'Em andamento', value: accepted.length, color:'text-blue-500' },
+            { icon:'check', label:'Concluídos', value: completed.length, color:'text-green-500' },
+            { icon:'money', label:'Este mês', value: formatCurrency(monthRevenue), color:'text-client' },
           ].map((s, i) => (
             <motion.div key={s.label}
               initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.05+i*0.05 }}
               className="bg-white rounded-2xl border border-slate-100 p-4"
             >
-              <p className="text-xl mb-1">{s.icon}</p>
+              <div className="mb-1"><SvgIcon name={s.icon} size={18} color={s.color.includes('amber') ? '#f59e0b' : s.color.includes('blue') ? '#3b82f6' : s.color.includes('green') ? '#22c55e' : '#ff7a00'} /></div>
               <p className={`text-xl font-black ${s.color}`}>{s.value}</p>
               <p className="text-xs text-slate-400 mt-0.5">{s.label}</p>
             </motion.div>
@@ -92,7 +94,7 @@ export default function WorkerHomePage() {
               <p className="text-indigo-100 text-sm">Carteira disponível</p>
               <p className="text-3xl font-black mt-1">{formatCurrency(wallet.balance)}</p>
               {wallet.held > 0 && (
-                <p className="text-indigo-200 text-xs mt-1">🔒 {formatCurrency(wallet.held)} em custódia</p>
+                <p className="text-indigo-200 text-xs mt-1 flex items-center gap-1"><SvgIcon name="lock" size={12} color="#e0e7ff" /> {formatCurrency(wallet.held)} em custódia</p>
               )}
             </div>
             <Link href="/worker/earnings"
@@ -106,7 +108,7 @@ export default function WorkerHomePage() {
         {quotes.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-bold text-slate-800">🎯 Novas oportunidades</h2>
+              <h2 className="font-bold text-slate-800 flex items-center gap-2"><SvgIcon name="sparkle" size={16} color="#0f172a" /> Novas oportunidades</h2>
               <Link href="/worker/quotes" className="text-xs text-client font-semibold hover:underline">Ver todas →</Link>
             </div>
             <div className="space-y-2">
@@ -144,7 +146,7 @@ export default function WorkerHomePage() {
             <div className="space-y-2">{[0,1,2].map(i => <div key={i} className="h-16 bg-slate-100 rounded-2xl animate-pulse" />)}</div>
           ) : orders.length === 0 ? (
             <div className="bg-white rounded-2xl border border-slate-100 p-8 text-center">
-              <p className="text-3xl mb-2">📭</p>
+              <div className="flex justify-center mb-2"><SvgIcon name="document" size={28} color="#64748b" /></div>
               <p className="text-slate-500 text-sm">Nenhum pedido ainda.</p>
               <Link href="/worker/quotes" className="text-client text-sm font-semibold hover:underline mt-2 inline-block">
                 Ver oportunidades →

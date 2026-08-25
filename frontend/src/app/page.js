@@ -60,6 +60,10 @@ function Icon({ name, size = 24, color = 'currentColor', strokeWidth = 1.8, styl
       return <svg {...p}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>;
     case 'chevronDown':
       return <svg {...p}><polyline points="6 9 12 15 18 9" /></svg>;
+    case 'check':
+      return <svg {...p}><polyline points="20 6 9 17 4 12" /></svg>;
+    case 'accessibility':
+      return <svg {...p}><circle cx="12" cy="4" r="2.5" /><path d="M12 7v5" /><path d="M9 10l3 3 3-3" /><path d="M8 17c1-2 2.2-3 4-3s3 1 4 3" /></svg>;
     case 'x':
       return <svg {...p}><line x1="4" y1="4" x2="20" y2="20" /><line x1="20" y1="4" x2="4" y2="20" /></svg>;
     default:
@@ -285,8 +289,8 @@ function AccessibilityMenu({ isOpen, onClose, darkMode, setDarkMode, theme }) {
           >
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <h3 style={{ fontWeight: 800, fontSize: '1.1rem', color: theme.text }}>
-                ♿ Acessibilidade
+              <h3 style={{ fontWeight: 800, fontSize: '1.1rem', color: theme.text, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Icon name="accessibility" size={18} color={theme.text} /> Acessibilidade
               </h3>
               <button
                 onClick={onClose}
@@ -390,7 +394,7 @@ function AccessibilityMenu({ isOpen, onClose, darkMode, setDarkMode, theme }) {
                       justifyContent: 'center',
                       color: '#fff',
                       fontSize: '0.7rem',
-                    }}>✓</span>
+                    }}><Icon name="check" size={12} color="#fff" /></span>
                   )}
                 </div>
               ))}

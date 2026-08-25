@@ -5,23 +5,121 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 
+function SidebarIcon({ name, size = 18, className = '' }) {
+  const commonProps = {
+    width: size,
+    height: size,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 1.8,
+    strokeLinecap: 'round',
+    strokeLinejoin: 'round',
+    className,
+    'aria-hidden': true,
+  };
+
+  switch (name) {
+    case 'home':
+      return (
+        <svg {...commonProps}>
+          <path d="M3 10.5L12 3l9 7.5" />
+          <path d="M5 9.5V20h14V9.5" />
+          <path d="M9 20v-6h6v6" />
+        </svg>
+      );
+    case 'search':
+      return (
+        <svg {...commonProps}>
+          <circle cx="11" cy="11" r="6.5" />
+          <path d="M16 16L21 21" />
+        </svg>
+      );
+    case 'orders':
+      return (
+        <svg {...commonProps}>
+          <path d="M8 7h11" />
+          <path d="M8 12h11" />
+          <path d="M8 17h11" />
+          <path d="M4 7h.01" />
+          <path d="M4 12h.01" />
+          <path d="M4 17h.01" />
+        </svg>
+      );
+    case 'chat':
+      return (
+        <svg {...commonProps}>
+          <path d="M5 18.5V5h14v11.5L13.5 15H5Z" />
+          <path d="M8 9h8" />
+          <path d="M8 12h5" />
+        </svg>
+      );
+    case 'profile':
+      return (
+        <svg {...commonProps}>
+          <circle cx="12" cy="8" r="4" />
+          <path d="M4 20c1.8-3.7 5.1-5.5 8-5.5s6.2 1.8 8 5.5" />
+        </svg>
+      );
+    case 'quote':
+      return (
+        <svg {...commonProps}>
+          <path d="M8 8h8" />
+          <path d="M8 12h8" />
+          <path d="M8 16h6" />
+          <path d="M5 4.5h14A1.5 1.5 0 0 1 20.5 6v12A1.5 1.5 0 0 1 19 19.5H5A1.5 1.5 0 0 1 3.5 18V6A1.5 1.5 0 0 1 5 4.5Z" />
+        </svg>
+      );
+    case 'money':
+      return (
+        <svg {...commonProps}>
+          <path d="M12 3v18" />
+          <path d="M16.5 6.5c0-1.7-2.1-3-4.5-3S7.5 4.8 7.5 6.5 9.6 9.5 12 9.5s4.5 1.3 4.5 3-2.1 3-4.5 3-4.5-1.3-4.5-3" />
+        </svg>
+      );
+    case 'calendar':
+      return (
+        <svg {...commonProps}>
+          <rect x="3" y="5" width="18" height="16" rx="2" />
+          <path d="M8 3v4M16 3v4M3 10h18" />
+        </svg>
+      );
+    case 'opportunity':
+      return (
+        <svg {...commonProps}>
+          <path d="M12 2L14.7 8.3L21 11l-6.3 2.7L12 20l-2.7-6.3L3 11l6.3-2.7L12 2Z" />
+        </svg>
+      );
+    case 'logout':
+      return (
+        <svg {...commonProps}>
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+          <path d="M16 17l5-5-5-5" />
+          <path d="M21 12H9" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+}
+
 const clientLinks = [
-  { href: '/client', icon: '🏠', label: 'Home' },
-  { href: '/client/services', icon: '🔍', label: 'Serviços' },
-  { href: '/client/quotes', icon: '📋', label: 'Orçamentos' },
-  { href: '/client/orders', icon: '🛒', label: 'Pedidos' },
-  { href: '/client/chat', icon: '💬', label: 'Chat' },
-  { href: '/client/profile', icon: '👤', label: 'Perfil' },
+  { href: '/client', icon: 'home', label: 'Home' },
+  { href: '/client/services', icon: 'search', label: 'Serviços' },
+  { href: '/client/quotes', icon: 'quote', label: 'Orçamentos' },
+  { href: '/client/orders', icon: 'orders', label: 'Pedidos' },
+  { href: '/client/chat', icon: 'chat', label: 'Chat' },
+  { href: '/client/profile', icon: 'profile', label: 'Perfil' },
 ];
 
 const workerLinks = [
-  { href: '/worker', icon: '🏠', label: 'Início' },
-  { href: '/worker/orders', icon: '📋', label: 'Pedidos' },
-  { href: '/worker/quotes', icon: '🎯', label: 'Oportunidades' },
-  { href: '/worker/earnings', icon: '💰', label: 'Ganhos' },
-  { href: '/worker/calendar', icon: '📅', label: 'Calendário' },
-  { href: '/worker/chat', icon: '💬', label: 'Chat' },
-  { href: '/worker/profile', icon: '👤', label: 'Perfil' },
+  { href: '/worker', icon: 'home', label: 'Início' },
+  { href: '/worker/orders', icon: 'orders', label: 'Pedidos' },
+  { href: '/worker/quotes', icon: 'opportunity', label: 'Oportunidades' },
+  { href: '/worker/earnings', icon: 'money', label: 'Ganhos' },
+  { href: '/worker/calendar', icon: 'calendar', label: 'Calendário' },
+  { href: '/worker/chat', icon: 'chat', label: 'Chat' },
+  { href: '/worker/profile', icon: 'profile', label: 'Perfil' },
 ];
 
 export default function Sidebar() {
@@ -139,7 +237,9 @@ export default function Sidebar() {
                   boxShadow: active ? 'inset 0 1px 0 rgba(255,255,255,0.15)' : 'none',
                 }}
               >
-                <span className="text-xl flex-shrink-0">{l.icon}</span>
+                <span className="flex-shrink-0 flex items-center justify-center" style={{ width: 20, height: 20 }}>
+                  <SidebarIcon name={l.icon} size={18} />
+                </span>
                 {!collapsed && (
                   <span className="ml-3 text-sm whitespace-nowrap overflow-hidden font-medium" style={{ color: active ? activeText : textMuted }}>
                     {l.label}
@@ -156,7 +256,9 @@ export default function Sidebar() {
             style={buttonStyle}
           >
             {!collapsed && <span className="mr-2">Sair</span>}
-            {collapsed && <span className="text-base">↵</span>}
+            <span className="flex items-center justify-center" style={{ width: 16, height: 16 }}>
+              <SidebarIcon name="logout" size={16} />
+            </span>
           </button>
 
           {!collapsed && (
@@ -181,7 +283,9 @@ export default function Sidebar() {
               className="flex flex-col items-center gap-0.5 flex-1 py-1 rounded-xl transition-all"
               style={{ color: active ? (isDark ? '#F8FAFC' : '#FF7A00') : textMuted }}
             >
-              <span className={`text-xl ${active ? 'scale-110' : ''} transition-transform`}>{l.icon}</span>
+              <span className={`flex items-center justify-center ${active ? 'scale-110' : ''} transition-transform`} style={{ width: 20, height: 20 }}>
+                <SidebarIcon name={l.icon} size={18} />
+              </span>
               <span className="text-[10px] font-medium leading-none">{l.label}</span>
             </Link>
           );

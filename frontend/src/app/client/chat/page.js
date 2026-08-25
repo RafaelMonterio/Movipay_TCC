@@ -834,7 +834,7 @@ export default function ChatPage() {
                     </div>
                     <div style={{ flex: 1 }}>
                       <p style={{ fontWeight: 700, fontSize: '0.95rem', color: theme.text, margin: 0 }}>{selected.worker_name || selected.client_name || 'Profissional'}</p>
-                      <p style={{ fontSize: '0.75rem', color: theme.textMuted, margin: 2px 0 0 }}>Avaliação: 4.9 ⭐</p>
+                      <p style={{ fontSize: '0.75rem', color: theme.textMuted, margin: '2px 0 0', display: 'flex', alignItems: 'center', gap: 4 }}>Avaliação: 4.9 <Icon name="star" size={12} color="#FFB627" /></p>
                     </div>
                   </div>
                 </div>

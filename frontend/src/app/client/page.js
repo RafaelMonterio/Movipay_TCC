@@ -22,6 +22,7 @@ import AccessibilityControls from '@/components/accessibility/AccessibilityContr
       case 'box': return <svg {...p}><path d="M21 8l-9-5-9 5 9 5 9-5z" /><path d="M3 8v8l9 5 9-5V8" /><line x1="12" y1="13" x2="12" y2="21" /></svg>;
       case 'scissors': return <svg {...p}><circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><line x1="20" y1="4" x2="8.12" y2="15.88" /><line x1="14.47" y1="14.48" x2="20" y2="20" /><line x1="8.12" y1="8.12" x2="12" y2="12" /></svg>;
       case 'hammer': return <svg {...p}><path d="M15 12l-8.5 8.5a2.12 2.12 0 0 1-3-3L12 9" /><path d="M17.64 15L22 10.64" /><path d="M20.91 11.7l-1.25-1.25c-.6-.6-.93-1.4-.93-2.25v-.86L16.01 4.6a5.56 5.56 0 0 0-3.94-1.64H9l.92.82A6.18 6.18 0 0 1 12 8.4v1.56l2 2h2.47l2.26 1.91" /></svg>;
+      case 'build': return <svg {...p}><path d="M4 21V7l4-4h8l4 4v14" /><path d="M9 7h6" /><path d="M8 12h8" /><path d="M8 16h8" /></svg>;
       case 'motorcycle': return <svg {...p}><circle cx="5" cy="16" r="3" /><circle cx="19" cy="16" r="3" /><path d="M3 16L8.5 6h4l4 4h4v2h-2.5l-3-3H12l-4 7" /></svg>;
       case 'sparkle': return <svg {...p}><path d="M12 2l1.5 5h5L14 10.5l1.5 5L12 13l-3.5 2.5L10 10.5 5.5 7h5z" /></svg>;
       case 'shield': return <svg {...p}><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z" /></svg>;
@@ -47,7 +48,7 @@ import AccessibilityControls from '@/components/accessibility/AccessibilityContr
       role: 'Cabeleireira',
       specialty: 'Cortes e styling',
       service: 'Barbearia',
-      emoji: '✂️',
+      icon: 'scissors',
       photo: '/img/cabeleireiro.jpg',
       neighborhood: 'Centro',
       distance_km: 0.3,
@@ -63,7 +64,7 @@ import AccessibilityControls from '@/components/accessibility/AccessibilityContr
       role: 'Eletricista',
       specialty: 'Instalações e revisões',
       service: 'Elétrica',
-      emoji: '⚡',
+      icon: 'bolt',
       photo: '/img/eletricista.jpg',
       neighborhood: 'Vila Nova',
       distance_km: 0.7,
@@ -79,7 +80,7 @@ import AccessibilityControls from '@/components/accessibility/AccessibilityContr
       role: 'Pedreiro',
       specialty: 'Reformas e acabamento',
       service: 'Pedreiro',
-      emoji: '🧱',
+      icon: 'build',
       photo: '/img/pedreiro.jpg',
       neighborhood: 'Jardim das Flores',
       distance_km: 1.1,
@@ -160,7 +161,9 @@ import AccessibilityControls from '@/components/accessibility/AccessibilityContr
               </div>
               <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                 <span style={{ fontSize: '0.72rem', color: themeColors.textMuted }}>{selectedWorker.specialty}</span>
-                <span style={{ fontSize: '1.1rem' }}>{selectedWorker.emoji}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon name={selectedWorker.icon} size={18} color="#FF7A00" />
+                </span>
               </div>
               <button
                 type="button"

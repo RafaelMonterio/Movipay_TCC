@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme, getThemeColors } from '@/context/ThemeContext';
+import SvgIcon from '@/components/ui/SvgIcon';
 import api from '@/services/api';
 import { formatDate } from '@/utils/formatters';
 
@@ -40,10 +41,10 @@ export default function NotificationBell() {
           title: user.mode === 'worker'
             ? `Novo pedido #${o.id} aguardando`
             : o.status === 'accepted'
-              ? `Pedido #${o.id} foi aceito! ✅`
-              : `Pedido #${o.id} concluído 🏁`,
+              ? `Pedido #${o.id} foi aceito!`
+              : `Pedido #${o.id} concluído`,
           time: o.updated_at || o.created_at,
-          icon: user.mode === 'worker' ? '📋' : o.status === 'accepted' ? '✅' : '🏁',
+          icon: user.mode === 'worker' ? 'document' : o.status === 'accepted' ? 'check' : 'flag',
         }));
 
       setNotifications(notifs);
@@ -85,7 +86,7 @@ export default function NotificationBell() {
         onMouseLeave={(e) => e.currentTarget.style.background = bellBtnBg}
         aria-label="Notificações"
       >
-        🔔
+        <SvgIcon name="bell" size={16} color={colors.text} />
         {unread > 0 && (
           <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }}
             className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center"
@@ -116,7 +117,7 @@ export default function NotificationBell() {
               <div className="max-h-72 overflow-y-auto">
                 {notifications.length === 0 ? (
                   <div className="p-6 text-center">
-                    <p className="text-2xl mb-2">🔕</p>
+                   <div className="mb-2 flex justify-center"><SvgIcon name="bellOff" size={20} color={colors.textMuted} /></div>
                     <p className="text-sm" style={{ color: colors.textMuted }}>Nenhuma notificação</p>
                   </div>
                 ) : (
@@ -134,7 +135,9 @@ export default function NotificationBell() {
                         if (n.read) e.currentTarget.style.background = 'transparent';
                       }}
                     >
-                      <span className="text-lg flex-shrink-0">{n.icon}</span>
+                      <span className="text-lg flex-shrink-0" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <SvgIcon name={n.icon} size={16} color={n.read ? colors.textMuted : colors.text} />
+                      </span>
                       <div className="flex-1 min-w-0">
                         <p className={`text-sm leading-snug ${n.read ? '' : 'font-semibold'}`} style={{ color: n.read ? colors.textMuted : colors.text }}>
                           {n.title}
