@@ -18,9 +18,7 @@ android/
 ios/
 
 # Arquivos de ambiente
-.env
-.env.local
-.env.*.local
+
 
 # Logs
 npm-debug.log*
