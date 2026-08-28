@@ -25,8 +25,34 @@ export default function WorkersMap({ workers = [], center = [-23.7060, -46.3690]
   const mapRef     = useRef(null);
   const instanceRef = useRef(null);
 
+  // Keep the latest onSelectWorker in a ref instead of a effect dependency.
+  // Callers pass an inline arrow function (a new reference on every render),
+  // which — if used as a dependency — made this effect (and therefore the
+  // whole Leaflet map) tear down and re-initialize on every parent
+  // re-render, causing flicker and, under React 18 Strict Mode's
+  // mount→unmount→remount dev cycle, the classic Leaflet
+  // "Map container is already initialized" error.
+  const onSelectWorkerRef = useRef(onSelectWorker);
+  useEffect(() => { onSelectWorkerRef.current = onSelectWorker; }, [onSelectWorker]);
+
+  // Same problem with `center`: callers usually pass an inline array
+  // literal (e.g. center={[-23.7058, -46.3685]}), which is a new reference
+  // every render even when the actual coordinates don't change. Depending
+  // on a stable, primitive key instead avoids needless re-initialization.
+  const centerKey = center.join(',');
+  const workersKey = workers
+    .map(w => `${w.id}:${w.lat ?? ''}:${w.lng ?? ''}:${w.email ?? ''}:${w.is_available}`)
+    .join('|');
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
+
+    // Guards against the async import('leaflet') resolving after this
+    // effect has already been cleaned up (component unmounted, or this
+    // effect superseded by a newer run) — without this, a map instance
+    // could be created on a DOM node that's already gone or already has
+    // one, throwing "Map container is already initialized".
+    let isActive = true;
 
     // Importa Leaflet dinamicamente (evita SSR errors)
     import('leaflet').then(L => {
@@ -38,11 +64,21 @@ export default function WorkersMap({ workers = [], center = [-23.7060, -46.3690]
         shadowUrl:     'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
       });
 
-      if (!mapRef.current) return;
+      if (!isActive || !mapRef.current) return;
 
       // Evita duplicar o mapa se já foi inicializado
       if (instanceRef.current) {
         instanceRef.current.remove();
+        instanceRef.current = null;
+      }
+
+      // Defensive cleanup: if a previous Leaflet instance on this same DOM
+      // node was never properly torn down (e.g. a fast unmount/remount),
+      // Leaflet leaves its internal `_leaflet_id` marker on the element and
+      // refuses to initialize a new map on it, throwing "Map container is
+      // already initialized". Clearing it here makes re-initialization safe.
+      if (mapRef.current._leaflet_id) {
+        delete mapRef.current._leaflet_id;
       }
 
       const map = L.map(mapRef.current, {
@@ -123,7 +159,7 @@ export default function WorkersMap({ workers = [], center = [-23.7060, -46.3690]
         });
 
         marker.on('click', () => {
-          onSelectWorker?.(w);
+          onSelectWorkerRef.current?.(w);
           marker.openPopup();
         });
 
@@ -148,12 +184,19 @@ export default function WorkersMap({ workers = [], center = [-23.7060, -46.3690]
     });
 
     return () => {
+      isActive = false;
       if (instanceRef.current) {
         instanceRef.current.remove();
         instanceRef.current = null;
       }
     };
-  }, [workers, center, onSelectWorker, selectedWorkerId]);
+    // Depend on stable, primitive keys (centerKey/workersKey) instead of the
+    // `center` array or `workers` array references, which are almost always
+    // new on every parent render and previously caused the map to be torn
+    // down and rebuilt constantly. `onSelectWorker` is read from a ref, not
+    // a dependency, for the same reason.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workersKey, centerKey, selectedWorkerId]);
 
   return (
     <div

@@ -2190,12 +2190,7 @@ export default function ClientServicesPage() {
         html { scroll-behavior: smooth; }
       `}</style>
 
-      <SparkleRain />
-      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0, overflow: 'hidden' }}>
-        {leaves.map((l, i) => (
-          <FloatingLeaf key={i} delay={l.delay} x={l.x} size={l.size} color={l.color} duration={l.duration} />
-        ))}
-      </div>
+
 
       <AccessibilityButton
         isOpen={accessibilityOpen}

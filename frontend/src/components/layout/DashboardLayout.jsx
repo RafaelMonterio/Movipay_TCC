@@ -8,6 +8,7 @@ import OnboardingModal from '@/components/feedback/Onboarding';
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
 import NotificationBell from '@/components/feedback/NotificationBell';
 import AccessibilityControls from '@/components/accessibility/AccessibilityControls';
+import FallingLeaves from '@/components/effects/FallingLeaves';
 
 export default function DashboardLayout({ children }) {
   const { user, loading } = useAuth();
@@ -36,6 +37,7 @@ export default function DashboardLayout({ children }) {
 
   return (
     <div style={{ position: 'relative', minHeight: '100vh', background: bg, transition: 'background 0.4s', color: themeColors.text }}>
+      <FallingLeaves />
       <Sidebar />
 
       <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, width: '100%' }}>

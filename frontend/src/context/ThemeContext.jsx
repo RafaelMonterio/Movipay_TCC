@@ -52,21 +52,29 @@ export function ThemeProvider({ children }) {
       html.style.fontSize = '';
     }
 
-    // Apply SVG filters for color blindness
-    applyDaltonismFilters(html, theme.daltonism);
-    applyHighContrastFilter(html, theme.highContrast);
+    // Inject the SVG color-matrix filters (idempotent) then apply the
+    // combined filter (daltonism + high contrast) directly to <html>.
+    // Previously the daltonism filter was only injected into the DOM but
+    // never actually applied to an element, so the colorblind buttons had
+    // no visible effect. Building the filter string from scratch on every
+    // change (instead of string-replacing the previous value) also avoids
+    // the old bug where toggling settings in certain orders could leave
+    // stale filter fragments behind.
+    injectDaltonismFilters();
+    applyCombinedFilter(html, theme.daltonism, theme.highContrast);
 
   }, [theme, mounted]);
 
-  // Inject SVG filters for color blindness
-  const applyDaltonismFilters = useCallback((html, daltonism) => {
+  // Inject SVG filters for color blindness (only once)
+  const injectDaltonismFilters = useCallback(() => {
     if (typeof document === 'undefined') return;
 
     let svg = document.getElementById('a11y-daltonism-filters');
     if (!svg) {
       svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       svg.id = 'a11y-daltonism-filters';
-      svg.style.cssText = 'position:absolute;width:0;height:0;';
+      svg.setAttribute('aria-hidden', 'true');
+      svg.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden;';
       svg.innerHTML = `
         <filter id="protanopia">
           <feColorMatrix type="matrix" values="
@@ -97,20 +105,15 @@ export function ThemeProvider({ children }) {
     }
   }, []);
 
-  const applyHighContrastFilter = useCallback((html, highContrast) => {
-    if (!highContrast) {
-      html.style.filter = html.style.filter.replace('contrast(1.8)', '').trim();
-      html.style.webkitFilter = html.style.webkitFilter.replace('contrast(1.8)', '').trim();
-      return;
-    }
+  // Apply the daltonism + high-contrast filters together on <html>
+  const applyCombinedFilter = useCallback((html, daltonism, highContrast) => {
+    const parts = [];
+    if (daltonism && daltonism !== 'none') parts.push(`url(#${daltonism})`);
+    if (highContrast) parts.push('contrast(1.8)');
 
-    const currentFilter = html.style.filter || '';
-    const currentWebkitFilter = html.style.webkitFilter || '';
-
-    if (!currentFilter.includes('contrast(1.8)')) {
-      html.style.filter = (currentFilter + ' contrast(1.8)').trim();
-      html.style.webkitFilter = (currentWebkitFilter + ' contrast(1.8)').trim();
-    }
+    const filterValue = parts.join(' ');
+    html.style.filter = filterValue;
+    html.style.webkitFilter = filterValue;
   }, []);
 
   // Save to localStorage

@@ -498,7 +498,7 @@ export default function ChatPage() {
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const sidebarRef = useRef(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Scroll to bottom
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
@@ -510,7 +510,7 @@ export default function ChatPage() {
         const active = (r.data.orders || []).filter(o => ['pending', 'accepted', 'in_progress', 'completed'].includes(o.status));
         const withChat = active.map(o => ({
           ...o,
-          other_id: user.mode === 'worker' ? o.client_id : o.worker_id,
+          other_id: user?.mode === 'worker' ? o.client_id : o.worker_id,
           unread_count: Math.floor(Math.random() * 3), // Mock
           last_message: null,
         }));
@@ -619,10 +619,12 @@ export default function ChatPage() {
         .c-conv-item:hover { background: rgba(255,122,0,0.04); border-color: rgba(255,122,0,0.1); }
         .c-conv-item.active { background: rgba(255,122,0,0.06); border-color: rgba(255,122,0,0.2); }
 
+        .c-sidebar-overlay { display: none; }
+
         @media (max-width: 1024px) {
-          .c-sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 320px; zIndex: 50; background: ${theme.bg}; borderRight: 1px solid ${theme.line}; transform: translateX(${sidebarOpen ? '0' : '-100%'}); transition: transform 0.3s ease; boxShadow: 0 0 40px rgba(0,0,0,0.2); }
-          .c-sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); zIndex: 40; opacity: ${sidebarOpen ? 1 : 0}; pointerEvents: ${sidebarOpen ? 'auto' : 'none'}; transition: opacity 0.3s; }
-          .c-main { flex: 1; display: flex; flexDirection: column; minWidth: 0; }
+          .c-sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 320px; z-index: 50; background: ${theme.bg}; border-right: 1px solid ${theme.line}; transform: translateX(${sidebarOpen ? '0' : '-100%'}); transition: transform 0.3s ease; box-shadow: 0 0 40px rgba(0,0,0,0.2); }
+          .c-sidebar-overlay { display: block; position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 40; }
+          .c-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
           .c-chat-header { display: flex !important; }
         }
         @media (max-width: 768px) {
@@ -632,12 +634,9 @@ export default function ChatPage() {
         }
       `}</style>
 
-      {/* Floating leaves */}
-      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0, overflow: 'hidden' }}>
-        {leaves.map((l, i) => <FloatingLeaf key={i} {...l} />)}
-      </div>
 
-      {/* Mobile sidebar overlay */}
+
+      {/* Mobile sidebar overlay (exibido apenas em telas menores quando o menu lateral é aberto) */}
       <AnimatePresence>
         {sidebarOpen && (
           <motion.div
@@ -646,7 +645,6 @@ export default function ChatPage() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setSidebarOpen(false)}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', zIndex: 40 }}
           />
         )}
       </AnimatePresence>
@@ -834,7 +832,7 @@ export default function ChatPage() {
                     </div>
                     <div style={{ flex: 1 }}>
                       <p style={{ fontWeight: 700, fontSize: '0.95rem', color: theme.text, margin: 0 }}>{selected.worker_name || selected.client_name || 'Profissional'}</p>
-                      <p style={{ fontSize: '0.75rem', color: theme.textMuted, margin: '2px 0 0', display: 'flex', alignItems: 'center', gap: 4 }}>Avaliação: 4.9 <Icon name="star" size={12} color="#FFB627" /></p>
+                      <p style={{ fontSize: '0.75rem', color: theme.textMuted, margin: '2px 0 0 0' }}>Avaliação: 4.9 ⭐</p>
                     </div>
                   </div>
                 </div>

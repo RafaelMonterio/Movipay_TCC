@@ -25,9 +25,12 @@ export default function WorkerHomeScreen({ navigation }) {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: theme.background }} contentContainerStyle={styles.container}>
       <View style={styles.header}>
-        <View>
+        <Pressable onPress={() => navigation.getParent()?.openDrawer()} hitSlop={10} style={[styles.menuBtn, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <Text style={{ fontSize: 18, color: theme.text }}>☰</Text>
+        </Pressable>
+        <View style={{ flex: 1, marginLeft: 12 }}>
           <Text style={[styles.greeting, { color: theme.textSecondary }]}>Olá, 👷</Text>
-          <Text style={[styles.name, { color: theme.text }]}>{user?.name}</Text>
+          <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>{user?.name}</Text>
         </View>
         <View style={[styles.badge, { backgroundColor: theme.workerPrimary }]}>
           <Text style={styles.badgeText}>Trabalhador</Text>
@@ -76,7 +79,8 @@ export default function WorkerHomeScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container:    { padding: 24, gap: 20 },
-  header:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  header:       { flexDirection: 'row', alignItems: 'center' },
+  menuBtn:      { width: 40, height: 40, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   greeting:     { fontSize: 14 },
   name:         { fontSize: 22, fontWeight: '700' },
   badge:        { borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },

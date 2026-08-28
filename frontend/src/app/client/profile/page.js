@@ -554,7 +554,7 @@ export default function ClientProfilePage() {
         form.handleChange('bio', r.data.bio || '');
         form.handleChange('phone', r.data.phone || '');
       }),
-      api.get('/orders').then(r => setOrders(r.data.orders)),
+      api.get('/orders').then(r => setOrders(r.data.orders || [])),
     ])
       .catch(() => toast('Erro ao carregar perfil', 'error'))
       .finally(() => setLoading(false));
@@ -635,10 +635,7 @@ export default function ClientProfilePage() {
         @media (max-width: 480px) { .p-stats-grid { grid-template-columns: 1fr !important; } }
       `}</style>
 
-      {/* Floating leaves */}
-      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0, overflow: 'hidden' }}>
-        {leaves.map((l, i) => <FloatingLeaf key={i} {...l} />)}
-      </div>
+
 
       <div className="p-grid" style={{ position: 'relative', zIndex: 1, padding: '24px 20px 80px', maxWidth: 1100, margin: '0 auto', fontFamily: 'var(--body)', background: 'transparent', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, alignItems: 'start' }}>
 

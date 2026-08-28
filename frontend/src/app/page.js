@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, useScroll, useInView, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
+import FallingLeaves, { FooterLeafPile } from '@/components/effects/FallingLeaves';
 
 /* ─── ICONS (no emojis anywhere — everything below is hand-drawn SVG) ─── */
 
@@ -60,10 +62,6 @@ function Icon({ name, size = 24, color = 'currentColor', strokeWidth = 1.8, styl
       return <svg {...p}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>;
     case 'chevronDown':
       return <svg {...p}><polyline points="6 9 12 15 18 9" /></svg>;
-    case 'check':
-      return <svg {...p}><polyline points="20 6 9 17 4 12" /></svg>;
-    case 'accessibility':
-      return <svg {...p}><circle cx="12" cy="4" r="2.5" /><path d="M12 7v5" /><path d="M9 10l3 3 3-3" /><path d="M8 17c1-2 2.2-3 4-3s3 1 4 3" /></svg>;
     case 'x':
       return <svg {...p}><line x1="4" y1="4" x2="20" y2="20" /><line x1="20" y1="4" x2="4" y2="20" /></svg>;
     default:
@@ -134,105 +132,30 @@ function StickFigureAnt({ isOpen, onClick, theme, darkMode }) {
 }
 
 /* ─── ACCESSIBILITY MENU ─────────────────────────────────────────────── */
-function AccessibilityMenu({ isOpen, onClose, darkMode, setDarkMode, theme }) {
-  // Accessibility settings
-  const [highContrast, setHighContrast] = useState(false);
-  const [protanopia, setProtanopia] = useState(false);
-  const [deuteranopia, setDeuteranopia] = useState(false);
-  const [tritanopia, setTritanopia] = useState(false);
-  const [fontSize, setFontSize] = useState(100);
-
-  // Apply accessibility filters to body
-  useEffect(() => {
-    if (typeof document === 'undefined') return;
-    const html = document.documentElement;
-    
-    // Reset filters
-    html.style.filter = '';
-    html.style.webkitFilter = '';
-    html.style.fontSize = '';
-    html.dataset.darkMode = String(darkMode);
-    html.dataset.highContrast = String(highContrast);
-    html.dataset.daltonism = protanopia ? 'protanopia' : deuteranopia ? 'deuteranopia' : tritanopia ? 'tritanopia' : 'none';
-
-    let filters = [];
-
-    if (highContrast) {
-      filters.push('contrast(1.8)');
-    }
-
-    if (protanopia) {
-      filters.push('url(#protanopia)');
-    } else if (deuteranopia) {
-      filters.push('url(#deuteranopia)');
-    } else if (tritanopia) {
-      filters.push('url(#tritanopia)');
-    }
-
-    if (filters.length > 0) {
-      html.style.filter = filters.join(' ');
-      html.style.webkitFilter = filters.join(' ');
-    }
-
-    if (fontSize !== 100) {
-      html.style.fontSize = fontSize + '%';
-    }
-
-    // Cleanup
-    return () => {
-      html.style.filter = '';
-      html.style.webkitFilter = '';
-      html.style.fontSize = '';
-      html.dataset.darkMode = String(darkMode);
-      html.dataset.highContrast = 'false';
-      html.dataset.daltonism = 'none';
-    };
-  }, [highContrast, protanopia, deuteranopia, tritanopia, fontSize, darkMode]);
-
-  // SVG filters for color blindness
-  useEffect(() => {
-    if (typeof document === 'undefined') return;
-    let svg = document.getElementById('color-blindness-filters');
-    if (!svg) {
-      svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      svg.id = 'color-blindness-filters';
-      svg.style.cssText = 'position:absolute;width:0;height:0;';
-      svg.innerHTML = `
-        <filter id="protanopia">
-          <feColorMatrix type="matrix" values="
-            0.567, 0.433, 0, 0, 0
-            0.558, 0.442, 0, 0, 0
-            0, 0.242, 0.758, 0, 0
-            0, 0, 0, 1, 0
-          "/>
-        </filter>
-        <filter id="deuteranopia">
-          <feColorMatrix type="matrix" values="
-            0.625, 0.375, 0, 0, 0
-            0.7, 0.3, 0, 0, 0
-            0, 0.3, 0.7, 0, 0
-            0, 0, 0, 1, 0
-          "/>
-        </filter>
-        <filter id="tritanopia">
-          <feColorMatrix type="matrix" values="
-            0.95, 0.05, 0, 0, 0
-            0, 0.433, 0.567, 0, 0
-            0, 0.475, 0.525, 0, 0
-            0, 0, 0, 1, 0
-          "/>
-        </filter>
-      `;
-      document.body.prepend(svg);
-    }
-  }, []);
+/* Uses the shared ThemeContext (same one used by every dashboard screen)
+   instead of its own local state, so settings made on the homepage persist
+   and stay in sync everywhere else in the app, and vice-versa. The filters
+   (dark mode / high contrast / daltonism / font size) are applied globally
+   by ThemeProvider, so this component only needs to read + toggle them. */
+function AccessibilityMenu({ isOpen, onClose, theme }) {
+  const {
+    darkMode,
+    highContrast,
+    daltonism,
+    fontSize,
+    toggleDarkMode,
+    toggleHighContrast,
+    setDaltonism,
+    setFontSize,
+    resetAccessibility,
+  } = useTheme();
 
   const menuItems = [
-    { id: 'darkMode', label: 'Modo Escuro', icon: darkMode ? 'sun' : 'moon', active: darkMode, onClick: () => setDarkMode(!darkMode) },
-    { id: 'highContrast', label: 'Alto Contraste', icon: 'shield', active: highContrast, onClick: () => setHighContrast(!highContrast) },
-    { id: 'protanopia', label: 'Protanopia (vermelho-verde)', icon: 'leaf', active: protanopia, onClick: () => { setProtanopia(!protanopia); setDeuteranopia(false); setTritanopia(false); } },
-    { id: 'deuteranopia', label: 'Deuteranopia (verde-vermelho)', icon: 'leaf', active: deuteranopia, onClick: () => { setDeuteranopia(!deuteranopia); setProtanopia(false); setTritanopia(false); } },
-    { id: 'tritanopia', label: 'Tritanopia (azul-amarelo)', icon: 'leaf', active: tritanopia, onClick: () => { setTritanopia(!tritanopia); setProtanopia(false); setDeuteranopia(false); } },
+    { id: 'darkMode', label: 'Modo Escuro', icon: darkMode ? 'sun' : 'moon', active: darkMode, onClick: toggleDarkMode },
+    { id: 'highContrast', label: 'Alto Contraste', icon: 'shield', active: highContrast, onClick: toggleHighContrast },
+    { id: 'protanopia', label: 'Protanopia (vermelho-verde)', icon: 'leaf', active: daltonism === 'protanopia', onClick: () => setDaltonism('protanopia') },
+    { id: 'deuteranopia', label: 'Deuteranopia (verde-vermelho)', icon: 'leaf', active: daltonism === 'deuteranopia', onClick: () => setDaltonism('deuteranopia') },
+    { id: 'tritanopia', label: 'Tritanopia (azul-amarelo)', icon: 'leaf', active: daltonism === 'tritanopia', onClick: () => setDaltonism('tritanopia') },
   ];
 
   const fontSizeOptions = [
@@ -242,7 +165,7 @@ function AccessibilityMenu({ isOpen, onClose, darkMode, setDarkMode, theme }) {
     { value: 140, label: 'A' },
   ];
 
-  const isColorBlindnessActive = protanopia || deuteranopia || tritanopia;
+  const isColorBlindnessActive = daltonism !== 'none';
 
   return (
     <AnimatePresence>
@@ -289,8 +212,8 @@ function AccessibilityMenu({ isOpen, onClose, darkMode, setDarkMode, theme }) {
           >
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <h3 style={{ fontWeight: 800, fontSize: '1.1rem', color: theme.text, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icon name="accessibility" size={18} color={theme.text} /> Acessibilidade
+              <h3 style={{ fontWeight: 800, fontSize: '1.1rem', color: theme.text }}>
+                ♿ Acessibilidade
               </h3>
               <button
                 onClick={onClose}
@@ -323,7 +246,7 @@ function AccessibilityMenu({ isOpen, onClose, darkMode, setDarkMode, theme }) {
               cursor: 'pointer',
               border: `1px solid ${darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
             }}
-            onClick={() => setDarkMode(!darkMode)}
+            onClick={toggleDarkMode}
             >
               <span style={{ display: 'flex', alignItems: 'center', gap: 10, color: theme.text }}>
                 <Icon name={darkMode ? 'moon' : 'sun'} size={18} color="#FF7A00" />
@@ -394,7 +317,7 @@ function AccessibilityMenu({ isOpen, onClose, darkMode, setDarkMode, theme }) {
                       justifyContent: 'center',
                       color: '#fff',
                       fontSize: '0.7rem',
-                    }}><Icon name="check" size={12} color="#fff" /></span>
+                    }}>✓</span>
                   )}
                 </div>
               ))}
@@ -431,14 +354,7 @@ function AccessibilityMenu({ isOpen, onClose, darkMode, setDarkMode, theme }) {
 
             {/* Reset button */}
             <button
-              onClick={() => {
-                setHighContrast(false);
-                setProtanopia(false);
-                setDeuteranopia(false);
-                setTritanopia(false);
-                setFontSize(100);
-                if (darkMode) setDarkMode(false);
-              }}
+              onClick={resetAccessibility}
               style={{
                 marginTop: 16,
                 width: '100%',
@@ -515,48 +431,43 @@ const STATS = [
   { value: 15,   suffix: 'min', label: 'Tempo médio de resposta', decimal: false },
 ];
 
-/* ─── ANIMATED COUNTER ───────────────────────────────────────────────── */
+/* ─── ANIMATED COUNTER (refatorado com requestAnimationFrame) ──────── */
 function AnimatedCounter({ target, suffix, decimal }) {
-  const [count, setCount] = useState(0);
-  const ref = useRef(null);
-  const inView = useInView(ref, { once: true });
+  const spanRef = useRef(null);
+  const wrapperRef = useRef(null);
+  const inView = useInView(wrapperRef, { once: true, margin: '-50px' });
+  const rafRef = useRef(null);
 
   useEffect(() => {
     if (!inView) return;
-    const duration = 1800;
-    const steps = 60;
-    const increment = target / steps;
-    let current = 0;
-    const timer = setInterval(() => {
-      current += increment;
-      if (current >= target) { setCount(target); clearInterval(timer); }
-      else setCount(current);
-    }, duration / steps);
-    return () => clearInterval(timer);
-  }, [inView, target]);
+    const duration = 1400;
+    let start = null;
+
+    function tick(ts) {
+      if (start === null) start = ts;
+      const progress = Math.min((ts - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3); // easeOutCubic
+      const current = target * eased;
+      if (spanRef.current) {
+        spanRef.current.textContent =
+          (decimal ? current.toFixed(1) : Math.floor(current).toLocaleString('pt-BR')) + suffix;
+      }
+      if (progress < 1) rafRef.current = requestAnimationFrame(tick);
+    }
+    rafRef.current = requestAnimationFrame(tick);
+    return () => rafRef.current && cancelAnimationFrame(rafRef.current);
+  }, [inView, target, suffix, decimal]);
 
   return (
-    <span ref={ref}>
-      {decimal ? count.toFixed(1) : Math.floor(count).toLocaleString('pt-BR')}
-      {suffix}
+    <span ref={wrapperRef}>
+      <span ref={spanRef}>{decimal ? '0.0' : '0'}{suffix}</span>
     </span>
   );
 }
 
-/* ─── FLOATING LEAF ──────────────────────────────────────────────────── */
-function FloatingLeaf({ delay, x, size, color }) {
-  return (
-    <motion.div
-      className="pointer-events-none absolute top-0"
-      style={{ left: x + '%' }}
-      initial={{ y: -40, opacity: 0, rotate: 0 }}
-      animate={{ y: '110vh', opacity: [0, 0.85, 0.85, 0], rotate: [0, 160, 320, 480] }}
-      transition={{ duration: 7 + Math.random() * 6, delay, repeat: Infinity, ease: 'linear' }}
-    >
-      <Icon name="leaf" size={size} color={color} />
-    </motion.div>
-  );
-}
+/* FloatingLeaf: superseded by the shared <FallingLeaves /> component
+   (src/components/effects/FallingLeaves.jsx), which uses the exact same
+   visual/animation and is now reused across every screen in the app. */
 
 /* ─── FORMIGA CANVAS COMPONENT ──────────────────────────────────────── */
 function FormigaCanvas() {
@@ -910,7 +821,11 @@ function FormigaCanvas() {
     }
 
     // ========== LOOP ==========
+    let rafId = null;
+    let isActive = true;
+
     function animar() {
+      if (!isActive) return;
       ctx.clearRect(0, 0, W, H);
       drawScene(ctx, W, H);
 
@@ -919,10 +834,10 @@ function FormigaCanvas() {
         f.draw(ctx);
       }
 
-      requestAnimationFrame(animar);
+      rafId = requestAnimationFrame(animar);
     }
 
-    animar();
+    rafId = requestAnimationFrame(animar);
 
     function resizeCanvas() {
       const container = canvas.parentElement;
@@ -935,6 +850,8 @@ function FormigaCanvas() {
     resizeCanvas();
 
     return () => {
+      isActive = false;
+      if (rafId !== null) cancelAnimationFrame(rafId);
       window.removeEventListener('resize', resizeCanvas);
     };
   }, []);
@@ -1064,7 +981,8 @@ function RadarCanvas({ darkMode }) {
     }
 
     function drawSweepTrail() {
-      const steps = 80;
+      // steps reduzido de 80 para 28 para melhorar performance
+      const steps = 28;
       for (let i = 0; i < steps; i++) {
         const a = sweep - (i / steps) * (Math.PI * 0.7);
         const alpha = (1 - i / steps) * 0.25;
@@ -1255,7 +1173,7 @@ export default function LandingPage() {
   const router = useRouter();
   const { scrollY } = useScroll();
   const [navSolid, setNavSolid] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const { darkMode, toggleDarkMode } = useTheme();
   const [accessibilityOpen, setAccessibilityOpen] = useState(false);
 
   useEffect(() => {
@@ -1268,28 +1186,6 @@ export default function LandingPage() {
     const unsub = scrollY.on('change', (v) => setNavSolid(v > 50));
     return unsub;
   }, [scrollY]);
-
-  // Load saved theme preference
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const saved = window.localStorage.getItem('movipay-theme');
-    if (saved === 'dark') setDarkMode(true);
-  }, []);
-
-  useEffect(() => {
-    if (typeof document === 'undefined') return;
-    document.documentElement.dataset.darkMode = String(darkMode);
-    document.documentElement.dataset.highContrast = 'false';
-    document.documentElement.dataset.daltonism = 'none';
-  }, [darkMode]);
-
-  function toggleTheme() {
-    setDarkMode((prev) => {
-      const next = !prev;
-      if (typeof window !== 'undefined') window.localStorage.setItem('movipay-theme', next ? 'dark' : 'light');
-      return next;
-    });
-  }
 
   function toggleAccessibility() {
     setAccessibilityOpen(prev => !prev);
@@ -1330,15 +1226,8 @@ export default function LandingPage() {
     </div>
   );
 
-  const leaves = Array.from({ length: 20 }, (_, i) => ({
-    delay: i * 0.9,
-    x: (i * 5.1) % 100,
-    size: 14 + (i % 4) * 4,
-    color: i % 2 === 0 ? '#22D31B' : '#FF9A33',
-  }));
-
   return (
-    <div style={{ minHeight: '100vh', overflowX: 'hidden', background: theme.bg, color: theme.text, fontFamily: 'Inter, sans-serif', transition: 'background 0.4s ease, color 0.4s ease' }}>
+    <div style={{ minHeight: '100vh', overflowX: 'hidden', background: theme.bg, color: theme.text, fontFamily: 'Inter, sans-serif', transition: 'background 0.4s ease, color 0.4s ease', position: 'relative' }}>
 
       {/* ── GLOBAL STYLES ─────────────────────────────────────────────── */}
       <style>{`
@@ -1510,10 +1399,8 @@ export default function LandingPage() {
         }
       `}</style>
 
-      {/* ── FLOATING LEAVES ──────────────────────────────────────────── */}
-      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0, overflow: 'hidden' }}>
-        {leaves.map((l, i) => <FloatingLeaf key={i} delay={l.delay} x={l.x} size={l.size} color={l.color} />)}
-      </div>
+      {/* ── FLOATING LEAVES (CAEM E PARAM NO FOOTER) ────────────────── */}
+      <FallingLeaves />
 
       {/* ── STICK FIGURE ANT (Accessibility Button) ──────────────────── */}
       <StickFigureAnt
@@ -1527,8 +1414,6 @@ export default function LandingPage() {
       <AccessibilityMenu
         isOpen={accessibilityOpen}
         onClose={() => setAccessibilityOpen(false)}
-        darkMode={darkMode}
-        setDarkMode={setDarkMode}
         theme={theme}
       />
 
@@ -1557,7 +1442,7 @@ export default function LandingPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button
               type="button"
-              onClick={toggleTheme}
+              onClick={toggleDarkMode}
               className="theme-toggle"
               aria-label={darkMode ? 'Ativar modo claro' : 'Ativar modo noturno'}
               title={darkMode ? 'Modo claro' : 'Modo noturno'}
@@ -1955,8 +1840,9 @@ export default function LandingPage() {
       </section>
 
       {/* ── FOOTER ────────────────────────────────────────────────────── */}
-      <footer style={{ background: theme.footerBg, borderTop: `1px solid ${theme.footerBorder}`, padding: '32px 24px', transition: 'background 0.4s' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+      <footer style={{ position: 'relative', background: theme.footerBg, borderTop: `1px solid ${theme.footerBorder}`, padding: '40px 24px 44px', transition: 'background 0.4s', overflow: 'hidden' }}>
+        <FooterLeafPile />
+        <div style={{ position: 'relative', zIndex: 2, maxWidth: 1200, margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <img src="/img/logo.png" alt="MoviPay" style={{ width: 28, height: 28, borderRadius: '50%' }} />

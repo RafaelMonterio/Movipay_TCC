@@ -7,6 +7,12 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "scheme": "movipay",
+    "icon": "./assets/logo.png",
+    "splash": {
+      "image": "./assets/logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FAF6EC"
+    },
     "ios": {
       "supportsTablet": true
     },

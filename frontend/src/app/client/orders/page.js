@@ -854,10 +854,7 @@ export default function ClientOrdersPage() {
         @media (max-width: 480px) { .o-stats-grid { grid-template-columns: 1fr !important; } }
       `}</style>
 
-      {/* Floating leaves background */}
-      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0, overflow: 'hidden' }}>
-        {leaves.map((l, i) => <FloatingLeaf key={i} {...l} />)}
-      </div>
+
 
       <div style={{ position: 'relative', zIndex: 1, padding: '24px 20px 80px', maxWidth: 1220, margin: '0 auto', fontFamily: 'var(--body)', background: 'transparent' }}>
 

@@ -2,11 +2,10 @@
 import { createContext, useContext, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme, getThemeColors } from '@/context/ThemeContext';
-import SvgIcon from '@/components/ui/SvgIcon';
 
 const ToastContext = createContext(null);
 
-const ICONS = { success: 'check', error: 'x', warning: 'warning', info: 'info' };
+const ICONS = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
 
 // Dark mode toast styles
 const DARK_STYLES = {
@@ -59,9 +58,7 @@ export function ToastProvider({ children }) {
                   backdropFilter: 'blur(8px)',
                 }}
               >
-                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <SvgIcon name={ICONS[t.type]} size={16} color={style.text} />
-                </span>
+                <span>{ICONS[t.type]}</span>
                 <span>{t.message}</span>
               </motion.div>
             );

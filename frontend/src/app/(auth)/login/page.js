@@ -5,6 +5,8 @@ import { motion, AnimatePresence, useInView } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/Toast';
 import { useForm, rules } from '@/hooks/useForm';
+import { useTheme as useSharedTheme } from '@/context/ThemeContext';
+import FallingLeaves from '@/components/effects/FallingLeaves';
 
 /* ─── ICONS (no emojis — hand-drawn SVG, matches the landing page set) ── */
 function Icon({ name, size = 20, color = 'currentColor', strokeWidth = 1.8, style }) {
@@ -33,38 +35,22 @@ function Icon({ name, size = 20, color = 'currentColor', strokeWidth = 1.8, styl
   }
 }
 
-function FloatingLeaf({ delay, x, size, color }) {
-  return (
-    <motion.div
-      className="pointer-events-none absolute top-0"
-      style={{ left: x + '%' }}
-      initial={{ y: -30, opacity: 0, rotate: 0 }}
-      animate={{ y: '110vh', opacity: [0, 0.5, 0.5, 0], rotate: [0, 160, 320, 480] }}
-      transition={{ duration: 10 + Math.random() * 6, delay, repeat: Infinity, ease: 'linear' }}
-    >
-      <Icon name="leaf" size={size} color={color} />
-    </motion.div>
-  );
-}
+/* FloatingLeaf: replaced by the shared <FallingLeaves /> component so this
+   page's leaves match every other screen exactly. */
 
 export default function LoginPage() {
   const { user, login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const toast = useToast();
-  const [darkMode, setDarkMode] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const saved = window.localStorage.getItem('movipay-theme');
-    if (saved === 'dark') setDarkMode(true);
-  }, []);
+  // Uses the same shared theme (and same 'movipay-theme' localStorage key)
+  // as the rest of the app, instead of its own separate darkMode state that
+  // previously wrote a plain 'dark'/'light' string to that key — clobbering
+  // the JSON preference object the shared ThemeContext expects and losing
+  // the setting when navigating between the login page and the dashboard.
+  const { darkMode, toggleDarkMode } = useSharedTheme();
 
   function toggleTheme() {
-    setDarkMode((prev) => {
-      const next = !prev;
-      if (typeof window !== 'undefined') window.localStorage.setItem('movipay-theme', next ? 'dark' : 'light');
-      return next;
-    });
+    toggleDarkMode();
   }
 
   const form = useForm(
@@ -122,13 +108,6 @@ export default function LoginPage() {
     toggleBg: '#FFFFFF', toggleBorder: 'rgba(34,211,27,0.35)', toggleIcon: '#FF7A00',
     glowOrange: 'rgba(255,122,0,0.08)', glowGreen: 'rgba(34,211,27,0.10)',
   };
-
-  const leaves = Array.from({ length: 8 }, (_, i) => ({
-    delay: i * 1.6,
-    x: (i * 12.5) % 100,
-    size: 14 + (i % 3) * 4,
-    color: i % 2 === 0 ? '#22D31B' : '#FF9A33',
-  }));
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: theme.bg, color: theme.text, fontFamily: 'Inter, sans-serif', position: 'relative', overflow: 'hidden', transition: 'background 0.4s ease, color 0.4s ease' }}>
@@ -251,9 +230,7 @@ export default function LoginPage() {
         }} animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 9, repeat: Infinity, delay: 1 }} />
       </div>
 
-      <div style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none', overflow: 'hidden' }}>
-        {leaves.map((l, i) => <FloatingLeaf key={i} delay={l.delay} x={l.x} size={l.size} color={l.color} />)}
-      </div>
+      <FallingLeaves />
 
       {/* Navbar */}
       <nav style={{
