@@ -2,27 +2,43 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import { useTheme, getThemeColors } from '@/context/ThemeContext';
 import { useToast } from '@/components/ui/Toast';
 import { useAuth } from '@/context/AuthContext';
-import { formatCurrency } from '@/utils/formatters';
+import { formatCurrency, formatDate } from '@/utils/formatters';
 import api from '@/services/api';
 
-const MONTHS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+/* ─── SVG ICONS ─────────────────────────────────────────────────── */
+function Icon({ name, size = 20, color = 'currentColor', strokeWidth = 1.8, style }) {
+  const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth, strokeLinecap: 'round', strokeLinejoin: 'round', style };
+  switch (name) {
+    case 'lock': return <svg {...p}><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>;
+    case 'money': return <svg {...p}><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>;
+    case 'trendingUp': return <svg {...p}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" /></svg>;
+    case 'checkCircle': return <svg {...p}><circle cx="12" cy="12" r="9" /><polyline points="9 12 11 14 15 10" /></svg>;
+    case 'star': return <svg width={size} height={size} viewBox="0 0 24 24" fill={color} stroke="none" style={style}><polygon points="12 2 15.09 8.63 22 9.24 16.5 14.14 18.18 21 12 17.27 5.82 21 7.5 14.14 2 9.24 8.91 8.63 12 2" /></svg>;
+    case 'inbox': return <svg {...p}><polyline points="22 12 16 12 14 15 10 15 8 12 2 12" /><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" /></svg>;
+    default: return null;
+  }
+}
+
+const MONTHS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
 export default function WorkerEarningsPage() {
   const { user } = useAuth();
+  const { darkMode } = useTheme();
+  const theme = getThemeColors(darkMode);
   const toast = useToast();
-  const [orders,  setOrders]  = useState([]);
-  const [wallet,  setWallet]  = useState({ balance: 0, held: 0 });
+
+  const [orders, setOrders] = useState([]);
+  const [wallet, setWallet] = useState({ balance: 0, held: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
       api.get('/orders').then(r => setOrders(r.data.orders || [])),
       api.get('/payments/wallet').then(r => setWallet(r.data)),
-    ])
-    .catch(() => toast('Erro ao carregar dados', 'error'))
-    .finally(() => setLoading(false));
+    ]).catch(() => toast('Erro ao carregar dados', 'error')).finally(() => setLoading(false));
   }, []);
 
   const completed = orders.filter(o => o.status === 'completed');
@@ -34,120 +50,108 @@ export default function WorkerEarningsPage() {
   });
   const monthRevenue = thisMonth.reduce((s, o) => s + parseFloat(o.price), 0);
 
-  // Agrupa por mês (últimos 6 meses)
   const monthlyData = Array.from({ length: 6 }, (_, i) => {
     const d = new Date();
     d.setMonth(d.getMonth() - (5 - i));
-    const m = d.getMonth();
-    const y = d.getFullYear();
-    const total = completed
-      .filter(o => {
-        const od = new Date(o.completed_at || o.created_at);
-        return od.getMonth() === m && od.getFullYear() === y;
-      })
-      .reduce((s, o) => s + parseFloat(o.price), 0);
+    const m = d.getMonth(); const y = d.getFullYear();
+    const total = completed.filter(o => {
+      const od = new Date(o.completed_at || o.created_at);
+      return od.getMonth() === m && od.getFullYear() === y;
+    }).reduce((s, o) => s + parseFloat(o.price), 0);
     return { label: MONTHS[m], value: total };
   });
-
   const maxVal = Math.max(...monthlyData.map(d => d.value), 1);
+
+  const stats = [
+    { icon: 'money', label: 'Este mês', value: formatCurrency(monthRevenue), color: '#22D31B' },
+    { icon: 'trendingUp', label: 'Total histórico', value: formatCurrency(totalRevenue), color: '#FF7A00' },
+    { icon: 'checkCircle', label: 'Pedidos feitos', value: completed.length, color: theme.text },
+    { icon: 'star', label: 'Nota média', value: user?.avg_rating ? parseFloat(user.avg_rating).toFixed(1) : '—', color: '#FFB347' },
+  ];
 
   return (
     <DashboardLayout>
-      <div className="p-4 md:p-8 space-y-6 max-w-3xl">
-        <motion.div initial={{ opacity:0, y:-16 }} animate={{ opacity:1, y:0 }}>
-          <h1 className="text-2xl md:text-3xl font-black text-slate-800">Meus Ganhos 💰</h1>
-          <p className="text-slate-500 mt-1 text-sm">Acompanhe sua receita e carteira</p>
+      <div style={{ padding: '28px 20px 60px', maxWidth: 780, margin: '0 auto', fontFamily: 'var(--body)' }}>
+
+        <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 22 }}>
+          <h1 style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '1.9rem', color: theme.text, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 10 }}>
+            Meus Ganhos <Icon name="money" size={20} color="#FF7A00" />
+          </h1>
+          <p style={{ color: theme.textMuted, fontSize: '0.85rem', marginTop: 4 }}>Acompanhe sua receita e carteira</p>
         </motion.div>
 
         {/* Carteira */}
-        <motion.div initial={{ opacity:0, scale:0.98 }} animate={{ opacity:1, scale:1 }} transition={{ delay:0.1 }}
-          className="bg-gradient-to-br from-indigo-500 to-violet-600 rounded-3xl p-6 text-white"
-        >
-          <p className="text-indigo-100 text-sm mb-1">Saldo disponível na carteira</p>
-          <p className="text-4xl font-black mb-4">{formatCurrency(wallet.balance)}</p>
+        <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.08 }}
+          style={{ position: 'relative', overflow: 'hidden', borderRadius: 20, padding: 26, background: 'linear-gradient(135deg, #1B5E20, #256B29 55%, #22D31B)', color: '#fff', marginBottom: 20 }}>
+          <svg width="150" height="150" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="0.8" style={{ position: 'absolute', right: -26, bottom: -26, opacity: 0.12 }}><path d="M5 21c0-9 6-15 15-15-1 9-7 15-15 15z" /><path d="M5 21c3-3 6-6 9-9" /></svg>
+          <p style={{ position: 'relative', fontSize: '0.8rem', opacity: 0.9 }}>Saldo disponível na carteira</p>
+          <p style={{ position: 'relative', fontFamily: 'var(--display)', fontWeight: 700, fontSize: '2.6rem', marginTop: 6 }}>{formatCurrency(wallet.balance)}</p>
           {wallet.held > 0 && (
-            <div className="bg-white/10 rounded-xl p-3 flex items-center gap-2">
-              <span className="text-lg">🔒</span>
+            <div style={{ position: 'relative', marginTop: 16, background: 'rgba(255,255,255,0.16)', borderRadius: 12, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10, maxWidth: 340 }}>
+              <Icon name="lock" size={17} color="#fff" style={{ flexShrink: 0 }} />
               <div>
-                <p className="text-sm font-semibold">{formatCurrency(wallet.held)} em custódia</p>
-                <p className="text-xs text-indigo-100">Será liberado após conclusão dos pedidos</p>
+                <p style={{ fontSize: '0.82rem', fontWeight: 700 }}>{formatCurrency(wallet.held)} em custódia</p>
+                <p style={{ fontSize: '0.7rem', opacity: 0.85 }}>Será liberado após conclusão dos pedidos</p>
               </div>
             </div>
           )}
         </motion.div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[
-            { icon:'💵', label:'Este mês',      value: formatCurrency(monthRevenue),  color:'text-green-600' },
-            { icon:'📊', label:'Total histórico', value: formatCurrency(totalRevenue), color:'text-client' },
-            { icon:'✅', label:'Pedidos feitos', value: completed.length,              color:'text-slate-800' },
-            { icon:'⭐', label:'Nota média',     value: user?.avg_rating ? parseFloat(user.avg_rating).toFixed(1) : '—', color:'text-amber-500' },
-          ].map((s, i) => (
-            <motion.div key={s.label} initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.1+i*0.05 }}
-              className="bg-white rounded-2xl border border-slate-100 p-4"
-            >
-              <p className="text-xl mb-1">{s.icon}</p>
-              <p className={`text-xl font-black ${s.color}`}>{s.value}</p>
-              <p className="text-xs text-slate-400 mt-0.5">{s.label}</p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 20 }} className="wk-earn-stats">
+          {stats.map((s, i) => (
+            <motion.div key={s.label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.05 }}
+              style={{ background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, borderRadius: 15, padding: '14px 12px' }}>
+              <Icon name={s.icon} size={16} color={s.color} style={{ marginBottom: 8 }} />
+              <p style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '1.05rem', color: s.color === theme.text ? theme.text : s.color }}>{s.value}</p>
+              <p style={{ fontSize: '0.66rem', color: theme.textMuted, marginTop: 2 }}>{s.label}</p>
             </motion.div>
           ))}
         </div>
 
-        {/* Gráfico de barras */}
-        <motion.div initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.2 }}
-          className="bg-white rounded-2xl border border-slate-100 p-6"
-        >
-          <h2 className="font-bold text-slate-800 mb-5">Receita dos últimos 6 meses</h2>
-          <div className="flex items-end gap-2 h-40">
+        {/* Gráfico */}
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+          style={{ background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, borderRadius: 18, padding: 22, marginBottom: 24 }}>
+          <p style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '0.95rem', color: theme.text, marginBottom: 18 }}>Receita dos últimos 6 meses</p>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 150 }}>
             {monthlyData.map((d, i) => (
-              <div key={d.label} className="flex-1 flex flex-col items-center gap-1.5">
-                <p className="text-xs font-semibold text-slate-600">
-                  {d.value > 0 ? `R$${Math.round(d.value)}` : ''}
-                </p>
-                <motion.div
-                  initial={{ height: 0 }}
-                  animate={{ height: `${(d.value / maxVal) * 100}%` }}
-                  transition={{ delay: 0.3 + i * 0.08, duration: 0.6 }}
-                  className={`w-full rounded-t-lg min-h-[4px] ${
-                    i === monthlyData.length - 1 ? 'bg-client' : 'bg-slate-200'
-                  }`}
-                />
-                <p className="text-xs text-slate-400">{d.label}</p>
+              <div key={d.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                <p style={{ fontSize: '0.66rem', fontWeight: 700, color: theme.text }}>{d.value > 0 ? `R$${Math.round(d.value)}` : ''}</p>
+                <motion.div initial={{ height: 0 }} animate={{ height: `${(d.value / maxVal) * 100}%` }} transition={{ delay: 0.3 + i * 0.08, duration: 0.6 }}
+                  style={{ width: '100%', borderRadius: '8px 8px 3px 3px', minHeight: 4, background: i === monthlyData.length - 1 ? '#FF7A00' : theme.line }} />
+                <p style={{ fontSize: '0.66rem', color: theme.textMuted }}>{d.label}</p>
               </div>
             ))}
           </div>
         </motion.div>
 
-        {/* Pedidos recentes */}
+        {/* Pedidos concluídos */}
         <div>
-          <h2 className="font-bold text-slate-800 mb-3">Pedidos concluídos</h2>
+          <p style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '0.95rem', color: theme.text, marginBottom: 12 }}>Pedidos concluídos</p>
           {loading ? (
-            <div className="space-y-2">{[0,1,2].map(i => <div key={i} className="h-16 bg-slate-100 rounded-2xl animate-pulse" />)}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{[0, 1, 2].map(i => <div key={i} style={{ height: 62, borderRadius: 14, background: theme.line, opacity: 0.5 }} />)}</div>
           ) : completed.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-slate-100 p-8 text-center">
-              <p className="text-3xl mb-2">📭</p>
-              <p className="text-slate-500 text-sm">Nenhum pedido concluído ainda.</p>
+            <div style={{ background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, borderRadius: 18, padding: 40, textAlign: 'center' }}>
+              <Icon name="inbox" size={28} color={theme.textMuted} style={{ margin: '0 auto 8px' }} />
+              <p style={{ fontSize: '0.82rem', color: theme.textMuted }}>Nenhum pedido concluído ainda.</p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {completed.slice(0, 8).map((o, i) => (
-                <motion.div key={o.id} initial={{ opacity:0, x:-12 }} animate={{ opacity:1, x:0 }} transition={{ delay:i*0.04 }}
-                  className="bg-white rounded-2xl border border-slate-100 p-4 flex items-center justify-between"
-                >
+                <motion.div key={o.id} initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, borderRadius: 14, padding: 14 }}>
                   <div>
-                    <p className="font-semibold text-slate-800 text-sm">{o.service_title || `Pedido #${o.id}`}</p>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      {o.client_name} · {new Date(o.completed_at || o.created_at).toLocaleDateString('pt-BR')}
-                    </p>
+                    <p style={{ fontWeight: 700, fontSize: '0.83rem', color: theme.text }}>{o.service_title || `Pedido #${o.id}`}</p>
+                    <p style={{ fontSize: '0.72rem', color: theme.textMuted, marginTop: 2 }}>{o.client_name} · {formatDate(o.completed_at || o.created_at)}</p>
                   </div>
-                  <p className="font-black text-green-600">{formatCurrency(o.price)}</p>
+                  <p style={{ fontWeight: 800, color: '#22D31B', fontSize: '0.88rem' }}>{formatCurrency(o.price)}</p>
                 </motion.div>
               ))}
             </div>
           )}
         </div>
       </div>
+      <style>{`@media (max-width: 700px) { .wk-earn-stats { grid-template-columns: repeat(2, 1fr) !important; } }`}</style>
     </DashboardLayout>
   );
 }

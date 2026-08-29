@@ -3,40 +3,71 @@ import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import AvatarUpload from '@/components/ui/AvatarUpload';
-import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
 import { ProfileSkeleton } from '@/components/ui/Skeleton';
 import { useToast } from '@/components/ui/Toast';
 import { useAuth } from '@/context/AuthContext';
 import { useForm, rules } from '@/hooks/useForm';
+import { useTheme, getThemeColors } from '@/context/ThemeContext';
 import { formatCurrency } from '@/utils/formatters';
 import api from '@/services/api';
 
-const WEEKDAYS = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
-const HOURS    = Array.from({ length: 14 }, (_, i) => i + 6); // 6h–19h
+/* ─── SVG ICONS ─────────────────────────────────────────────────── */
+function Icon({ name, size = 20, color = 'currentColor', strokeWidth = 1.8, style }) {
+  const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth, strokeLinecap: 'round', strokeLinejoin: 'round', style };
+  switch (name) {
+    case 'edit': return <svg {...p}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>;
+    case 'phone': return <svg {...p}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></svg>;
+    case 'mapPin': return <svg {...p}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>;
+    case 'plus': return <svg {...p}><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>;
+    case 'camera': return <svg {...p}><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>;
+    case 'trash': return <svg {...p}><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6M14 11v6" /></svg>;
+    case 'star': return <svg width={size} height={size} viewBox="0 0 24 24" fill={color} stroke="none" style={style}><polygon points="12 2 15.09 8.63 22 9.24 16.5 14.14 18.18 21 12 17.27 5.82 21 7.5 14.14 2 9.24 8.91 8.63 12 2" /></svg>;
+    case 'check': return <svg {...p}><polyline points="20 6 9 17 4 12" /></svg>;
+    case 'swap': return <svg {...p}><polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 0 1 4-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 0 1-4 4H3" /></svg>;
+    case 'logout': return <svg {...p}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>;
+    case 'tool': return <svg {...p}><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" /></svg>;
+    case 'checkCircle': return <svg {...p}><circle cx="12" cy="12" r="9" /><polyline points="9 12 11 14 15 10" /></svg>;
+    case 'message': return <svg {...p}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>;
+    case 'image': return <svg {...p}><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>;
+    default: return null;
+  }
+}
+
+const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+const CATEGORY_OPTIONS = [
+  ['limpeza', '🧹 Limpeza'], ['eletrica', '⚡ Elétrica'], ['pintura', '🎨 Pintura'],
+  ['encanamento', '🔧 Encanamento'], ['jardinagem', '🌿 Jardinagem'],
+  ['informatica', '💻 Informática'], ['mudanca', '📦 Mudança'],
+  ['reforma', '🏗️ Reforma'], ['aulas', '📚 Aulas'],
+];
+const LEVELS = [
+  { icon: '🌱', label: 'Iniciante', min: 0 }, { icon: '🥉', label: 'Bronze', min: 100 },
+  { icon: '🥈', label: 'Prata', min: 300 }, { icon: '🥇', label: 'Ouro', min: 600 },
+  { icon: '💎', label: 'Diamante', min: 1000 }, { icon: '👑', label: 'Lenda', min: 2000 },
+];
 
 export default function WorkerProfilePage() {
   const { user, logout, switchMode } = useAuth();
+  const { darkMode } = useTheme();
+  const theme = getThemeColors(darkMode);
   const toast = useToast();
   const photoRef = useRef(null);
 
-  const [profile,    setProfile]    = useState(null);
-  const [services,   setServices]   = useState([]);
-  const [photos,     setPhotos]     = useState([]);
-  const [slots,      setSlots]      = useState([]);
-  const [reviews,    setReviews]    = useState([]);
-  const [loading,    setLoading]    = useState(true);
-  const [editing,    setEditing]    = useState(false);
-  const [available,  setAvailable]  = useState(true);
-  const [svcModal,   setSvcModal]   = useState(false);
-  const [savingSvc,  setSavingSvc]  = useState(false);
-  const [svcForm,    setSvcForm]    = useState({ title:'', category:'limpeza', price:'', description:'' });
+  const [profile, setProfile] = useState(null);
+  const [services, setServices] = useState([]);
+  const [photos, setPhotos] = useState([]);
+  const [slots, setSlots] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [available, setAvailable] = useState(true);
+  const [svcModal, setSvcModal] = useState(false);
+  const [savingSvc, setSavingSvc] = useState(false);
+  const [svcForm, setSvcForm] = useState({ title: '', category: 'limpeza', price: '', description: '' });
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
-  const form = useForm(
-    { name:'', bio:'', phone:'' },
-    { name: [rules.required(), rules.minLength(2, 'Nome muito curto')] }
-  );
+  const form = useForm({ name: '', bio: '', phone: '' }, { name: [rules.required(), rules.minLength(2, 'Nome muito curto')] });
 
   useEffect(() => {
     if (!user) return;
@@ -44,22 +75,19 @@ export default function WorkerProfilePage() {
       api.get('/auth/me').then(r => {
         setProfile(r.data);
         setAvailable(r.data.is_available ?? true);
-        form.handleChange('name',  r.data.name  || '');
-        form.handleChange('bio',   r.data.bio   || '');
+        form.handleChange('name', r.data.name || '');
+        form.handleChange('bio', r.data.bio || '');
         form.handleChange('phone', r.data.phone || '');
       }),
       api.get(`/workers/${user.id}`).then(r => {
         setServices(r.data.services || []);
-        setPhotos(r.data.photos    || []);
+        setPhotos(r.data.photos || []);
         setSlots(r.data.availability || []);
-        setReviews(r.data.reviews  || []);
+        setReviews(r.data.reviews || []);
       }),
-    ])
-    .catch(() => toast('Erro ao carregar perfil', 'error'))
-    .finally(() => setLoading(false));
+    ]).catch(() => toast('Erro ao carregar perfil', 'error')).finally(() => setLoading(false));
   }, [user]);
 
-  /* ── Salvar perfil ── */
   async function handleSave() {
     await form.handleSubmit(async values => {
       try {
@@ -71,31 +99,25 @@ export default function WorkerProfilePage() {
     });
   }
 
-  /* ── Toggle disponibilidade ── */
   async function toggleAvailability() {
     try {
       const next = !available;
       await api.patch(`/workers/${user.id}/availability`, { is_available: next });
       setAvailable(next);
-      toast(next ? '🟢 Você está disponível!' : '⚫ Modo indisponível ativado', 'info');
+      toast(next ? 'Você está disponível!' : 'Modo indisponível ativado', 'info');
     } catch { toast('Erro ao atualizar disponibilidade', 'error'); }
   }
 
-  /* ── Upload de foto de portfólio ── */
   async function handlePortfolioPhoto(e) {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) { toast('Selecione uma imagem', 'error'); return; }
     if (file.size > 3 * 1024 * 1024) { toast('Máximo 3MB', 'error'); return; }
-
     const reader = new FileReader();
     reader.onload = async ev => {
       try {
         setUploadingPhoto(true);
-        const { data } = await api.post(`/workers/${user.id}/portfolio`, {
-          url: ev.target.result,
-          caption: file.name.replace(/\.[^/.]+$/, ''),
-        });
+        const { data } = await api.post(`/workers/${user.id}/portfolio`, { url: ev.target.result, caption: file.name.replace(/\.[^/.]+$/, '') });
         setPhotos(prev => [data, ...prev]);
         toast('Foto adicionada ao portfólio!', 'success');
       } catch { toast('Erro ao adicionar foto', 'error'); }
@@ -112,7 +134,6 @@ export default function WorkerProfilePage() {
     } catch { toast('Erro ao remover foto', 'error'); }
   }
 
-  /* ── Adicionar serviço ── */
   async function handleAddService() {
     if (!svcForm.title || !svcForm.price) { toast('Preencha título e preço', 'warning'); return; }
     try {
@@ -120,204 +141,188 @@ export default function WorkerProfilePage() {
       const { data } = await api.post('/services', svcForm);
       setServices(prev => [data, ...prev]);
       setSvcModal(false);
-      setSvcForm({ title:'', category:'limpeza', price:'', description:'' });
+      setSvcForm({ title: '', category: 'limpeza', price: '', description: '' });
       toast('Serviço adicionado!', 'success');
     } catch { toast('Erro ao adicionar serviço', 'error'); }
     finally { setSavingSvc(false); }
   }
 
-  const level = Math.min(
-    [0,100,300,600,1000,2000].reduce((acc, t, i) => (profile?.points || 0) >= t ? i : acc, 0),
-    5
-  );
-  const LEVEL_ICONS = ['🌱','🥉','🥈','🥇','💎','👑'];
+  const points = profile?.points || 0;
+  const levelIndex = LEVELS.reduce((acc, lvl, i) => points >= lvl.min ? i : acc, 0);
+  const level = LEVELS[levelIndex];
 
   return (
     <DashboardLayout>
-      <div className="p-4 md:p-8 max-w-2xl space-y-6">
-        <motion.div initial={{ opacity:0, y:-16 }} animate={{ opacity:1, y:0 }}>
-          <h1 className="text-2xl md:text-3xl font-black text-slate-800">Meu Perfil</h1>
-          <p className="text-slate-500 mt-1 text-sm">Gerencie suas informações e portfólio</p>
+      <div style={{ padding: '28px 20px 60px', maxWidth: 640, margin: '0 auto', fontFamily: 'var(--body)' }}>
+
+        <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 22 }}>
+          <h1 style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '1.9rem', color: theme.text, letterSpacing: '-0.02em' }}>Meu Perfil</h1>
+          <p style={{ color: theme.textMuted, fontSize: '0.85rem', marginTop: 4 }}>Gerencie suas informações e portfólio</p>
         </motion.div>
 
         {loading ? <ProfileSkeleton /> : (
           <>
-            {/* ── Card principal ── */}
-            <motion.div initial={{ opacity:0, scale:0.98 }} animate={{ opacity:1, scale:1 }} transition={{ delay:0.1 }}
-              className="bg-white rounded-2xl border border-slate-100 p-6"
-            >
-              <div className="flex items-start gap-4">
+            {/* Card principal */}
+            <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.08 }}
+              style={{ background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, borderRadius: 20, padding: 22, marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
                 <AvatarUpload user={profile} onUpdate={d => setProfile(p => ({ ...p, ...d }))} />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-xl font-black text-slate-800 truncate">{profile?.name}</p>
+                <div style={{ flex: 1, minWidth: 180 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <p style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '1.2rem', color: theme.text }}>{profile?.name}</p>
                     {profile?.is_verified && (
-                      <span className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-client/10 text-client">
-                        ✓ Verificado
+                      <span style={{ fontSize: '0.66rem', fontWeight: 700, padding: '3px 9px', borderRadius: 999, background: 'rgba(255,122,0,0.12)', color: '#FF7A00', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Icon name="check" size={10} color="#FF7A00" /> Verificado
                       </span>
                     )}
-                    <span className="text-lg">{LEVEL_ICONS[level]}</span>
+                    <span title={level.label} style={{ fontSize: '1.1rem' }}>{level.icon}</span>
                   </div>
-                  <p className="text-sm text-slate-500 mt-0.5">{profile?.email}</p>
+                  <p style={{ fontSize: '0.8rem', color: theme.textMuted, marginTop: 3 }}>{profile?.email}</p>
                   {profile?.neighborhood && (
-                    <p className="text-xs text-slate-400 mt-0.5">📍 {profile.neighborhood}, {profile.city}</p>
+                    <p style={{ fontSize: '0.74rem', color: theme.textMuted, marginTop: 3, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Icon name="mapPin" size={11} color={theme.textMuted} /> {profile.neighborhood}, {profile.city}
+                    </p>
                   )}
                   {profile?.avg_rating > 0 && (
-                    <p className="text-sm text-amber-500 mt-1">
-                      {'★'.repeat(Math.round(profile.avg_rating))}{'☆'.repeat(5 - Math.round(profile.avg_rating))}
-                      {' '}{parseFloat(profile.avg_rating).toFixed(1)}
-                      <span className="text-slate-400 text-xs ml-1">({profile.total_reviews} avaliações)</span>
+                    <p style={{ fontSize: '0.8rem', color: '#FFB347', marginTop: 6, display: 'flex', alignItems: 'center', gap: 3 }}>
+                      {Array.from({ length: 5 }).map((_, i) => <Icon key={i} name="star" size={13} color={i < Math.round(profile.avg_rating) ? '#FFB347' : theme.line} />)}
+                      <span style={{ color: theme.textMuted, fontSize: '0.72rem', marginLeft: 4 }}>{parseFloat(profile.avg_rating).toFixed(1)} ({profile.total_reviews} avaliações)</span>
                     </p>
                   )}
 
-                  {/* Toggle disponibilidade */}
-                  <button onClick={toggleAvailability}
-                    className={`mt-3 flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                      available ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-                    }`}
-                  >
-                    <span className={`w-2 h-2 rounded-full ${available ? 'bg-green-500' : 'bg-slate-400'}`} />
+                  <motion.button whileTap={{ scale: 0.96 }} onClick={toggleAvailability}
+                    style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '7px 12px', borderRadius: 999, cursor: 'pointer', border: 'none', fontSize: '0.72rem', fontWeight: 700, background: available ? 'rgba(34,211,27,0.12)' : theme.bgAlt, color: available ? '#1E9E1A' : theme.textMuted }}>
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: available ? '#22D31B' : theme.textMuted }} />
                     {available ? 'Disponível para novos pedidos' : 'Indisponível no momento'}
-                    <span className="ml-1 text-xs opacity-60">(clique para alterar)</span>
-                  </button>
+                  </motion.button>
                 </div>
-                <div className="flex flex-col items-end gap-2">
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
                   <button onClick={() => switchMode('client')}
-                    className="text-xs font-semibold text-client bg-client/10 px-3 py-1.5 rounded-full hover:bg-client/15 transition-all">
-                    Trocar para cliente
+                    style={{ fontSize: '0.7rem', fontWeight: 700, color: '#22D31B', background: 'rgba(34,211,27,0.1)', padding: '6px 12px', borderRadius: 999, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}>
+                    <Icon name="swap" size={11} color="#22D31B" /> Trocar p/ cliente
                   </button>
-                  <button onClick={() => setEditing(!editing)} className="text-sm font-semibold text-client hover:underline flex-shrink-0">
-                    {editing ? 'Cancelar' : '✏️ Editar'}
+                  <button onClick={() => setEditing(v => !v)} style={{ fontSize: '0.78rem', fontWeight: 700, color: '#FF7A00', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Icon name="edit" size={13} color="#FF7A00" /> {editing ? 'Cancelar' : 'Editar'}
                   </button>
                 </div>
               </div>
 
               {profile?.bio && !editing && (
-                <div className="mt-4 pt-4 border-t border-slate-100">
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Bio</p>
-                  <p className="text-sm text-slate-700 leading-relaxed">{profile.bio}</p>
+                <div style={{ marginTop: 16, paddingTop: 16, borderTop: `1px solid ${theme.line}` }}>
+                  <p style={{ fontSize: '0.66rem', fontWeight: 700, color: theme.textMuted, textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 5 }}>Bio</p>
+                  <p style={{ fontSize: '0.85rem', color: theme.text, lineHeight: 1.6 }}>{profile.bio}</p>
                 </div>
               )}
             </motion.div>
 
-            {/* ── Formulário de edição ── */}
+            {/* Form de edição */}
             <AnimatePresence>
               {editing && (
-                <motion.div initial={{ opacity:0, height:0 }} animate={{ opacity:1, height:'auto' }} exit={{ opacity:0, height:0 }}
-                  className="bg-white rounded-2xl border border-client/20 p-6 space-y-4"
-                >
-                  <Input label="Nome" value={form.values.name} required icon="👤"
-                    onChange={v => form.handleChange('name', v)}
-                    onBlur={() => form.handleBlur('name')}
-                    error={form.touched.name ? form.errors.name : ''}
-                  />
-                  <Input label="Telefone" value={form.values.phone} icon="📞" placeholder="(11) 99999-9999"
-                    onChange={v => form.handleChange('phone', v)}
-                  />
-                  <div>
-                    <label className="text-sm font-semibold text-slate-700 block mb-1.5">Bio profissional</label>
-                    <textarea value={form.values.bio}
-                      onChange={e => form.handleChange('bio', e.target.value)}
-                      rows={4} placeholder="Descreva sua experiência, especialidades e diferenciais..."
-                      className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-client/20 focus:border-client"
-                    />
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} style={{ overflow: 'hidden', marginBottom: 16 }}>
+                  <div style={{ background: theme.cardBg, border: '1.5px solid rgba(255,122,0,0.3)', borderRadius: 18, padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    {[
+                      { name: 'name', label: 'Nome', placeholder: '' },
+                      { name: 'phone', label: 'Telefone', placeholder: '(11) 99999-9999' },
+                    ].map(f => (
+                      <div key={f.name}>
+                        <label style={{ fontSize: '0.78rem', fontWeight: 700, color: theme.text, display: 'block', marginBottom: 6 }}>{f.label}</label>
+                        <input value={form.values[f.name]} onChange={e => form.handleChange(f.name, e.target.value)} placeholder={f.placeholder}
+                          style={{ width: '100%', borderRadius: 12, padding: '10px 14px', fontSize: '0.85rem', outline: 'none', background: theme.bg, color: theme.text, border: `1.5px solid ${theme.line}` }} />
+                      </div>
+                    ))}
+                    <div>
+                      <label style={{ fontSize: '0.78rem', fontWeight: 700, color: theme.text, display: 'block', marginBottom: 6 }}>Bio profissional</label>
+                      <textarea value={form.values.bio} onChange={e => form.handleChange('bio', e.target.value)} rows={4}
+                        placeholder="Descreva sua experiência, especialidades e diferenciais..."
+                        style={{ width: '100%', borderRadius: 12, padding: 14, fontSize: '0.85rem', outline: 'none', resize: 'none', background: theme.bg, color: theme.text, border: `1.5px solid ${theme.line}` }} />
+                    </div>
+                    <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }} onClick={handleSave} disabled={form.submitting}
+                      style={{ background: '#FF7A00', color: '#fff', fontWeight: 800, padding: '11px 0', borderRadius: 12, border: 'none', cursor: 'pointer', opacity: form.submitting ? 0.7 : 1 }}>
+                      {form.submitting ? 'Salvando...' : 'Salvar alterações'}
+                    </motion.button>
                   </div>
-                  <button onClick={handleSave} disabled={form.submitting}
-                    className="w-full bg-client text-white font-bold py-3 rounded-xl hover:bg-indigo-600 transition-all disabled:opacity-60">
-                    {form.submitting ? '⏳ Salvando...' : 'Salvar alterações'}
-                  </button>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* ── Stats ── */}
-            <div className="grid grid-cols-3 gap-3">
+            {/* Stats */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 20 }}>
               {[
-                { icon:'⭐', label:'Pontos',     value: profile?.points || 0,    color:'text-amber-500' },
-                { icon:'✅', label:'Concluídos', value: profile?.total_orders || 0, color:'text-green-500' },
-                { icon:'💬', label:'Avaliações', value: profile?.total_reviews || 0, color:'text-client' },
+                { icon: 'star', label: 'Pontos', value: profile?.points || 0, color: '#FFB347' },
+                { icon: 'checkCircle', label: 'Concluídos', value: profile?.total_orders || 0, color: '#22D31B' },
+                { icon: 'message', label: 'Avaliações', value: profile?.total_reviews || 0, color: '#FF7A00' },
               ].map((s, i) => (
-                <motion.div key={s.label} initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.1+i*0.05 }}
-                  className="bg-white rounded-2xl border border-slate-100 p-4 text-center"
-                >
-                  <p className="text-xl mb-1">{s.icon}</p>
-                  <p className={`text-xl font-black ${s.color}`}>{s.value}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">{s.label}</p>
+                <motion.div key={s.label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.05 }}
+                  style={{ background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, borderRadius: 15, padding: 14, textAlign: 'center' }}>
+                  <Icon name={s.icon} size={17} color={s.color} style={{ margin: '0 auto 8px' }} />
+                  <p style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '1.15rem', color: theme.text }}>{s.value}</p>
+                  <p style={{ fontSize: '0.66rem', color: theme.textMuted, marginTop: 2 }}>{s.label}</p>
                 </motion.div>
               ))}
             </div>
 
-            {/* ── Portfólio ── */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="font-bold text-slate-800">Portfólio de fotos</h2>
-                <button onClick={() => photoRef.current?.click()}
-                  disabled={uploadingPhoto}
-                  className="text-sm font-semibold text-white bg-worker px-3 py-1.5 rounded-xl hover:bg-amber-500 transition-all disabled:opacity-60">
-                  {uploadingPhoto ? '⏳' : '+ Adicionar'}
+            {/* Portfólio */}
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <h2 style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '0.95rem', color: theme.text }}>Portfólio de fotos</h2>
+                <button onClick={() => photoRef.current?.click()} disabled={uploadingPhoto}
+                  style={{ fontSize: '0.72rem', fontWeight: 700, color: '#fff', background: '#FF7A00', padding: '7px 12px', borderRadius: 10, border: 'none', cursor: 'pointer', opacity: uploadingPhoto ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <Icon name="plus" size={11} color="#fff" /> Adicionar
                 </button>
-                <input ref={photoRef} type="file" accept="image/*" onChange={handlePortfolioPhoto} className="hidden" />
+                <input ref={photoRef} type="file" accept="image/*" onChange={handlePortfolioPhoto} style={{ display: 'none' }} />
               </div>
 
               {photos.length === 0 ? (
                 <button onClick={() => photoRef.current?.click()}
-                  className="w-full bg-white rounded-2xl border-2 border-dashed border-slate-200 p-8 text-center hover:border-worker/40 transition-all"
-                >
-                  <p className="text-3xl mb-2">📸</p>
-                  <p className="text-slate-500 text-sm font-medium">Adicione fotos dos seus trabalhos</p>
-                  <p className="text-slate-400 text-xs mt-1">Fotos aumentam suas chances de contratação em 3x</p>
+                  style={{ width: '100%', background: theme.cardBg, border: `2px dashed ${theme.line}`, borderRadius: 18, padding: 32, textAlign: 'center', cursor: 'pointer' }}>
+                  <Icon name="camera" size={26} color={theme.textMuted} style={{ margin: '0 auto 8px' }} />
+                  <p style={{ fontSize: '0.84rem', fontWeight: 700, color: theme.text }}>Adicione fotos dos seus trabalhos</p>
+                  <p style={{ fontSize: '0.72rem', color: theme.textMuted, marginTop: 4 }}>Fotos aumentam suas chances de contratação em 3x</p>
                 </button>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
                   {photos.map((ph, i) => (
-                    <motion.div key={ph.id} initial={{ opacity:0, scale:0.9 }} animate={{ opacity:1, scale:1 }} transition={{ delay:i*0.05 }}
-                      className="relative group aspect-square rounded-2xl overflow-hidden bg-slate-100"
-                    >
-                      <img src={ph.url} alt={ph.caption || 'Portfólio'} className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
-                        <button onClick={() => deletePhoto(ph.id)}
-                          className="bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-red-600">
-                          Remover
+                    <motion.div key={ph.id} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.05 }}
+                      className="wk-photo" style={{ position: 'relative', aspectRatio: '1', borderRadius: 16, overflow: 'hidden', background: theme.bgAlt }}>
+                      <img src={ph.url} alt={ph.caption || 'Portfólio'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <div className="wk-photo-overlay" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', opacity: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'opacity 0.2s' }}>
+                        <button onClick={() => deletePhoto(ph.id)} style={{ background: '#FF3B5C', color: '#fff', fontSize: '0.7rem', fontWeight: 700, padding: '6px 12px', borderRadius: 8, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <Icon name="trash" size={11} color="#fff" /> Remover
                         </button>
                       </div>
-                      {ph.caption && (
-                        <div className="absolute bottom-0 left-0 right-0 bg-black/40 px-2 py-1">
-                          <p className="text-white text-xs truncate">{ph.caption}</p>
-                        </div>
-                      )}
+                      {ph.caption && <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.4)', padding: '4px 8px' }}><p style={{ color: '#fff', fontSize: '0.68rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ph.caption}</p></div>}
                     </motion.div>
                   ))}
                   <button onClick={() => photoRef.current?.click()}
-                    className="aspect-square rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-1 hover:border-worker/40 transition-all bg-white"
-                  >
-                    <span className="text-2xl">+</span>
-                    <span className="text-xs text-slate-400">Adicionar</span>
+                    style={{ aspectRatio: '1', borderRadius: 16, border: `2px dashed ${theme.line}`, background: 'transparent', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, cursor: 'pointer' }}>
+                    <Icon name="plus" size={18} color={theme.textMuted} />
+                    <span style={{ fontSize: '0.66rem', color: theme.textMuted }}>Adicionar</span>
                   </button>
                 </div>
               )}
             </div>
 
-            {/* ── Disponibilidade semanal ── */}
-            <div>
-              <h2 className="font-bold text-slate-800 mb-3">Grade de disponibilidade</h2>
+            {/* Disponibilidade */}
+            <div style={{ marginBottom: 24 }}>
+              <h2 style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '0.95rem', color: theme.text, marginBottom: 12 }}>Grade de disponibilidade</h2>
               {slots.length === 0 ? (
-                <div className="bg-white rounded-2xl border border-slate-100 p-6 text-center">
-                  <p className="text-slate-400 text-sm">Nenhum horário configurado</p>
+                <div style={{ background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, borderRadius: 16, padding: 24, textAlign: 'center' }}>
+                  <p style={{ fontSize: '0.8rem', color: theme.textMuted }}>Nenhum horário configurado</p>
                 </div>
               ) : (
-                <div className="bg-white rounded-2xl border border-slate-100 p-4 overflow-x-auto">
-                  <div className="flex gap-3 min-w-max">
+                <div style={{ background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, borderRadius: 16, padding: 14, overflowX: 'auto' }}>
+                  <div style={{ display: 'flex', gap: 10, minWidth: 'max-content' }}>
                     {WEEKDAYS.map((day, wi) => {
                       const daySlots = slots.filter(s => s.weekday === wi);
                       return (
-                        <div key={day} className="flex flex-col gap-1 min-w-[60px]">
-                          <p className="text-xs font-semibold text-slate-400 text-center mb-1">{day}</p>
+                        <div key={day} style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 58 }}>
+                          <p style={{ fontSize: '0.64rem', fontWeight: 700, color: theme.textMuted, textAlign: 'center', marginBottom: 4 }}>{day}</p>
                           {daySlots.length === 0 ? (
-                            <div className="h-8 rounded-lg bg-slate-50 border border-dashed border-slate-200 flex items-center justify-center">
-                              <span className="text-xs text-slate-300">—</span>
+                            <div style={{ height: 30, borderRadius: 8, background: theme.bgAlt, border: `1px dashed ${theme.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <span style={{ fontSize: '0.66rem', color: theme.textMuted }}>—</span>
                             </div>
                           ) : daySlots.map(s => (
-                            <div key={s.id} className="bg-client/10 text-client text-xs font-medium px-2 py-1 rounded-lg text-center">
+                            <div key={s.id} style={{ background: 'rgba(255,122,0,0.1)', color: '#FF7A00', fontSize: '0.64rem', fontWeight: 700, padding: '4px 6px', borderRadius: 8, textAlign: 'center' }}>
                               {s.hour_start}h–{s.hour_end}h
                             </div>
                           ))}
@@ -329,36 +334,34 @@ export default function WorkerProfilePage() {
               )}
             </div>
 
-            {/* ── Serviços ── */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="font-bold text-slate-800">Meus Serviços</h2>
-                <button onClick={() => setSvcModal(true)}
-                  className="text-sm font-semibold text-white bg-worker px-3 py-1.5 rounded-xl hover:bg-amber-500 transition-all">
-                  + Adicionar
+            {/* Serviços */}
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <h2 style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '0.95rem', color: theme.text }}>Meus Serviços</h2>
+                <button onClick={() => setSvcModal(true)} style={{ fontSize: '0.72rem', fontWeight: 700, color: '#fff', background: '#FF7A00', padding: '7px 12px', borderRadius: 10, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <Icon name="plus" size={11} color="#fff" /> Adicionar
                 </button>
               </div>
               {services.length === 0 ? (
-                <div className="bg-white rounded-2xl border border-slate-100 p-8 text-center">
-                  <p className="text-3xl mb-2">🛠️</p>
-                  <p className="text-slate-400 text-sm">Adicione seus serviços para aparecer nas buscas</p>
+                <div style={{ background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, borderRadius: 16, padding: 30, textAlign: 'center' }}>
+                  <Icon name="tool" size={24} color={theme.textMuted} style={{ margin: '0 auto 8px' }} />
+                  <p style={{ fontSize: '0.8rem', color: theme.textMuted }}>Adicione seus serviços para aparecer nas buscas</p>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {services.map((s, i) => (
-                    <motion.div key={s.id} initial={{ opacity:0, x:-12 }} animate={{ opacity:1, x:0 }} transition={{ delay:i*0.04 }}
-                      className="bg-white rounded-2xl border border-slate-100 p-4 flex items-center justify-between"
-                    >
+                    <motion.div key={s.id} initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, borderRadius: 14, padding: 14 }}>
                       <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-base">{s.category_icon || '🛠️'}</span>
-                          <p className="font-semibold text-slate-800 text-sm">{s.title}</p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span>{s.category_icon || '🛠️'}</span>
+                          <p style={{ fontWeight: 700, fontSize: '0.83rem', color: theme.text }}>{s.title}</p>
                         </div>
-                        <p className="text-xs text-slate-400 mt-0.5">{s.category}</p>
+                        <p style={{ fontSize: '0.7rem', color: theme.textMuted, marginTop: 2 }}>{s.category}</p>
                       </div>
-                      <div className="text-right">
-                        <p className="font-black text-worker">{formatCurrency(s.price)}</p>
-                        <p className="text-xs text-slate-400">{s.price_type === 'hourly' ? '/ hora' : s.price_type === 'negotiable' ? 'a combinar' : 'fixo'}</p>
+                      <div style={{ textAlign: 'right' }}>
+                        <p style={{ fontWeight: 800, color: '#FF7A00', fontSize: '0.88rem' }}>{formatCurrency(s.price)}</p>
+                        <p style={{ fontSize: '0.66rem', color: theme.textMuted }}>{s.price_type === 'hourly' ? '/ hora' : s.price_type === 'negotiable' ? 'a combinar' : 'fixo'}</p>
                       </div>
                     </motion.div>
                   ))}
@@ -366,79 +369,73 @@ export default function WorkerProfilePage() {
               )}
             </div>
 
-            {/* ── Avaliações ── */}
+            {/* Avaliações */}
             {reviews.length > 0 && (
-              <div>
-                <h2 className="font-bold text-slate-800 mb-3">Avaliações recebidas</h2>
-                <div className="space-y-3">
+              <div style={{ marginBottom: 24 }}>
+                <h2 style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '0.95rem', color: theme.text, marginBottom: 12 }}>Avaliações recebidas</h2>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {reviews.slice(0, 4).map((r, i) => (
-                    <motion.div key={r.id} initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} transition={{ delay:i*0.05 }}
-                      className="bg-white rounded-2xl border border-slate-100 p-4"
-                    >
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-client to-violet-400 flex items-center justify-center text-white text-xs font-black flex-shrink-0">
+                    <motion.div key={r.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+                      style={{ background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, borderRadius: 16, padding: 16 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                        <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'linear-gradient(135deg, #FF7A00, #FFB347)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: '0.72rem', flexShrink: 0 }}>
                           {r.reviewer_name?.charAt(0)}
                         </div>
                         <div>
-                          <p className="font-semibold text-slate-800 text-sm">{r.reviewer_name}</p>
-                          <p className="text-amber-400 text-xs">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</p>
+                          <p style={{ fontWeight: 700, fontSize: '0.82rem', color: theme.text }}>{r.reviewer_name}</p>
+                          <div style={{ display: 'flex', gap: 1 }}>{Array.from({ length: 5 }).map((_, si) => <Icon key={si} name="star" size={11} color={si < r.rating ? '#FFB347' : theme.line} />)}</div>
                         </div>
                       </div>
-                      {r.comment && <p className="text-sm text-slate-600 leading-relaxed">"{r.comment}"</p>}
+                      {r.comment && <p style={{ fontSize: '0.82rem', color: theme.textMuted, lineHeight: 1.6, fontStyle: 'italic' }}>"{r.comment}"</p>}
                     </motion.div>
                   ))}
                 </div>
               </div>
             )}
 
-            <button onClick={logout}
-              className="w-full border border-red-200 text-red-500 font-semibold py-3 rounded-xl hover:bg-red-50 transition-all">
-              Sair da conta
-            </button>
+            <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }} onClick={logout}
+              style={{ width: '100%', border: '1.5px solid rgba(255,59,92,0.3)', color: '#FF3B5C', fontWeight: 700, padding: '12px 0', borderRadius: 14, background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <Icon name="logout" size={15} color="#FF3B5C" /> Sair da conta
+            </motion.button>
           </>
         )}
       </div>
 
       {/* Modal novo serviço */}
       <Modal open={svcModal} onClose={() => setSvcModal(false)} title="Adicionar serviço" size="sm">
-        <div className="space-y-4">
-          <Input label="Título *" value={svcForm.title}
-            onChange={v => setSvcForm(p => ({ ...p, title: v }))}
-            placeholder="Ex: Instalação de tomadas"
-          />
-          <div className="grid grid-cols-2 gap-3">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div>
+            <label style={{ fontSize: '0.8rem', fontWeight: 700, color: theme.text, display: 'block', marginBottom: 6 }}>Título *</label>
+            <input value={svcForm.title} onChange={e => setSvcForm(p => ({ ...p, title: e.target.value }))} placeholder="Ex: Instalação de tomadas"
+              style={{ width: '100%', borderRadius: 12, padding: '10px 14px', fontSize: '0.85rem', outline: 'none', background: theme.bg, color: theme.text, border: `1.5px solid ${theme.line}` }} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div>
-              <label className="text-sm font-semibold text-slate-700 block mb-1.5">Categoria</label>
-              <select value={svcForm.category}
-                onChange={e => setSvcForm(p => ({ ...p, category: e.target.value }))}
-                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-worker"
-              >
-                {[['limpeza','🧹 Limpeza'],['eletrica','⚡ Elétrica'],['pintura','🎨 Pintura'],
-                  ['encanamento','🔧 Encanamento'],['jardinagem','🌿 Jardinagem'],
-                  ['informatica','💻 Informática'],['mudanca','📦 Mudança'],
-                  ['reforma','🏗️ Reforma'],['aulas','📚 Aulas']
-                ].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
+              <label style={{ fontSize: '0.8rem', fontWeight: 700, color: theme.text, display: 'block', marginBottom: 6 }}>Categoria</label>
+              <select value={svcForm.category} onChange={e => setSvcForm(p => ({ ...p, category: e.target.value }))}
+                style={{ width: '100%', borderRadius: 12, padding: '10px 12px', fontSize: '0.82rem', outline: 'none', background: theme.bg, color: theme.text, border: `1.5px solid ${theme.line}`, cursor: 'pointer' }}>
+                {CATEGORY_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
             </div>
-            <Input label="Preço (R$) *" type="number" value={svcForm.price}
-              onChange={v => setSvcForm(p => ({ ...p, price: v }))}
-              placeholder="150"
-            />
+            <div>
+              <label style={{ fontSize: '0.8rem', fontWeight: 700, color: theme.text, display: 'block', marginBottom: 6 }}>Preço (R$) *</label>
+              <input type="number" value={svcForm.price} onChange={e => setSvcForm(p => ({ ...p, price: e.target.value }))} placeholder="150"
+                style={{ width: '100%', borderRadius: 12, padding: '10px 14px', fontSize: '0.85rem', outline: 'none', background: theme.bg, color: theme.text, border: `1.5px solid ${theme.line}` }} />
+            </div>
           </div>
           <div>
-            <label className="text-sm font-semibold text-slate-700 block mb-1.5">Descrição</label>
-            <textarea value={svcForm.description}
-              onChange={e => setSvcForm(p => ({ ...p, description: e.target.value }))}
-              rows={3} placeholder="Descreva o que está incluso no serviço..."
-              className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-worker/20 focus:border-worker"
-            />
+            <label style={{ fontSize: '0.8rem', fontWeight: 700, color: theme.text, display: 'block', marginBottom: 6 }}>Descrição</label>
+            <textarea value={svcForm.description} onChange={e => setSvcForm(p => ({ ...p, description: e.target.value }))} rows={3} placeholder="Descreva o que está incluso no serviço..."
+              style={{ width: '100%', borderRadius: 12, padding: 14, fontSize: '0.84rem', outline: 'none', resize: 'none', background: theme.bg, color: theme.text, border: `1.5px solid ${theme.line}` }} />
           </div>
-          <button onClick={handleAddService} disabled={savingSvc}
-            className="w-full bg-worker text-white font-bold py-3 rounded-xl hover:bg-amber-500 transition-all disabled:opacity-60">
-            {savingSvc ? '⏳ Salvando...' : '💾 Adicionar serviço'}
-          </button>
+          <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }} onClick={handleAddService} disabled={savingSvc}
+            style={{ background: '#FF7A00', color: '#fff', fontWeight: 800, padding: '12px 0', borderRadius: 12, border: 'none', cursor: 'pointer', opacity: savingSvc ? 0.7 : 1 }}>
+            {savingSvc ? 'Salvando...' : 'Adicionar serviço'}
+          </motion.button>
         </div>
       </Modal>
+
+      <style>{`.wk-photo:hover .wk-photo-overlay { opacity: 1 !important; }`}</style>
     </DashboardLayout>
   );
 }

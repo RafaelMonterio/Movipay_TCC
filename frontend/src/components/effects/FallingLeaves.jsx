@@ -1,6 +1,6 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
+import { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 /* ─── ÍCONE SVG DA FOLHA COM TRAÇO DELICADO E NATURAL ───────────────────── */
 export function LeafIcon({ size = 20, color = '#22D31B', style }) {
@@ -22,197 +22,169 @@ export function LeafIcon({ size = 20, color = '#22D31B', style }) {
   );
 }
 
-const LEAF_COLORS = ['#22D31B', '#FF9A33'];
-const MAX_STOPPED_LEAVES = 250;
+const LEAF_COLORS = ['#22D31B', '#FF9A33', '#10B981', '#F59E0B', '#84CC16'];
 
-/**
- * FooterLeafPile
- * ──────────────
- * As folhas caem de cima em direção ao Footer e, ao chegarem nele,
- * PARAM FISICAMENTE no rodapé e NUNCA SOMEM.
- * Ficam paradas formando um monte acumulado que vai crescendo cada vez mais.
- */
-export function FooterLeafPile({ initialCount = 42, activeFalling = 6 }) {
-  // 1. Folhas que já pousaram e estão PARADAS no footer (NUNCA SOMEM)
-  const [stoppedLeaves, setStoppedLeaves] = useState(() => {
-    const initial = [];
-    for (let i = 0; i < initialCount; i++) {
-      const x = (i / initialCount) * 96 + (Math.sin(i * 1.9) * 2 + 1);
-      const size = 14 + (i % 4) * 4;
-      const color = LEAF_COLORS[i % 2];
-      const layer = Math.floor(i / 8);
-      const bottom = Math.max(-2, layer * 5.2 + Math.sin(i * 2.7) * 3 - 2);
-      const rotate = -35 + ((i * 43) % 70);
+// Contexto global compartilhado entre as folhas que caem do topo e o rodapé com caminhão
+const LeafContext = createContext(null);
 
-      initial.push({
-        id: `init-stopped-${i}`,
-        x: Math.max(1, Math.min(97, x)),
-        bottom,
-        size,
-        color,
-        rotate,
-      });
-    }
-    return initial;
-  });
-
-  const nextId = useRef(initialCount + 100);
-  const heightMapRef = useRef(new Array(40).fill(0));
+export function LeafProvider({ children, count = 40 }) {
+  const [mounted, setMounted] = useState(false);
+  const [leaves, setLeaves] = useState([]);
+  const [collectedCount, setCollectedCount] = useState(0);
 
   useEffect(() => {
-    heightMapRef.current.fill(0);
-    stoppedLeaves.forEach((l) => {
-      const bucket = Math.floor((l.x / 100) * 40);
-      if (bucket >= 0 && bucket < 40) {
-        heightMapRef.current[bucket] = Math.max(heightMapRef.current[bucket], l.bottom + 6);
-      }
-    });
-  }, []);
-
-  // 2. Folhas que estão caindo em direção ao footer para parar nele
-  const [incomingLeaves, setIncomingLeaves] = useState(() => {
-    return Array.from({ length: activeFalling }, (_, i) => {
-      const x = (Math.random() * 94) + 3;
-      const size = 14 + Math.floor(Math.random() * 4) * 4;
-      const color = LEAF_COLORS[i % 2];
-      const bucket = Math.floor((x / 100) * 40);
-      const targetBottom = Math.min(75, (heightMapRef.current[bucket] || 0) + Math.random() * 4);
-      const rotDir = Math.random() > 0.5 ? 1 : -1;
+    setMounted(true);
+    // Cria as 40 folhas que iniciam no topo do site e caem ao longo da página
+    const initial = Array.from({ length: count }, (_, i) => {
+      const xPct = 2 + (i * 95) / count + Math.sin(i * 3.7) * 1.8;
+      const size = 14 + (i % 4) * 3;
+      const color = LEAF_COLORS[i % LEAF_COLORS.length];
+      const duration = 6.5 + ((i * 2.1) % 4);
+      const delay = (i * 0.35) % 5;
+      const rotDir = i % 2 === 0 ? 1 : -1;
+      const targetBottom = 4 + (i % 4) * 4.5 + Math.sin(i * 1.9) * 2;
+      const finalRotate = -40 + ((i * 47) % 80);
 
       return {
-        id: `incoming-${i}`,
-        x,
+        id: `leaf-${i}`,
+        index: i,
+        xPct: Math.max(2, Math.min(97, xPct)),
         size,
         color,
+        duration,
+        delay,
+        rotDir,
         targetBottom,
-        duration: 3.2 + Math.random() * 2.4,
-        delay: i * 0.7,
-        swayX: [0, Math.sin(i * 2) * 25, -Math.cos(i * 2) * 25, 0],
-        rotate: [0, 180 * rotDir, 360 * rotDir, -30 + Math.random() * 60],
-        finalRotate: -35 + Math.random() * 70,
+        finalRotate,
+        status: 'falling', // 'falling' -> 'landed' -> 'collected'
+        swayX: [0, (i % 2 === 0 ? 1 : -1) * 24, (i % 2 === 0 ? -1 : 1) * 20, 0],
+        rotate: [0, 180 * rotDir, 360 * rotDir],
       };
     });
-  });
+    setLeaves(initial);
+  }, [count]);
 
-  // Quando a folha atinge o footer, ela PARA e fica fixa no monte
-  const handleLeafLanded = (landedLeaf) => {
-    setStoppedLeaves((prev) => {
-      if (prev.length >= MAX_STOPPED_LEAVES) return prev;
-      return [
-        ...prev,
-        {
-          id: `stopped-${landedLeaf.id}-${Date.now()}`,
-          x: landedLeaf.x,
-          bottom: landedLeaf.targetBottom,
-          size: landedLeaf.size,
-          color: landedLeaf.color,
-          rotate: landedLeaf.finalRotate,
-        },
-      ];
-    });
-
-    // Atualiza a altura do monte na posição
-    const bucket = Math.floor((landedLeaf.x / 100) * 40);
-    if (bucket >= 0 && bucket < 40) {
-      heightMapRef.current[bucket] = Math.min(75, (heightMapRef.current[bucket] || 0) + 4.5);
-    }
-
-    // Inicia imediatamente uma nova folha caindo de cima em direção ao footer
-    const newX = Math.random() * 94 + 3;
-    const newSize = 14 + Math.floor(Math.random() * 4) * 4;
-    const newColor = LEAF_COLORS[Math.floor(Math.random() * LEAF_COLORS.length)];
-    const newBucket = Math.floor((newX / 100) * 40);
-    const newTargetBottom = Math.min(75, (heightMapRef.current[newBucket] || 0) + Math.random() * 4);
-    const newRotDir = Math.random() > 0.5 ? 1 : -1;
-
-    setIncomingLeaves((prev) =>
-      prev.map((l) =>
-        l.id === landedLeaf.id
-          ? {
-              id: `incoming-${nextId.current++}`,
-              x: newX,
-              size: newSize,
-              color: newColor,
-              targetBottom: newTargetBottom,
-              duration: 3.2 + Math.random() * 2.4,
-              delay: 0.1,
-              swayX: [0, (Math.random() - 0.5) * 45, (Math.random() - 0.5) * 45, 0],
-              rotate: [0, 180 * newRotDir, 360 * newRotDir, -30 + Math.random() * 60],
-              finalRotate: -35 + Math.random() * 70,
-            }
-          : l
-      )
+  // Quando a folha chega ao final da queda, ela POUSA no footer e NÃO SOME
+  const landLeaf = useCallback((leafId) => {
+    setLeaves((prev) =>
+      prev.map((l) => (l.id === leafId ? { ...l, status: 'landed' } : l))
     );
-  };
+  }, []);
+
+  // Quando o caminhão passa e aspira a folha que estava parada no chão
+  const collectLeaf = useCallback((leafId) => {
+    setLeaves((prev) =>
+      prev.map((l) => {
+        if (l.id === leafId) {
+          return { ...l, status: 'collected' };
+        }
+        return l;
+      })
+    );
+    setCollectedCount((prev) => prev + 1);
+
+    // Após ser coletada pelo caminhão, a mesma folha volta para o topo do site para cair de novo
+    setTimeout(() => {
+      setLeaves((prev) =>
+        prev.map((l) => {
+          if (l.id === leafId) {
+            const newXPct = 2 + Math.random() * 95;
+            const newDuration = 6.5 + Math.random() * 3.5;
+            const newTargetBottom = 4 + Math.random() * 16;
+            const newRotDir = Math.random() > 0.5 ? 1 : -1;
+            return {
+              ...l,
+              status: 'falling',
+              xPct: Math.max(2, Math.min(97, newXPct)),
+              duration: newDuration,
+              delay: 0.05,
+              targetBottom: newTargetBottom,
+              finalRotate: -40 + Math.random() * 80,
+              rotDir: newRotDir,
+              swayX: [0, (Math.random() - 0.5) * 36, (Math.random() - 0.5) * 36, 0],
+              rotate: [0, 180 * newRotDir, 360 * newRotDir],
+            };
+          }
+          return l;
+        })
+      );
+    }, 1200);
+  }, []);
 
   return (
-    <div
-      aria-hidden="true"
-      style={{
-        position: 'absolute',
-        inset: 0,
-        pointerEvents: 'none',
-        overflow: 'hidden',
-        zIndex: 1,
-      }}
-    >
-      {/* ── 1. FOLHAS QUE ESTÃO CAINDO EM DIREÇÃO AO FOOTER ──────────────── */}
-      {incomingLeaves.map((l) => (
-        <motion.div
-          key={l.id}
-          className="pointer-events-none absolute"
-          style={{ left: `${l.x}%` }}
-          initial={{ top: -70, opacity: 0, rotate: 0 }}
-          animate={{
-            top: `calc(100% - ${l.targetBottom + l.size}px)`,
-            x: l.swayX,
-            opacity: [0, 0.95, 0.95, 1],
-            rotate: l.rotate,
-          }}
-          transition={{
-            duration: l.duration,
-            delay: l.delay,
-            ease: 'easeIn',
-          }}
-          onAnimationComplete={() => handleLeafLanded(l)}
-        >
-          <LeafIcon size={l.size} color={l.color} />
-        </motion.div>
-      ))}
-
-      {/* ── 2. FOLHAS PARADAS NO MONTE DO FOOTER (NUNCA SOMEM) ───────────── */}
-      {stoppedLeaves.map((l) => (
-        <div
-          key={l.id}
-          style={{
-            position: 'absolute',
-            left: `${l.x}%`,
-            bottom: `${l.bottom}px`,
-            transform: `rotate(${l.rotate}deg)`,
-            filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.12))',
-            pointerEvents: 'none',
-          }}
-        >
-          <LeafIcon size={l.size} color={l.color} />
-        </div>
-      ))}
-    </div>
+    <LeafContext.Provider value={{ mounted, leaves, landLeaf, collectLeaf, collectedCount }}>
+      {children}
+    </LeafContext.Provider>
   );
+}
+
+export function useLeaves() {
+  return useContext(LeafContext);
 }
 
 /**
  * FallingLeaves
  * ──────────────
- * Queda suave e contínua de folhas em loop infinito para o fundo das páginas.
+ * Queda suave das folhas a partir do topo do site.
+ * Ao atingirem o final da queda, pousam fisicamente no rodapé sem desaparecer.
  */
-export default function FallingLeaves({ count = 24 }) {
+export default function FallingLeaves({ count = 40 }) {
+  const context = useLeaves();
+
+  // Se estiver dentro de um LeafProvider, usa o estado compartilhado com o Footer e Caminhão
+  if (context && context.mounted) {
+    const { leaves, landLeaf } = context;
+    const fallingList = leaves.filter((l) => l.status === 'falling');
+
+    return (
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'fixed',
+          inset: 0,
+          pointerEvents: 'none',
+          zIndex: 25,
+          overflow: 'hidden',
+        }}
+      >
+        {fallingList.map((l) => (
+          <motion.div
+            key={l.id}
+            className="pointer-events-none absolute top-0"
+            style={{ left: `${l.xPct}%` }}
+            initial={{ y: -50, x: 0, opacity: 0, rotate: 0 }}
+            animate={{
+              y: 'calc(100vh - 35px)',
+              x: l.swayX,
+              opacity: [0, 1, 1, 1],
+              rotate: l.rotate,
+            }}
+            transition={{
+              duration: l.duration,
+              delay: l.delay,
+              ease: 'linear',
+            }}
+            onAnimationComplete={() => landLeaf(l.id)}
+          >
+            <LeafIcon size={l.size} color={l.color} />
+          </motion.div>
+        ))}
+      </div>
+    );
+  }
+
+  // Fallback para páginas sem LeafProvider
+  return <FallbackFallingLeaves count={count} />;
+}
+
+function FallbackFallingLeaves({ count = 24 }) {
   const [leaves, setLeaves] = useState([]);
 
   useEffect(() => {
     const list = Array.from({ length: count }, (_, i) => {
       const x = ((i * 37.3 + Math.sin(i * 9.1) * 23) % 96 + 96) % 96 + 2;
       const size = 13 + ((i * 7) % 11);
-      const color = LEAF_COLORS[i % 2];
+      const color = LEAF_COLORS[i % LEAF_COLORS.length];
       const duration = 8 + ((i * 3.7) % 7);
       const delay = (i * 1.3) % 9;
       const rotDir = i % 2 === 0 ? 1 : -1;
@@ -270,3 +242,370 @@ export default function FallingLeaves({ count = 24 }) {
     </div>
   );
 }
+
+/**
+ * FooterLeafPile
+ * ──────────────
+ * - Exibe as folhas que CAÍRAM DO TOPO e pousaram no chão do footer (nenhuma folha nasce do nada).
+ * - O caminhão aspirador passa recolhendo e sugando todas as folhas que estão no chão.
+ */
+export function FooterLeafPile() {
+  const context = useLeaves();
+  const containerRef = useRef(null);
+  const truckRef = useRef(null);
+  const wheelLeftRef = useRef(null);
+  const wheelRightRef = useRef(null);
+
+  const leaves = context?.leaves || [];
+  const collectLeaf = context?.collectLeaf;
+  const collectedCount = context?.collectedCount || 0;
+
+  // Folhas que pousaram no chão ou estão sendo sugadas pelo caminhão
+  const groundLeaves = leaves.filter((l) => l.status === 'landed' || l.status === 'collected');
+  const groundLeavesRef = useRef(groundLeaves);
+  groundLeavesRef.current = groundLeaves;
+
+  // Animação 60fps do caminhão e sucção das folhas do chão
+  useEffect(() => {
+    let animId;
+    let lastTime = performance.now();
+    let truckX = -260;
+    let direction = 1; // 1 = esquerda -> direita, -1 = direita -> esquerda
+    let speed = 160; // pixels por segundo
+    let wheelAngle = 0;
+    let isWaitingTurn = false;
+    let turnWaitTime = 0;
+
+    const updateFrame = (now) => {
+      const dt = Math.min((now - lastTime) / 1000, 0.1);
+      lastTime = now;
+
+      const container = containerRef.current;
+      const truck = truckRef.current;
+
+      if (!container || !truck) {
+        animId = requestAnimationFrame(updateFrame);
+        return;
+      }
+
+      const containerWidth = container.offsetWidth || 1200;
+
+      if (isWaitingTurn) {
+        turnWaitTime -= dt;
+        if (turnWaitTime <= 0) {
+          isWaitingTurn = false;
+        }
+      } else {
+        truckX += direction * speed * dt;
+        wheelAngle += direction * (speed * dt * 3.5);
+
+        truck.style.transform = `translateX(${truckX}px) scaleX(${direction})`;
+        if (wheelLeftRef.current) wheelLeftRef.current.style.transform = `rotate(${wheelAngle}deg)`;
+        if (wheelRightRef.current) wheelRightRef.current.style.transform = `rotate(${wheelAngle}deg)`;
+
+        // Ponto do bocal de sucção do caminhão
+        const suctionX = direction === 1 ? truckX + 160 : truckX + 40;
+
+        // Verifica folhas no chão para serem sugadas
+        const currentGround = groundLeavesRef.current;
+        for (let i = 0; i < currentGround.length; i++) {
+          const leaf = currentGround[i];
+          if (leaf.status !== 'landed') continue;
+
+          const leafPixelX = (leaf.xPct / 100) * containerWidth;
+          const dist = Math.abs(suctionX - leafPixelX);
+
+          if (dist <= 50) {
+            if (collectLeaf) {
+              collectLeaf(leaf.id);
+            }
+          }
+        }
+
+        // Fim do percurso
+        if (direction === 1 && truckX > containerWidth + 60) {
+          direction = -1;
+          truckX = containerWidth + 80;
+          isWaitingTurn = true;
+          turnWaitTime = 0.5;
+        } else if (direction === -1 && truckX < -280) {
+          direction = 1;
+          truckX = -270;
+          isWaitingTurn = true;
+          turnWaitTime = 0.5;
+        }
+      }
+
+      animId = requestAnimationFrame(updateFrame);
+    };
+
+    animId = requestAnimationFrame(updateFrame);
+
+    return () => {
+      cancelAnimationFrame(animId);
+    };
+  }, [collectLeaf]);
+
+  return (
+    <div
+      ref={containerRef}
+      aria-hidden="true"
+      style={{
+        position: 'absolute',
+        inset: 0,
+        pointerEvents: 'none',
+        overflow: 'hidden',
+        zIndex: 2,
+      }}
+    >
+      <style>{`
+        .ground-leaf-node {
+          position: absolute;
+          transition: transform 0.38s cubic-bezier(0.2, 0.9, 0.3, 1.2), opacity 0.35s ease-out, filter 0.35s ease-out;
+          will-change: transform, opacity;
+          pointer-events: none;
+        }
+
+        .ground-leaf-node.landed {
+          animation: leafTouchGround 0.5s ease-out forwards;
+        }
+
+        .ground-leaf-node.collected {
+          transform: translateY(-44px) scale(0.16) rotate(540deg) !important;
+          opacity: 0 !important;
+          filter: drop-shadow(0 0 8px #22D31B) !important;
+        }
+
+        @keyframes leafTouchGround {
+          0% {
+            transform: translateY(-20px) scale(1.1);
+            opacity: 0.8;
+          }
+          100% {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+          }
+        }
+
+        .truck-wrapper-box {
+          position: absolute;
+          bottom: 12px;
+          left: 0;
+          width: 220px;
+          height: 95px;
+          z-index: 15;
+          pointer-events: none;
+          will-change: transform;
+        }
+
+        .truck-body-box {
+          position: relative;
+          width: 200px;
+          height: 90px;
+          animation: truckShakeBox 0.18s ease-in-out infinite;
+        }
+
+        .truck-shadow-box {
+          position: absolute;
+          bottom: -8px;
+          left: 10px;
+          width: 180px;
+          height: 12px;
+          background: rgba(0, 0, 0, 0.22);
+          border-radius: 50%;
+          filter: blur(2px);
+        }
+
+        .truck-cabine-box {
+          position: absolute;
+          right: 0;
+          top: 8px;
+          width: 78px;
+          height: 62px;
+          background: #F0872B;
+          border-radius: 10px 10px 0 0;
+          z-index: 2;
+          box-shadow: inset 0 -3px 0 rgba(0,0,0,0.12);
+        }
+
+        .truck-window-box {
+          position: absolute;
+          right: 12px;
+          top: 12px;
+          width: 48px;
+          height: 30px;
+          background: #C9D6D9;
+          border-radius: 4px;
+          border: 2px solid #3a3530;
+        }
+
+        .truck-detalhe-box {
+          position: absolute;
+          right: -8px;
+          bottom: 4px;
+          width: 14px;
+          height: 10px;
+          background: #FF9A33;
+          border-radius: 3px;
+          z-index: 1;
+        }
+
+        .truck-vacuum-brush {
+          position: absolute;
+          right: 12px;
+          bottom: -4px;
+          width: 32px;
+          height: 8px;
+          background: #22D31B;
+          border-radius: 4px;
+          box-shadow: 0 0 10px rgba(34, 211, 27, 0.6);
+          z-index: 1;
+          animation: vacuumPulse 0.4s ease-in-out infinite alternate;
+        }
+
+        .truck-bau-box {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 130px;
+          height: 70px;
+          background: #2E7D4F;
+          border-radius: 8px 8px 0 0;
+          z-index: 1;
+          box-shadow: inset 0 -4px 0 rgba(0,0,0,0.15);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+        }
+
+        .truck-leaf-badge {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          background: rgba(0, 0, 0, 0.35);
+          padding: 3px 8px;
+          border-radius: 12px;
+          color: #fff;
+          font-size: 11px;
+          font-weight: 800;
+          letter-spacing: 0.5px;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .truck-wheel-unit {
+          position: absolute;
+          bottom: -12px;
+          width: 32px;
+          height: 32px;
+          background: #f0e4c8;
+          border-radius: 50%;
+          border: 6px solid #3a3530;
+          z-index: 3;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .truck-wheel-unit::after {
+          content: '';
+          width: 6px;
+          height: 6px;
+          background: #3a3530;
+          border-radius: 50%;
+        }
+
+        .truck-wheel-unit-l { left: 36px; }
+        .truck-wheel-unit-r { left: 128px; }
+
+        .truck-smoke-container {
+          position: absolute;
+          left: -35px;
+          top: 14px;
+          width: 50px;
+          height: 60px;
+          pointer-events: none;
+          z-index: 5;
+        }
+
+        .truck-smoke-dot {
+          position: absolute;
+          bottom: 0;
+          border-radius: 50%;
+          filter: blur(3px);
+          opacity: 0;
+          animation: smokePuffBox 1.6s ease-out infinite;
+        }
+
+        .truck-smoke-dot:nth-child(1) { left: 0px; width: 14px; height: 14px; background: rgba(200, 200, 200, 0.6); animation-delay: 0s; }
+        .truck-smoke-dot:nth-child(2) { left: 12px; width: 12px; height: 12px; background: rgba(190, 190, 190, 0.55); animation-delay: 0.3s; }
+        .truck-smoke-dot:nth-child(3) { left: 22px; width: 16px; height: 16px; background: rgba(210, 210, 210, 0.5); animation-delay: 0.6s; }
+        .truck-smoke-dot:nth-child(4) { left: 8px; width: 10px; height: 10px; background: rgba(180, 180, 180, 0.65); animation-delay: 0.9s; }
+        .truck-smoke-dot:nth-child(5) { left: 18px; width: 14px; height: 14px; background: rgba(195, 195, 195, 0.5); animation-delay: 1.2s; }
+
+        @keyframes truckShakeBox {
+          0% { transform: translateY(0px); }
+          50% { transform: translateY(-1px); }
+          100% { transform: translateY(0px); }
+        }
+
+        @keyframes vacuumPulse {
+          0% { opacity: 0.7; transform: scaleX(0.9); }
+          100% { opacity: 1; transform: scaleX(1.1); }
+        }
+
+        @keyframes smokePuffBox {
+          0% { opacity: 0.8; transform: translateY(0) scale(0.5); }
+          50% { opacity: 0.5; transform: translateY(-18px) scale(1.2); }
+          100% { opacity: 0; transform: translateY(-40px) scale(2); }
+        }
+      `}</style>
+
+      {/* ── AS FOLHAS QUE CAÍRAM DO TOPO E POUSARAM NO CHÃO DO FOOTER ──── */}
+      {groundLeaves.map((l) => (
+        <div
+          key={l.id}
+          className={`ground-leaf-node ${l.status}`}
+          style={{
+            left: `${l.xPct}%`,
+            bottom: `${l.targetBottom}px`,
+            transform: `rotate(${l.finalRotate}deg)`,
+            filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.14))',
+          }}
+        >
+          <LeafIcon size={l.size} color={l.color} />
+        </div>
+      ))}
+
+      {/* ── CAMINHÃO COLETOR DE FOLHAS ───────────────────────────────── */}
+      <div ref={truckRef} className="truck-wrapper-box">
+        <div className="truck-body-box">
+          <div className="truck-shadow-box" />
+          <div className="truck-bau-box" />
+          <div className="truck-cabine-box">
+            <div className="truck-window-box" />
+          </div>
+          <div className="truck-detalhe-box" />
+          <div className="truck-vacuum-brush" />
+          <div ref={wheelLeftRef} className="truck-wheel-unit truck-wheel-unit-l" />
+          <div ref={wheelRightRef} className="truck-wheel-unit truck-wheel-unit-r" />
+          <div className="truck-smoke-container">
+            <div className="truck-smoke-dot" />
+            <div className="truck-smoke-dot" />
+            <div className="truck-smoke-dot" />
+            <div className="truck-smoke-dot" />
+            <div className="truck-smoke-dot" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Truck alias component para manter compatibilidade
+ */
+export function Truck() {
+  return null;
+}
+

@@ -4,27 +4,74 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/context/AuthContext';
+import { useTheme, getThemeColors } from '@/context/ThemeContext';
 import orderService from '@/services/orderService';
 import api from '@/services/api';
 import { formatCurrency, formatStatus } from '@/utils/formatters';
 
+/* ─── DESIGN TOKENS ─────────────────────────────────────────────── */
+// Display: Fraunces · Body: Inter · Mono: IBM Plex Mono
+// Acentos: Laranja #FF7A00 · Verde #22D31B
+
+/* ─── SVG ICONS ─────────────────────────────────────────────────── */
+function Icon({ name, size = 20, color = 'currentColor', strokeWidth = 1.8, style }) {
+  const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth, strokeLinecap: 'round', strokeLinejoin: 'round', style };
+  switch (name) {
+    case 'clock': return <svg {...p}><circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 16 14" /></svg>;
+    case 'tool': return <svg {...p}><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" /></svg>;
+    case 'check': return <svg {...p}><polyline points="20 6 9 17 4 12" /></svg>;
+    case 'checkCircle': return <svg {...p}><circle cx="12" cy="12" r="9" /><polyline points="9 12 11 14 15 10" /></svg>;
+    case 'wallet': return <svg {...p}><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" /><path d="M3 5v14a2 2 0 0 0 2 2h16v-5" /><path d="M18 12a2 2 0 0 0 0 4h4v-4z" /></svg>;
+    case 'lock': return <svg {...p}><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>;
+    case 'target': return <svg {...p}><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1" /></svg>;
+    case 'arrowRight': return <svg {...p}><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>;
+    case 'bell': return <svg {...p}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>;
+    case 'inbox': return <svg {...p}><polyline points="22 12 16 12 14 15 10 15 8 12 2 12" /><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" /></svg>;
+    case 'sparkle': return <svg {...p}><path d="M12 2l1.5 5h5L14 10.5l1.5 5L12 13l-3.5 2.5L10 10.5 5.5 7h5z" /></svg>;
+    case 'sun': return <svg {...p}><circle cx="12" cy="12" r="4.5" /><line x1="12" y1="1.5" x2="12" y2="4" /><line x1="12" y1="20" x2="12" y2="22.5" /><line x1="4.2" y1="4.2" x2="6" y2="6" /><line x1="18" y1="18" x2="19.8" y2="19.8" /><line x1="1.5" y1="12" x2="4" y2="12" /><line x1="20" y1="12" x2="22.5" y2="12" /></svg>;
+    case 'moon': return <svg {...p}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>;
+    default: return null;
+  }
+}
+
+function greet() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Bom dia';
+  if (h < 18) return 'Boa tarde';
+  return 'Boa noite';
+}
+
 export default function WorkerHomePage() {
   const { user } = useAuth();
-  const [orders,  setOrders]  = useState([]);
-  const [wallet,  setWallet]  = useState({ balance: 0, held: 0 });
-  const [quotes,  setQuotes]  = useState([]);
+  const { darkMode, toggleDarkMode } = useTheme();
+  const theme = getThemeColors(darkMode);
+
+  const [orders, setOrders] = useState([]);
+  const [wallet, setWallet] = useState({ balance: 0, held: 0 });
+  const [quotes, setQuotes] = useState([]);
+  const [available, setAvailable] = useState(true);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!user) return;
     Promise.all([
       orderService.getAll().then(d => setOrders(d.orders || [])),
       api.get('/payments/wallet').then(r => setWallet(r.data)).catch(() => {}),
       api.get('/quotes').then(r => setQuotes(r.data.quotes || [])).catch(() => {}),
+      api.get(`/workers/${user.id}`).then(r => setAvailable(r.data?.is_available ?? true)).catch(() => {}),
     ]).finally(() => setLoading(false));
-  }, []);
+  }, [user]);
 
-  const pending   = orders.filter(o => o.status === 'pending');
-  const accepted  = orders.filter(o => o.status === 'accepted');
+  async function toggleAvailability() {
+    try {
+      const next = !available;
+      setAvailable(next);
+      await api.patch(`/workers/${user.id}/availability`, { is_available: next });
+    } catch { setAvailable(a => !a); }
+  }
+
+  const pending = orders.filter(o => o.status === 'pending');
+  const accepted = orders.filter(o => o.status === 'accepted' || o.status === 'in_progress');
   const completed = orders.filter(o => o.status === 'completed');
   const monthRevenue = completed
     .filter(o => {
@@ -34,97 +81,112 @@ export default function WorkerHomePage() {
     })
     .reduce((s, o) => s + parseFloat(o.price), 0);
 
+  const stats = [
+    { icon: 'clock', label: 'Aguardando', value: pending.length, color: '#FFB347' },
+    { icon: 'tool', label: 'Em andamento', value: accepted.length, color: '#3B82F6' },
+    { icon: 'checkCircle', label: 'Concluídos', value: completed.length, color: '#22D31B' },
+    { icon: 'wallet', label: 'Este mês', value: formatCurrency(monthRevenue), color: '#FF7A00' },
+  ];
+
   return (
     <DashboardLayout>
-      <div className="p-4 md:p-8 space-y-6 max-w-4xl">
+      <div style={{ padding: '28px 20px 60px', maxWidth: 880, margin: '0 auto', fontFamily: 'var(--body)' }}>
 
         {/* Header */}
-        <motion.div initial={{ opacity:0, y:-16 }} animate={{ opacity:1, y:0 }}>
-          <h1 className="text-2xl md:text-3xl font-black text-slate-800">
-            Olá, {user?.name?.split(' ')[0]} 👷
-          </h1>
-          <p className="text-slate-500 mt-1 text-sm">Painel do trabalhador</p>
+        <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 22 }}>
+          <div>
+            <h1 style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '1.9rem', letterSpacing: '-0.02em', color: theme.text }}>
+              {greet()}, {user?.name?.split(' ')[0]} <span style={{ fontStyle: 'italic', color: '#FF7A00' }}>🔧</span>
+            </h1>
+            <p style={{ color: theme.textMuted, fontSize: '0.85rem', marginTop: 4 }}>Painel do prestador de serviço</p>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <motion.button whileTap={{ scale: 0.95 }} onClick={toggleAvailability}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8, padding: '9px 14px', borderRadius: 999, cursor: 'pointer',
+                border: `1.5px solid ${available ? 'rgba(34,211,27,0.4)' : theme.line}`,
+                background: available ? 'rgba(34,211,27,0.1)' : theme.cardBg, fontSize: '0.78rem', fontWeight: 700,
+                color: available ? '#1E9E1A' : theme.textMuted,
+              }}>
+              <motion.span animate={available ? { scale: [1, 1.3, 1] } : {}} transition={{ duration: 1.4, repeat: Infinity }}
+                style={{ width: 8, height: 8, borderRadius: '50%', background: available ? '#22D31B' : theme.textMuted, display: 'inline-block' }} />
+              {available ? 'Disponível' : 'Indisponível'}
+            </motion.button>
+            <button onClick={toggleDarkMode} style={{ width: 36, height: 36, borderRadius: '50%', background: 'transparent', border: `1px solid ${theme.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} aria-label="Alternar tema">
+              <Icon name={darkMode ? 'sun' : 'moon'} size={15} color={theme.textMuted} />
+            </button>
+          </div>
         </motion.div>
 
         {/* Alerta de pendentes */}
         {pending.length > 0 && (
-          <motion.div initial={{ opacity:0, scale:0.97 }} animate={{ opacity:1, scale:1 }}
-            className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-5 flex items-center justify-between gap-4"
-          >
-            <div>
-              <p className="font-bold text-amber-800">
-                🔔 {pending.length} pedido{pending.length > 1 ? 's' : ''} aguardando sua resposta
-              </p>
-              <p className="text-sm text-amber-600 mt-0.5">Responda rápido para não perder a oportunidade!</p>
+          <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}
+            style={{ background: 'linear-gradient(135deg, rgba(255,122,0,0.12), rgba(255,122,0,0.04))', border: '1.5px solid rgba(255,122,0,0.3)', borderRadius: 18, padding: 18, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <motion.div animate={{ rotate: [0, -12, 12, 0] }} transition={{ duration: 1.6, repeat: Infinity }} style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,122,0,0.16)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Icon name="bell" size={19} color="#FF7A00" />
+              </motion.div>
+              <div>
+                <p style={{ fontWeight: 800, fontSize: '0.9rem', color: theme.text }}>{pending.length} pedido{pending.length > 1 ? 's' : ''} aguardando sua resposta</p>
+                <p style={{ fontSize: '0.78rem', color: theme.textMuted, marginTop: 2 }}>Responda rápido para não perder a oportunidade.</p>
+              </div>
             </div>
-            <Link href="/worker/orders"
-              className="bg-amber-500 text-white font-bold px-5 py-2.5 rounded-xl hover:bg-amber-600 transition-all whitespace-nowrap text-sm">
-              Ver pedidos
-            </Link>
+            <Link href="/worker/orders" className="wk-btn-primary" style={{ whiteSpace: 'nowrap' }}>Ver pedidos</Link>
           </motion.div>
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[
-            { icon:'🕐', label:'Aguardando',    value: pending.length,             color:'text-amber-500' },
-            { icon:'🔧', label:'Em andamento',  value: accepted.length,            color:'text-blue-500' },
-            { icon:'✅', label:'Concluídos',    value: completed.length,           color:'text-green-500' },
-            { icon:'💵', label:'Este mês',      value: formatCurrency(monthRevenue), color:'text-client' },
-          ].map((s, i) => (
-            <motion.div key={s.label}
-              initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.05+i*0.05 }}
-              className="bg-white rounded-2xl border border-slate-100 p-4"
-            >
-              <p className="text-xl mb-1">{s.icon}</p>
-              <p className={`text-xl font-black ${s.color}`}>{s.value}</p>
-              <p className="text-xs text-slate-400 mt-0.5">{s.label}</p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }} className="wk-stat-grid">
+          {stats.map((s, i) => (
+            <motion.div key={s.label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 + i * 0.05 }}
+              style={{ background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, borderRadius: 16, padding: '16px 14px' }}>
+              <div style={{ width: 30, height: 30, borderRadius: 9, background: `${s.color}1F`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
+                <Icon name={s.icon} size={15} color={s.color} />
+              </div>
+              <p style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '1.15rem', color: theme.text }}>{s.value}</p>
+              <p style={{ fontSize: '0.68rem', color: theme.textMuted, marginTop: 2 }}>{s.label}</p>
             </motion.div>
           ))}
         </div>
 
         {/* Carteira */}
-        <motion.div initial={{ opacity:0, scale:0.98 }} animate={{ opacity:1, scale:1 }} transition={{ delay:0.1 }}
-          className="bg-gradient-to-r from-indigo-500 to-violet-600 rounded-2xl p-5 text-white"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-indigo-100 text-sm">Carteira disponível</p>
-              <p className="text-3xl font-black mt-1">{formatCurrency(wallet.balance)}</p>
-              {wallet.held > 0 && (
-                <p className="text-indigo-200 text-xs mt-1">🔒 {formatCurrency(wallet.held)} em custódia</p>
-              )}
-            </div>
-            <Link href="/worker/earnings"
-              className="bg-white/20 hover:bg-white/30 text-white font-semibold px-4 py-2 rounded-xl transition-all text-sm">
-              Ver ganhos →
-            </Link>
+        <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }}
+          style={{ position: 'relative', overflow: 'hidden', borderRadius: 18, padding: 22, background: 'linear-gradient(135deg, #1B5E20, #256B29 55%, #22D31B)', color: '#fff', marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
+          <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="0.9" style={{ position: 'absolute', right: -20, bottom: -20, opacity: 0.12 }}><path d="M5 21c0-9 6-15 15-15-1 9-7 15-15 15z" /><path d="M5 21c3-3 6-6 9-9" /></svg>
+          <div style={{ position: 'relative' }}>
+            <p style={{ fontSize: '0.78rem', opacity: 0.9 }}>Carteira disponível</p>
+            <p style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '2.1rem', marginTop: 4 }}>{formatCurrency(wallet.balance)}</p>
+            {wallet.held > 0 && (
+              <p style={{ fontSize: '0.76rem', opacity: 0.88, marginTop: 6, display: 'flex', alignItems: 'center', gap: 5 }}>
+                <Icon name="lock" size={12} color="#fff" /> {formatCurrency(wallet.held)} em custódia
+              </p>
+            )}
           </div>
+          <Link href="/worker/earnings" style={{ position: 'relative', background: 'rgba(255,255,255,0.2)', color: '#fff', fontWeight: 700, fontSize: '0.8rem', padding: '10px 18px', borderRadius: 12, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
+            Ver ganhos <Icon name="arrowRight" size={13} color="#fff" />
+          </Link>
         </motion.div>
 
-        {/* Oportunidades novas */}
+        {/* Oportunidades */}
         {quotes.length > 0 && (
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-bold text-slate-800">🎯 Novas oportunidades</h2>
-              <Link href="/worker/quotes" className="text-xs text-client font-semibold hover:underline">Ver todas →</Link>
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <h2 style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '1.05rem', color: theme.text, display: 'flex', alignItems: 'center', gap: 7 }}>
+                <Icon name="target" size={16} color="#FF7A00" /> Novas oportunidades
+              </h2>
+              <Link href="/worker/quotes" style={{ fontSize: '0.75rem', fontWeight: 700, color: '#FF7A00', textDecoration: 'none' }}>Ver todas →</Link>
             </div>
-            <div className="space-y-2">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {quotes.slice(0, 2).map((q, i) => (
-                <motion.div key={q.id}
-                  initial={{ opacity:0, x:-12 }} animate={{ opacity:1, x:0 }} transition={{ delay:i*0.05 }}
-                >
-                  <Link href="/worker/quotes"
-                    className="bg-white rounded-2xl border border-slate-100 p-4 flex items-center justify-between hover:shadow-sm hover:border-client/20 transition-all block"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-slate-800 text-sm truncate">{q.title}</p>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        {q.category_icon} {q.category_name}
-                        {q.budget_max && ` · Até ${formatCurrency(q.budget_max)}`}
+                <motion.div key={q.id} initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}>
+                  <Link href="/worker/quotes" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, borderRadius: 14, padding: 14, gap: 10 }}>
+                    <div style={{ minWidth: 0 }}>
+                      <p style={{ fontWeight: 700, fontSize: '0.85rem', color: theme.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{q.title}</p>
+                      <p style={{ fontSize: '0.72rem', color: theme.textMuted, marginTop: 2 }}>
+                        {q.category_icon} {q.category_name}{q.budget_max && ` · Até ${formatCurrency(q.budget_max)}`}
                       </p>
                     </div>
-                    <span className="ml-3 text-xs font-semibold text-green-600 bg-green-50 px-2.5 py-1 rounded-full flex-shrink-0">
+                    <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#22D31B', background: 'rgba(34,211,27,0.12)', padding: '5px 10px', borderRadius: 999, flexShrink: 0 }}>
                       {q.proposal_count || 0} proposta{q.proposal_count !== 1 ? 's' : ''}
                     </span>
                   </Link>
@@ -136,43 +198,43 @@ export default function WorkerHomePage() {
 
         {/* Pedidos recentes */}
         <div>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-bold text-slate-800">Pedidos recentes</h2>
-            <Link href="/worker/orders" className="text-xs text-client font-semibold hover:underline">Ver todos →</Link>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <h2 style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '1.05rem', color: theme.text }}>Pedidos recentes</h2>
+            <Link href="/worker/orders" style={{ fontSize: '0.75rem', fontWeight: 700, color: '#FF7A00', textDecoration: 'none' }}>Ver todos →</Link>
           </div>
           {loading ? (
-            <div className="space-y-2">{[0,1,2].map(i => <div key={i} className="h-16 bg-slate-100 rounded-2xl animate-pulse" />)}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{[0, 1, 2].map(i => <div key={i} style={{ height: 62, borderRadius: 14, background: theme.line, opacity: 0.5 }} />)}</div>
           ) : orders.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-slate-100 p-8 text-center">
-              <p className="text-3xl mb-2">📭</p>
-              <p className="text-slate-500 text-sm">Nenhum pedido ainda.</p>
-              <Link href="/worker/quotes" className="text-client text-sm font-semibold hover:underline mt-2 inline-block">
-                Ver oportunidades →
-              </Link>
+            <div style={{ background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, borderRadius: 16, padding: 34, textAlign: 'center' }}>
+              <Icon name="inbox" size={30} color={theme.textMuted} style={{ margin: '0 auto 8px' }} />
+              <p style={{ fontSize: '0.85rem', color: theme.textMuted }}>Nenhum pedido ainda.</p>
+              <Link href="/worker/quotes" style={{ fontSize: '0.78rem', fontWeight: 700, color: '#FF7A00', textDecoration: 'none', marginTop: 8, display: 'inline-block' }}>Ver oportunidades →</Link>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {orders.slice(0, 4).map((o, i) => (
-                <motion.div key={o.id}
-                  initial={{ opacity:0, x:-12 }} animate={{ opacity:1, x:0 }} transition={{ delay:i*0.05 }}
-                  className="bg-white rounded-2xl border border-slate-100 p-4 flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center font-bold text-xs flex-shrink-0">
-                      #{o.id}
-                    </div>
-                    <div>
-                      <p className="font-semibold text-slate-800 text-sm">{o.service_title || 'Serviço'}</p>
-                      <p className="text-xs text-slate-400">{o.client_name} · {formatStatus(o.status)}</p>
+                <motion.div key={o.id} initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, borderRadius: 14, padding: 14 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                    <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(255,122,0,0.12)', color: '#FF7A00', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.7rem', flexShrink: 0 }}>#{o.id}</div>
+                    <div style={{ minWidth: 0 }}>
+                      <p style={{ fontWeight: 700, fontSize: '0.83rem', color: theme.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.service_title || 'Serviço'}</p>
+                      <p style={{ fontSize: '0.72rem', color: theme.textMuted }}>{o.client_name} · {formatStatus(o.status)}</p>
                     </div>
                   </div>
-                  <p className="font-black text-amber-500">{formatCurrency(o.price)}</p>
+                  <p style={{ fontWeight: 800, color: '#FF7A00', flexShrink: 0, fontSize: '0.85rem' }}>{formatCurrency(o.price)}</p>
                 </motion.div>
               ))}
             </div>
           )}
         </div>
       </div>
+
+      <style>{`
+        .wk-btn-primary { background: #FF7A00; color: #fff; font-weight: 800; font-size: 0.8rem; padding: 10px 18px; border-radius: 12px; text-decoration: none; transition: background 0.2s, transform 0.15s; }
+        .wk-btn-primary:hover { background: #E86D00; transform: translateY(-1px); }
+        @media (max-width: 700px) { .wk-stat-grid { grid-template-columns: repeat(2, 1fr) !important; } }
+      `}</style>
     </DashboardLayout>
   );
 }

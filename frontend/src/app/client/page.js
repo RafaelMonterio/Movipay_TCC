@@ -9,6 +9,22 @@ import WorkersMap from '@/components/map/WorkersMap';
 import { useTheme, getThemeColors } from '@/context/ThemeContext';
 import AccessibilityControls from '@/components/accessibility/AccessibilityControls';
 import FallingLeaves from '@/components/effects/FallingLeaves';
+import api from '@/services/api';
+import orderService from '@/services/orderService';
+import { formatCurrency, formatDate } from '@/utils/formatters';
+
+/* ─── FOLHAS (moedas de desconto do MoviPay) ─────────────────────────
+   1 folha = R$ 0,04 em desconto acumulado. Puramente decorativo/derivado
+   do saldo de pontos existente, só que agora com identidade visual e
+   propósito de cupom claros — combina com o mascote de formigas + folhas
+   usado no resto do app (FallingLeaves). */
+const FOLHA_VALUE = 0.04;
+
+const FAVORITE_WORKERS = [
+  { id: 1, profileId: 'barbeiro-1', name: 'Marina Souza', role: 'Cabeleireira', emoji: '✂️', photo: '/img/cabeleireiro.jpg', avg_rating: 4.9 },
+  { id: 2, profileId: 'faxina-1', name: 'Eduardo Ramos', role: 'Eletricista', emoji: '⚡', photo: '/img/eletricista.jpg', avg_rating: 4.8 },
+  { id: 4, profileId: 'faxina-2', name: 'Maria Oliveira', role: 'Diarista', emoji: '🧹', photo: '/img/faxineira.jpg', avg_rating: 5.0 },
+];
 
 /* ─── SVG ICONS ─────────────────────────────────────────────────────── */
   function Icon({ name, size = 24, color = 'currentColor', strokeWidth = 1.8, style }) {
@@ -540,13 +556,41 @@ import FallingLeaves from '@/components/effects/FallingLeaves';
   /* ─── MAIN ───────────────────────────────────────────────────────────── */
   export default function LandingPage() {
     const { user, loading, logout } = useAuth();
-    const { darkMode, toggleTheme: globalToggleTheme } = useTheme();
+    const { darkMode, toggleDarkMode: globalToggleTheme } = useTheme();
     const colors = getThemeColors(darkMode);
     const router = useRouter();
     const { scrollY, scrollYProgress } = useScroll();
     const [navSolid, setNavSolid] = useState(false);
     const [profileOpen, setProfileOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [navSearchOpen, setNavSearchOpen] = useState(false);
+    const navSearchInputRef = useRef(null);
+
+    /* favoritos (serviços/trabalhadores salvos pelo cliente) */
+    const [favoriteIds, setFavoriteIds] = useState(() => FAVORITE_WORKERS.map(w => w.id));
+    function toggleFavorite(id) {
+      setFavoriteIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    }
+    const favorites = FAVORITE_WORKERS.filter(w => favoriteIds.includes(w.id));
+
+    /* panorama — folhas, gastos e últimos serviços contratados */
+    const [folhasBalance, setFolhasBalance] = useState(0);
+    const [recentOrders, setRecentOrders] = useState([]);
+    const [panoramaLoading, setPanoramaLoading] = useState(true);
+
+    useEffect(() => {
+      if (!user) { setPanoramaLoading(false); return; }
+      Promise.all([
+        api.get('/points/balance').then(r => setFolhasBalance(r.data?.balance ?? 0)).catch(() => {}),
+        orderService.getAll().then(d => setRecentOrders((d.orders || []).slice().sort((a, b) => new Date(b.created_at) - new Date(a.created_at)))).catch(() => {}),
+      ]).finally(() => setPanoramaLoading(false));
+    }, [user]);
+
+    const totalGasto = recentOrders
+      .filter(o => o.status === 'completed')
+      .reduce((s, o) => s + parseFloat(o.price || 0), 0);
+    const folhasDesconto = folhasBalance * FOLHA_VALUE;
+    const lastServices = recentOrders.slice(0, 3);
 
     useEffect(() => { if (!loading && user) router.push(user.mode === 'worker' ? '/worker' : '/client'); }, [user, loading]);
     useEffect(() => { const u = scrollY.on('change', v => setNavSolid(v > 40)); return u; }, [scrollY]);
@@ -679,6 +723,29 @@ import FallingLeaves from '@/components/effects/FallingLeaves';
           .search-input { flex: 1; background: transparent; border: none; outline: none; font-size: 0.94rem; color: ${theme.text}; font-family: var(--body); padding: 12px 4px; }
           .search-input::placeholder { color: ${theme.textMuted}; }
 
+          /* compact search bar — lives in the navbar now, left of the dark-mode toggle */
+          .nav-search-wrap {
+            display: flex; align-items: center; gap: 6px;
+            background: ${theme.inputBg}; border: 1.5px solid ${theme.line};
+            border-radius: 999px; padding: 6px 6px 6px 14px;
+            width: 230px; transition: width 0.28s ease, border-color 0.2s, box-shadow 0.2s;
+          }
+          .nav-search-wrap:focus-within { width: 300px; border-color: #FF7A00; box-shadow: 0 4px 18px rgba(255,122,0,0.16); }
+          .nav-search-input { flex: 1; min-width: 0; background: transparent; border: none; outline: none; font-size: 0.82rem; color: ${theme.text}; font-family: var(--body); }
+          .nav-search-input::placeholder { color: ${theme.textMuted}; }
+          .nav-search-submit {
+            width: 28px; height: 28px; border-radius: 50%; border: none; cursor: pointer;
+            background: #FF7A00; color: #fff; display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; transition: transform 0.18s, background 0.18s;
+          }
+          .nav-search-submit:hover { transform: scale(1.08); background: #E86D00; }
+          @media (max-width: 860px) {
+            .nav-search-wrap { width: 42px; padding: 6px; border-radius: 50%; }
+            .nav-search-wrap:focus-within, .nav-search-wrap.expanded { width: 200px; padding: 6px 6px 6px 14px; border-radius: 999px; }
+            .nav-search-input { width: 0; opacity: 0; transition: width 0.25s ease, opacity 0.2s ease; }
+            .nav-search-wrap:focus-within .nav-search-input, .nav-search-wrap.expanded .nav-search-input { width: auto; opacity: 1; }
+          }
+
           @media (max-width: 900px) { .hero-split { flex-direction: column !important; } .radar-col { display: none !important; } }
           @media (max-width: 768px) {
             .hero-title { font-size: 2.6rem !important; }
@@ -702,8 +769,29 @@ import FallingLeaves from '@/components/effects/FallingLeaves';
         <nav style={{ position: 'sticky', top: 0, zIndex: 100, borderBottom: navSolid ? `1px solid ${theme.navBorder}` : '1px solid transparent', background: navSolid ? theme.navBg : 'transparent', transition: 'all 0.35s' }}>
           <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <Link href="#servicos" className="btn-primary" style={{ padding: '9px 18px', fontSize: '0.83rem' }}>Buscar serviço</Link>
-              <button onClick={globalToggleTheme} style={{ width: 38, height: 38, borderRadius: '50%', background: 'transparent', border: `1px solid ${theme.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'border-color 0.2s' }} aria-label="Alternar tema">
+              {/* campo de busca de serviço — antes ficava no hero, agora mora aqui, à esquerda do botão de modo escuro */}
+              <form
+                onSubmit={handleSearch}
+                className={`nav-search-wrap${navSearchOpen ? ' expanded' : ''}`}
+                onClick={() => { setNavSearchOpen(true); navSearchInputRef.current?.focus(); }}
+              >
+                <Icon name="search" size={14} color={theme.textMuted} style={{ flexShrink: 0 }} />
+                <input
+                  ref={navSearchInputRef}
+                  className="nav-search-input"
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  onFocus={() => setNavSearchOpen(true)}
+                  onBlur={() => !searchQuery && setNavSearchOpen(false)}
+                  placeholder="Buscar serviço…"
+                  aria-label="Buscar serviço"
+                />
+                <button type="submit" className="nav-search-submit" aria-label="Buscar">
+                  <Icon name="arrowRight" size={13} color="#fff" />
+                </button>
+              </form>
+              <button onClick={globalToggleTheme} style={{ width: 38, height: 38, borderRadius: '50%', background: 'transparent', border: `1px solid ${theme.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'border-color 0.2s', flexShrink: 0 }} aria-label="Alternar tema">
                 <Icon name={colors.darkMode ? 'sun' : 'moon'} size={16} color={theme.mono} />
               </button>
               <div style={{ position: 'relative' }}>
@@ -750,55 +838,73 @@ import FallingLeaves from '@/components/effects/FallingLeaves';
           <div style={{ position: 'relative', zIndex: 2, maxWidth: 1200, margin: '0 auto', padding: '64px 24px', width: '100%' }}>
             <div className="hero-split" style={{ display: 'flex', alignItems: 'center', gap: 60 }}>
 
-              {/* LEFT */}
+              {/* LEFT — agora é o painel de favoritos do cliente */}
               <motion.div style={{ flex: '1 1 460px' }} initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.65 }}>
-                <div className="eyebrow">MoviPay · serviços locais</div>
+                <div className="eyebrow">seus favoritos</div>
 
-                <h1 className="hero-title" style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '3.8rem', lineHeight: 1.04, letterSpacing: '-0.025em', marginBottom: 22 }}>
-                  O profissional<br />
-                  certo aparece<br />
-                  <span style={{ color: '#FF7A00', fontStyle: 'italic' }}>no seu radar.</span>
+                <h1 className="hero-title" style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '3.4rem', lineHeight: 1.05, letterSpacing: '-0.025em', marginBottom: 14 }}>
+                  Quem você já<br />
+                  <span style={{ color: '#FF7A00', fontStyle: 'italic' }}>confia</span>, direto aqui.
                 </h1>
 
-                <p style={{ fontSize: '1.05rem', color: theme.textMuted, maxWidth: 440, marginBottom: 32, lineHeight: 1.7 }}>
-                  Descreva o serviço e conectamos você ao profissional mais próximo — verificado, avaliado e disponível agora.
+                <p style={{ fontSize: '0.98rem', color: theme.textMuted, maxWidth: 440, marginBottom: 26, lineHeight: 1.65 }}>
+                  Salve profissionais e serviços preferidos para pedir de novo em um toque, sem precisar procurar tudo outra vez.
                 </p>
 
-                <form onSubmit={handleSearch} className="search-wrap" style={{ marginBottom: 28 }}>
-                  <Icon name="search" size={16} color={theme.textMuted} />
-                  <input className="search-input" type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Elétrica, limpeza, pintura…" />
-                  <button type="submit" className="btn-primary" style={{ padding: '11px 18px', fontSize: '0.85rem', borderRadius: 5 }}>
-                    Buscar <Icon name="arrowRight" size={15} className="arrow-icon" />
-                  </button>
-                </form>
-
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, marginBottom: 44 }}>
-                  {[
-                    { icon: 'lock',  label: 'Pagamento seguro' },
-                    { icon: 'clock', label: 'Resposta em 15min' },
-                    { icon: 'star',  label: 'Nota 4.9/5' },
-                  ].map((b, i) => (
-                    <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', color: theme.textMuted, fontWeight: 600 }}>
-                      <Icon name={b.icon} size={13} color="#22D31B" />{b.label}
-                    </span>
-                  ))}
-                </div>
-
-                {/* stats strip */}
-                <div style={{ display: 'flex', gap: 0, borderTop: `1px solid ${theme.line}`, borderBottom: `1px solid ${theme.line}`, paddingTop: 16, paddingBottom: 16 }}>
-                  {[
-                    { v: 500,  s: '+',   l: 'profissionais',     d: false },
-                    { v: 2000, s: '+',   l: 'pedidos feitos',    d: false },
-                    { v: 4.9,  s: '/5',  l: 'avaliação média',   d: true  },
-                  ].map((s, i) => (
-                    <div key={i} style={{ flex: 1, paddingRight: i < 2 ? 20 : 0, borderRight: i < 2 ? `1px solid ${theme.line}` : 'none', paddingLeft: i > 0 ? 20 : 0 }}>
-                      <p style={{ fontFamily: 'var(--display)', fontSize: '1.6rem', fontWeight: 700, color: '#FF7A00', lineHeight: 1 }}>
-                        <AnimatedCounter target={s.v} suffix={s.s} decimal={s.d} />
-                      </p>
-                      <p style={{ fontFamily: 'var(--mono)', fontSize: '0.68rem', color: theme.textMuted, marginTop: 4 }}>{s.l}</p>
-                    </div>
-                  ))}
-                </div>
+                <AnimatePresence mode="wait">
+                  {favorites.length > 0 ? (
+                    <motion.div key="fav-list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {favorites.map((w, i) => (
+                        <motion.div
+                          key={w.id}
+                          layout
+                          initial={{ opacity: 0, x: -16 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: 16, height: 0, marginBottom: 0, paddingTop: 0, paddingBottom: 0 }}
+                          transition={{ delay: i * 0.06 }}
+                          whileHover={{ y: -3 }}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 12,
+                            background: theme.cardBg, border: `1px solid ${theme.cardBorder}`,
+                            borderRadius: 14, padding: '10px 12px',
+                            boxShadow: '0 6px 20px rgba(0,0,0,0.05)',
+                          }}
+                        >
+                          <img src={w.photo} alt={w.name} style={{ width: 46, height: 46, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,122,0,0.35)', flexShrink: 0 }} />
+                          <button
+                            type="button"
+                            onClick={() => router.push(`/client/workers/${w.profileId}`)}
+                            style={{ flex: 1, minWidth: 0, textAlign: 'left', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}
+                          >
+                            <p style={{ fontWeight: 800, fontSize: '0.88rem', color: theme.text, display: 'flex', alignItems: 'center', gap: 6 }}>{w.name} <span>{w.emoji}</span></p>
+                            <p style={{ fontSize: '0.74rem', color: theme.textMuted, display: 'flex', alignItems: 'center', gap: 5, marginTop: 2 }}>
+                              <Icon name="star" size={10} color="#FF7A00" /> {w.avg_rating} · {w.role}
+                            </p>
+                          </button>
+                          <motion.button
+                            type="button"
+                            onClick={() => toggleFavorite(w.id)}
+                            whileTap={{ scale: 0.8 }}
+                            whileHover={{ scale: 1.15 }}
+                            aria-label="Remover dos favoritos"
+                            style={{ background: 'transparent', border: 'none', cursor: 'pointer', flexShrink: 0, color: '#FF3B5C', display: 'flex' }}
+                          >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
+                          </motion.button>
+                        </motion.div>
+                      ))}
+                      <Link href="/client/workers" style={{ marginTop: 4, fontSize: '0.78rem', fontWeight: 700, color: '#FF7A00', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        Ver todos os profissionais <Icon name="arrowRight" size={12} />
+                      </Link>
+                    </motion.div>
+                  ) : (
+                    <motion.div key="fav-empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ border: `1.5px dashed ${theme.line}`, borderRadius: 16, padding: '26px 20px', textAlign: 'center', maxWidth: 420 }}>
+                      <p style={{ fontSize: '1.6rem', marginBottom: 6 }}>🤍</p>
+                      <p style={{ fontSize: '0.85rem', color: theme.textMuted, marginBottom: 14 }}>Você ainda não tem favoritos salvos.</p>
+                      <Link href="/client/workers" className="btn-primary" style={{ fontSize: '0.8rem', padding: '9px 16px' }}>Encontrar profissionais</Link>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
 
               {/* RIGHT — mapa funcional + floating cards */}
@@ -806,7 +912,113 @@ import FallingLeaves from '@/components/effects/FallingLeaves';
 
             </div>
           </div>
+
+          {/* selo de confiança discreto, no lugar da antiga faixa de estatísticas */}
+          <div style={{ position: 'relative', zIndex: 2, maxWidth: 1200, margin: '0 auto', padding: '0 24px 28px', width: '100%', display: 'flex', flexWrap: 'wrap', gap: 20 }}>
+            {[
+              { icon: 'lock',  label: 'Pagamento seguro' },
+              { icon: 'clock', label: 'Resposta em 15min' },
+              { icon: 'star',  label: 'Nota 4.9/5' },
+            ].map((b, i) => (
+              <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.76rem', color: theme.textMuted, fontWeight: 600 }}>
+                <Icon name={b.icon} size={12} color="#22D31B" />{b.label}
+              </span>
+            ))}
+          </div>
         </section>
+
+        {/* ══════════════════════════════════════════════════════════════ */}
+        {/* ── PANORAMA — resumo de gastos, últimos serviços e Folhas ─────── */}
+        {/*    Versão detalhada mora em /client/profile (aba "Folhas").      */}
+        {/* ══════════════════════════════════════════════════════════════ */}
+        {user && (
+          <section style={{ background: theme.bg, padding: '0 0 56px', transition: 'background 0.4s' }}>
+            <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
+              <motion.div initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 18, gap: 12, flexWrap: 'wrap' }}>
+                <div>
+                  <div className="eyebrow" style={{ marginBottom: 6 }}>seu panorama</div>
+                  <h2 style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '1.5rem', letterSpacing: '-0.01em' }}>Resumo da sua conta</h2>
+                </div>
+                <Link href="/client/profile" style={{ fontSize: '0.8rem', fontWeight: 700, color: '#FF7A00', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  Ver detalhes completos <Icon name="arrowRight" size={12} />
+                </Link>
+              </motion.div>
+
+              <div className="panorama-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+
+                {/* últimos serviços contratados */}
+                <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.04 }}
+                  style={{ background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, borderRadius: 16, padding: 20 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 9, background: 'rgba(34,211,27,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Icon name="checkCircle" size={16} color="#22D31B" />
+                    </div>
+                    <p style={{ fontWeight: 800, fontSize: '0.85rem', color: theme.text }}>Últimos serviços</p>
+                  </div>
+                  {panoramaLoading ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {[0, 1, 2].map(i => <div key={i} style={{ height: 34, borderRadius: 8, background: theme.line, opacity: 0.5 }} />)}
+                    </div>
+                  ) : lastServices.length === 0 ? (
+                    <p style={{ fontSize: '0.78rem', color: theme.textMuted }}>Você ainda não contratou nenhum serviço.</p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {lastServices.map(o => (
+                        <div key={o.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                          <div style={{ minWidth: 0 }}>
+                            <p style={{ fontSize: '0.78rem', fontWeight: 700, color: theme.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.service_title}</p>
+                            <p style={{ fontSize: '0.68rem', color: theme.textMuted }}>{formatDate(o.created_at)}</p>
+                          </div>
+                          <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#FF7A00', flexShrink: 0 }}>{formatCurrency(o.price)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
+
+                {/* total gasto */}
+                <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.09 }}
+                  style={{ background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, borderRadius: 16, padding: 20, display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 9, background: 'rgba(255,122,0,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Icon name="trendingUp" size={16} color="#FF7A00" />
+                    </div>
+                    <p style={{ fontWeight: 800, fontSize: '0.85rem', color: theme.text }}>Total investido</p>
+                  </div>
+                  <p style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '1.9rem', color: theme.text, lineHeight: 1 }}>
+                    {panoramaLoading ? '···' : formatCurrency(totalGasto)}
+                  </p>
+                  <p style={{ fontSize: '0.72rem', color: theme.textMuted, marginTop: 8 }}>
+                    em {recentOrders.filter(o => o.status === 'completed').length} serviço{recentOrders.filter(o => o.status === 'completed').length !== 1 ? 's' : ''} concluído{recentOrders.filter(o => o.status === 'completed').length !== 1 ? 's' : ''}
+                  </p>
+                </motion.div>
+
+                {/* saldo de folhas */}
+                <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.14 }}
+                  style={{ position: 'relative', overflow: 'hidden', borderRadius: 16, padding: 20, background: 'linear-gradient(135deg, #1B5E20, #2E7D32 55%, #22D31B)', color: '#fff' }}>
+                  <svg width="90" height="90" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1" style={{ position: 'absolute', right: -14, bottom: -14, opacity: 0.14 }}>
+                    <path d="M5 21c0-9 6-15 15-15-1 9-7 15-15 15z" /><path d="M5 21c3-3 6-6 9-9" />
+                  </svg>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 9, background: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Icon name="leaf" size={16} color="#fff" />
+                    </div>
+                    <p style={{ fontWeight: 800, fontSize: '0.85rem' }}>Saldo de Folhas</p>
+                  </div>
+                  <p style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '1.9rem', lineHeight: 1, position: 'relative' }}>
+                    {panoramaLoading ? '···' : <AnimatedCounter target={folhasBalance} />} <span style={{ fontSize: '1rem', opacity: 0.85 }}>folhas</span>
+                  </p>
+                  <p style={{ fontSize: '0.74rem', opacity: 0.9, marginTop: 8, position: 'relative' }}>
+                    ≈ {formatCurrency(folhasDesconto)} em desconto já garantido em cupons
+                  </p>
+                </motion.div>
+
+              </div>
+            </div>
+
+            <style>{`@media (max-width: 900px) { .panorama-grid { grid-template-columns: 1fr !important; } }`}</style>
+          </section>
+        )}
 
         {/* ══════════════════════════════════════════════════════════════ */}
         {/* ── SERVIÇOS — grid de categorias ────────────────────────────── */}

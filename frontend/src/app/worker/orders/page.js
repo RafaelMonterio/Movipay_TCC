@@ -2,141 +2,144 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import { useTheme, getThemeColors } from '@/context/ThemeContext';
+import { useToast } from '@/components/ui/Toast';
 import { formatCurrency, formatDate, formatStatus } from '@/utils/formatters';
 import orderService from '@/services/orderService';
 
-const STATUS_COLOR = {
-  pending:     'bg-yellow-100 text-yellow-700',
-  accepted:    'bg-blue-100 text-blue-700',
-  in_progress: 'bg-indigo-100 text-indigo-700',
-  completed:   'bg-green-100 text-green-700',
-  cancelled:   'bg-red-100 text-red-600',
+/* ─── SVG ICONS ─────────────────────────────────────────────────── */
+function Icon({ name, size = 20, color = 'currentColor', strokeWidth = 1.8, style }) {
+  const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth, strokeLinecap: 'round', strokeLinejoin: 'round', style };
+  switch (name) {
+    case 'clock': return <svg {...p}><circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 16 14" /></svg>;
+    case 'check': return <svg {...p}><polyline points="20 6 9 17 4 12" /></svg>;
+    case 'x': return <svg {...p}><line x1="4" y1="4" x2="20" y2="20" /><line x1="20" y1="4" x2="4" y2="20" /></svg>;
+    case 'flag': return <svg {...p}><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" /><line x1="4" y1="22" x2="4" y2="15" /></svg>;
+    case 'inbox': return <svg {...p}><polyline points="22 12 16 12 14 15 10 15 8 12 2 12" /><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" /></svg>;
+    case 'leaf': return <svg {...p}><path d="M5 21c0-9 6-15 15-15-1 9-7 15-15 15z" /><path d="M5 21c3-3 6-6 9-9" /></svg>;
+    default: return null;
+  }
+}
+
+const STATUS_CONFIG = {
+  pending:     { label: 'Pendente',     color: '#FFB347', bg: 'rgba(255,179,71,0.12)' },
+  accepted:    { label: 'Aceito',       color: '#3B82F6', bg: 'rgba(59,130,246,0.12)' },
+  in_progress: { label: 'Em andamento', color: '#22D31B', bg: 'rgba(34,211,27,0.12)' },
+  completed:   { label: 'Concluído',    color: '#22D31B', bg: 'rgba(34,211,27,0.12)' },
+  cancelled:   { label: 'Cancelado',    color: '#FF3B5C', bg: 'rgba(255,59,92,0.12)' },
 };
 
 export default function WorkerOrdersPage() {
-  const [orders, setOrders]     = useState([]);
-  const [loading, setLoading]   = useState(true);
+  const { darkMode } = useTheme();
+  const theme = getThemeColors(darkMode);
+  const toast = useToast();
+
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(null);
-  const [toast, setToast]       = useState('');
 
   async function load() {
-    try { setLoading(true); const d = await orderService.getAll(); setOrders(d.orders); }
+    try { setLoading(true); const d = await orderService.getAll(); setOrders(d.orders || []); }
     finally { setLoading(false); }
   }
-
   useEffect(() => { load(); }, []);
 
   async function act(id, status) {
     try {
       setUpdating(id);
       await orderService.updateStatus(id, status);
-      setToast(`✅ Pedido ${status === 'accepted' ? 'aceito' : status === 'cancelled' ? 'recusado' : 'concluído'}!`);
-      setTimeout(() => setToast(''), 3000);
+      toast(status === 'accepted' ? 'Pedido aceito!' : status === 'cancelled' ? 'Pedido recusado.' : status === 'completed' ? 'Pedido concluído! 🍃 Você ganhou Folhas.' : 'Atualizado', status === 'cancelled' ? 'info' : 'success');
       load();
-    } catch {
-      setToast('❌ Erro ao atualizar pedido.');
-      setTimeout(() => setToast(''), 3000);
-    } finally {
-      setUpdating(null);
-    }
+    } catch { toast('Erro ao atualizar pedido', 'error'); }
+    finally { setUpdating(null); }
   }
 
-  const pending   = orders.filter(o => o.status === 'pending');
-  const others    = orders.filter(o => o.status !== 'pending');
+  const pending = orders.filter(o => o.status === 'pending');
+  const others = orders.filter(o => o.status !== 'pending');
 
   return (
     <DashboardLayout>
-      <div className="p-8 space-y-8">
-        <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }}>
-          <h1 className="text-3xl font-black text-slate-800">Pedidos Recebidos</h1>
-          <p className="text-slate-500 mt-1">{pending.length} aguardando resposta</p>
+      <div style={{ padding: '28px 20px 60px', maxWidth: 820, margin: '0 auto', fontFamily: 'var(--body)' }}>
+
+        <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 24 }}>
+          <h1 style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '1.9rem', color: theme.text, letterSpacing: '-0.02em' }}>Pedidos recebidos</h1>
+          <p style={{ color: theme.textMuted, fontSize: '0.85rem', marginTop: 4 }}>{pending.length} aguardando sua resposta</p>
         </motion.div>
 
-        {/* Pending */}
         {pending.length > 0 && (
-          <div>
-            <h2 className="text-base font-bold text-amber-600 mb-3">🕐 Aguardando resposta</h2>
-            <div className="space-y-3">
-              {pending.map((o, i) => (
-                <motion.div key={o.id} layout initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}
-                  className="card p-5 border-l-4 border-amber-400"
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <p className="font-bold text-slate-800">Pedido #{o.id}</p>
-                      <p className="text-xs text-slate-400">{formatDate(o.created_at)}</p>
+          <div style={{ marginBottom: 28 }}>
+            <h2 style={{ fontSize: '0.8rem', fontWeight: 800, color: '#E86D00', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Icon name="clock" size={14} color="#E86D00" /> AGUARDANDO RESPOSTA
+            </h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <AnimatePresence>
+                {pending.map((o, i) => (
+                  <motion.div key={o.id} layout initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: 30 }} transition={{ delay: i * 0.07 }}
+                    style={{ background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, borderLeft: '4px solid #FF7A00', borderRadius: 16, padding: 18 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                      <div>
+                        <p style={{ fontWeight: 800, fontSize: '0.9rem', color: theme.text }}>{o.service_title || `Pedido #${o.id}`}</p>
+                        <p style={{ fontSize: '0.72rem', color: theme.textMuted, marginTop: 2 }}>{o.client_name} · {formatDate(o.created_at)}</p>
+                      </div>
+                      <p style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '1.4rem', color: '#FF7A00' }}>{formatCurrency(o.price)}</p>
                     </div>
-                    <p className="text-2xl font-black text-amber-500">{formatCurrency(o.price)}</p>
-                  </div>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => act(o.id, 'accepted')}
-                      disabled={updating === o.id}
-                      className="flex-1 bg-green-500 text-white font-bold py-2.5 rounded-xl hover:bg-green-600 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
-                    >
-                      {updating === o.id ? <span className="animate-spin">⏳</span> : '✅'} Aceitar
-                    </button>
-                    <button
-                      onClick={() => act(o.id, 'cancelled')}
-                      disabled={updating === o.id}
-                      className="flex-1 bg-red-500 text-white font-bold py-2.5 rounded-xl hover:bg-red-600 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
-                    >
-                      ❌ Recusar
-                    </button>
-                  </div>
-                </motion.div>
-              ))}
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <motion.button whileTap={{ scale: 0.96 }} onClick={() => act(o.id, 'accepted')} disabled={updating === o.id}
+                        style={{ flex: 1, background: '#22D31B', color: '#fff', fontWeight: 800, padding: '10px 0', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: '0.82rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: updating === o.id ? 0.7 : 1 }}>
+                        <Icon name="check" size={14} color="#fff" /> Aceitar
+                      </motion.button>
+                      <motion.button whileTap={{ scale: 0.96 }} onClick={() => act(o.id, 'cancelled')} disabled={updating === o.id}
+                        style={{ flex: 1, background: 'transparent', color: '#FF3B5C', fontWeight: 800, padding: '10px 0', borderRadius: 12, border: '1.5px solid rgba(255,59,92,0.35)', cursor: 'pointer', fontSize: '0.82rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: updating === o.id ? 0.7 : 1 }}>
+                        <Icon name="x" size={14} color="#FF3B5C" /> Recusar
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
           </div>
         )}
 
-        {/* Others */}
         <div>
-          <h2 className="text-base font-bold text-slate-600 mb-3">📋 Todos os pedidos</h2>
+          <h2 style={{ fontSize: '0.8rem', fontWeight: 800, color: theme.textMuted, marginBottom: 10, letterSpacing: '0.02em' }}>TODOS OS PEDIDOS</h2>
           {loading ? (
-            <div className="space-y-3">{[...Array(4)].map((_, i) => <div key={i} className="card h-20 animate-pulse bg-slate-100" />)}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{[0, 1, 2, 3].map(i => <div key={i} style={{ height: 70, borderRadius: 14, background: theme.line, opacity: 0.5 }} />)}</div>
           ) : others.length === 0 && pending.length === 0 ? (
-            <div className="card p-16 text-center"><p className="text-4xl mb-2">📭</p><p className="text-slate-400">Nenhum pedido ainda.</p></div>
+            <div style={{ background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, borderRadius: 18, padding: 50, textAlign: 'center' }}>
+              <Icon name="inbox" size={34} color={theme.textMuted} style={{ margin: '0 auto 10px' }} />
+              <p style={{ color: theme.textMuted, fontSize: '0.88rem' }}>Nenhum pedido ainda.</p>
+            </div>
           ) : (
-            <div className="space-y-3">
-              {others.map((o, i) => (
-                <motion.div key={o.id} layout initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
-                  className="card p-5 flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center font-bold text-sm">#{o.id}</div>
-                    <div>
-                      <p className="font-semibold text-slate-800">{formatStatus(o.status)}</p>
-                      <p className="text-xs text-slate-400">{formatDate(o.created_at)}</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {others.map((o, i) => {
+                const cfg = STATUS_CONFIG[o.status] || { label: o.status, color: theme.textMuted, bg: theme.bgAlt };
+                return (
+                  <motion.div key={o.id} layout initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, borderRadius: 14, padding: '14px 16px', gap: 10, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                      <div style={{ width: 38, height: 38, borderRadius: 11, background: 'rgba(255,122,0,0.12)', color: '#FF7A00', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.72rem', flexShrink: 0 }}>#{o.id}</div>
+                      <div style={{ minWidth: 0 }}>
+                        <p style={{ fontWeight: 700, fontSize: '0.85rem', color: theme.text }}>{o.service_title || formatStatus(o.status)}</p>
+                        <p style={{ fontSize: '0.72rem', color: theme.textMuted, marginTop: 1 }}>{o.client_name} · {formatDate(o.created_at)}</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    {o.status === 'accepted' && (
-                      <button onClick={() => act(o.id, 'completed')} disabled={updating === o.id}
-                        className="bg-green-500 text-white text-sm font-bold px-4 py-2 rounded-xl hover:bg-green-600 transition-all disabled:opacity-60"
-                      >
-                        🏁 Concluir
-                      </button>
-                    )}
-                    <span className={`text-xs font-semibold px-3 py-1 rounded-full ${STATUS_COLOR[o.status] || 'bg-slate-100 text-slate-600'}`}>
-                      {o.status}
-                    </span>
-                    <p className="font-black text-amber-500">{formatCurrency(o.price)}</p>
-                  </div>
-                </motion.div>
-              ))}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      {o.status === 'accepted' && (
+                        <motion.button whileTap={{ scale: 0.95 }} onClick={() => act(o.id, 'completed')} disabled={updating === o.id}
+                          style={{ background: '#22D31B', color: '#fff', fontWeight: 800, fontSize: '0.76rem', padding: '8px 14px', borderRadius: 10, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <Icon name="flag" size={12} color="#fff" /> Concluir
+                        </motion.button>
+                      )}
+                      <span style={{ fontSize: '0.68rem', fontWeight: 700, color: cfg.color, background: cfg.bg, padding: '5px 10px', borderRadius: 999 }}>{cfg.label}</span>
+                      <p style={{ fontWeight: 800, color: '#FF7A00', fontSize: '0.88rem' }}>{formatCurrency(o.price)}</p>
+                    </div>
+                  </motion.div>
+                );
+              })}
             </div>
           )}
         </div>
       </div>
-
-      {toast && (
-        <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-2xl text-sm font-semibold shadow-xl z-50"
-        >
-          {toast}
-        </motion.div>
-      )}
     </DashboardLayout>
   );
 }

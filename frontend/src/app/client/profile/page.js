@@ -10,6 +10,20 @@ import { useAuth } from '@/context/AuthContext';
 import { useForm, rules } from '@/hooks/useForm';
 import { useTheme, getThemeColors } from '@/context/ThemeContext';
 import api from '@/services/api';
+import { formatCurrency, formatDate } from '@/utils/formatters';
+
+/* ─── FOLHAS — moeda de desconto do MoviPay ────────────────────────
+   1 folha = R$ 0,04 em desconto acumulado. Resgatável em cupons por
+   faixa de saldo. Reaproveita o saldo de pontos existente do usuário,
+   só que com identidade visual própria (combina com o mascote de
+   formigas + folhas do restante do app). */
+const FOLHA_VALUE = 0.04;
+const FOLHA_COUPONS = [
+  { id: 'c1', cost: 100, label: '5% off',  desc: 'em qualquer serviço',        icon: 'gift' },
+  { id: 'c2', cost: 250, label: '10% off', desc: 'em serviços acima de R$100', icon: 'sparkle' },
+  { id: 'c3', cost: 400, label: 'Frete grátis', desc: 'em serviços de mudança', icon: 'briefcase' },
+  { id: 'c4', cost: 600, label: '20% off', desc: 'em qualquer serviço',        icon: 'crown' },
+];
 
 /* ─── DESIGN TOKENS ─────────────────────────────────────────────── */
 // Display: Fraunces · Body: Inter · Mono: IBM Plex Mono
@@ -540,6 +554,13 @@ export default function ClientProfilePage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
+  const [folhasHistory, setFolhasHistory] = useState([]);
+  const [folhasBalance, setFolhasBalance] = useState(null);
+
+  useEffect(() => {
+    api.get('/points/balance').then(r => setFolhasBalance(r.data?.balance ?? null)).catch(() => {});
+    api.get('/points/history').then(r => setFolhasHistory(r.data?.transactions || [])).catch(() => {});
+  }, []);
 
   const form = useForm(
     { name: '', bio: '', phone: '' },
@@ -565,6 +586,10 @@ export default function ClientProfilePage() {
   const totalSpent = orders.filter(o => o.status === 'completed').reduce((s, o) => s + (parseFloat(o.price) || 0), 0);
 
   const points = profile?.points || completed * 100 + pending * 20;
+  const folhas = folhasBalance ?? points;
+  const folhasDesconto = folhas * FOLHA_VALUE;
+  const nextCoupon = FOLHA_COUPONS.find(c => c.cost > folhas) || null;
+  const folhasProgress = nextCoupon ? Math.min(100, Math.round((folhas / nextCoupon.cost) * 100)) : 100;
   const levelIndex = LEVELS.reduce((acc, lvl, i) => points >= lvl.min ? i : acc, 0);
   const level = LEVELS[levelIndex];
   const nextLevel = LEVELS[levelIndex + 1] || null;
@@ -636,6 +661,124 @@ export default function ClientProfilePage() {
       `}</style>
 
 
+
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {/* ── CARTEIRA DE FOLHAS — versão detalhada (resumo mora na Home) ── */}
+      {/* ══════════════════════════════════════════════════════════════ */}
+      <div id="folhas" style={{ position: 'relative', zIndex: 1, padding: '24px 20px 0', maxWidth: 1100, margin: '0 auto', fontFamily: 'var(--body)', scrollMarginTop: 80 }}>
+        <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
+          style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: 20 }} className="folhas-grid">
+
+          {/* saldo + progresso até o próximo cupom */}
+          <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 22, padding: 26, background: 'linear-gradient(135deg, #1B5E20, #256B29 45%, #22D31B)', color: '#fff' }}>
+            <svg width="180" height="180" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="0.8" style={{ position: 'absolute', right: -30, bottom: -30, opacity: 0.12 }}>
+              <path d="M5 21c0-9 6-15 15-15-1 9-7 15-15 15z" /><path d="M5 21c3-3 6-6 9-9" />
+            </svg>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name="award" size={20} color="#fff" />
+              </div>
+              <div>
+                <p style={{ fontWeight: 800, fontSize: '1rem' }}>Carteira de Folhas</p>
+                <p style={{ fontSize: '0.74rem', opacity: 0.85 }}>Suas moedas de desconto MoviPay</p>
+              </div>
+            </div>
+
+            <p style={{ position: 'relative', fontFamily: 'var(--display)', fontWeight: 700, fontSize: '2.6rem', lineHeight: 1 }}>
+              <Counter target={folhas} /> <span style={{ fontSize: '1.1rem', opacity: 0.85, fontFamily: 'var(--body)' }}>folhas</span>
+            </p>
+            <p style={{ position: 'relative', fontSize: '0.85rem', opacity: 0.92, marginTop: 8 }}>
+              ≈ <strong>{formatCurrency(folhasDesconto)}</strong> já garantidos em desconto acumulado
+            </p>
+
+            {nextCoupon ? (
+              <div style={{ position: 'relative', marginTop: 20 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', opacity: 0.9, marginBottom: 6 }}>
+                  <span>Rumo ao cupom "{nextCoupon.label}"</span>
+                  <span>{folhas}/{nextCoupon.cost}</span>
+                </div>
+                <div style={{ width: '100%', height: 8, borderRadius: 99, background: 'rgba(255,255,255,0.25)' }}>
+                  <motion.div initial={{ width: 0 }} animate={{ width: `${folhasProgress}%` }} transition={{ delay: 0.4, duration: 1 }}
+                    style={{ height: '100%', borderRadius: 99, background: '#fff' }} />
+                </div>
+                <p style={{ fontSize: '0.72rem', opacity: 0.85, marginTop: 6 }}>Faltam {nextCoupon.cost - folhas} folhas — ganhe 100 a cada serviço concluído.</p>
+              </div>
+            ) : (
+              <p style={{ position: 'relative', marginTop: 20, fontSize: '0.8rem', fontWeight: 700 }}>🎉 Você desbloqueou todos os cupons disponíveis!</p>
+            )}
+          </div>
+
+          {/* cupons resgatáveis */}
+          <div style={{ background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, borderRadius: 22, padding: 22 }}>
+            <p style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '0.95rem', color: theme.text, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Icon name="gift" size={17} color="#FF7A00" /> Cupons por Folhas
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              {FOLHA_COUPONS.map((c, i) => {
+                const unlocked = folhas >= c.cost;
+                return (
+                  <motion.div key={c.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.06 }}
+                    whileHover={unlocked ? { y: -3, boxShadow: '0 10px 26px rgba(255,122,0,0.14)' } : {}}
+                    style={{
+                      borderRadius: 14, padding: 12,
+                      border: `1.5px solid ${unlocked ? 'rgba(255,122,0,0.35)' : theme.line}`,
+                      background: unlocked ? 'rgba(255,122,0,0.06)' : theme.bg,
+                      opacity: unlocked ? 1 : 0.6,
+                    }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <Icon name={c.icon} size={16} color={unlocked ? '#FF7A00' : theme.textMuted} />
+                      {unlocked ? (
+                        <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#22D31B' }}>DISPONÍVEL</span>
+                      ) : (
+                        <Icon name="lock" size={12} color={theme.textMuted} />
+                      )}
+                    </div>
+                    <p style={{ fontWeight: 800, fontSize: '0.82rem', color: theme.text }}>{c.label}</p>
+                    <p style={{ fontSize: '0.68rem', color: theme.textMuted, marginTop: 2, minHeight: 28 }}>{c.desc}</p>
+                    <p style={{ fontSize: '0.68rem', fontWeight: 700, color: unlocked ? '#FF7A00' : theme.textMuted, marginTop: 6, fontFamily: 'var(--mono)' }}>{c.cost} folhas</p>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
+        </motion.div>
+
+        {/* histórico de folhas */}
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+          style={{ background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, borderRadius: 22, padding: 22, marginTop: 20 }}>
+          <p style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '0.95rem', color: theme.text, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icon name="clock2" size={17} color="#FF7A00" /> Histórico de Folhas
+          </p>
+          {folhasHistory.length === 0 ? (
+            <p style={{ fontSize: '0.8rem', color: theme.textMuted }}>Nenhuma movimentação ainda.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {folhasHistory.map((t, i) => {
+                const amount = t.amount ?? t.points ?? 0;
+                return (
+                  <motion.div key={t.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 4px', borderBottom: i < folhasHistory.length - 1 ? `1px solid ${theme.line}` : 'none' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                      <div style={{ width: 30, height: 30, borderRadius: 9, background: amount >= 0 ? 'rgba(34,211,27,0.12)' : 'rgba(255,59,92,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Icon name="leaf" size={14} color={amount >= 0 ? '#22D31B' : '#FF3B5C'} />
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <p style={{ fontSize: '0.8rem', fontWeight: 700, color: theme.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.description}</p>
+                        <p style={{ fontSize: '0.68rem', color: theme.textMuted }}>{formatDate(t.created_at)}</p>
+                      </div>
+                    </div>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: amount >= 0 ? '#22D31B' : '#FF3B5C', flexShrink: 0 }}>
+                      {amount >= 0 ? '+' : ''}{amount} folhas
+                    </span>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
+        </motion.div>
+      </div>
+
+      <style>{`@media (max-width: 860px) { .folhas-grid { grid-template-columns: 1fr !important; } }`}</style>
 
       <div className="p-grid" style={{ position: 'relative', zIndex: 1, padding: '24px 20px 80px', maxWidth: 1100, margin: '0 auto', fontFamily: 'var(--body)', background: 'transparent', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, alignItems: 'start' }}>
 

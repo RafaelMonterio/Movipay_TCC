@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { motion, useScroll, useInView, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
-import FallingLeaves, { FooterLeafPile } from '@/components/effects/FallingLeaves';
+import FallingLeaves, { FooterLeafPile, LeafProvider } from '@/components/effects/FallingLeaves';
 
 /* ─── ICONS (no emojis anywhere — everything below is hand-drawn SVG) ─── */
 
@@ -132,11 +132,6 @@ function StickFigureAnt({ isOpen, onClick, theme, darkMode }) {
 }
 
 /* ─── ACCESSIBILITY MENU ─────────────────────────────────────────────── */
-/* Uses the shared ThemeContext (same one used by every dashboard screen)
-   instead of its own local state, so settings made on the homepage persist
-   and stay in sync everywhere else in the app, and vice-versa. The filters
-   (dark mode / high contrast / daltonism / font size) are applied globally
-   by ThemeProvider, so this component only needs to read + toggle them. */
 function AccessibilityMenu({ isOpen, onClose, theme }) {
   const {
     darkMode,
@@ -431,7 +426,7 @@ const STATS = [
   { value: 15,   suffix: 'min', label: 'Tempo médio de resposta', decimal: false },
 ];
 
-/* ─── ANIMATED COUNTER (refatorado com requestAnimationFrame) ──────── */
+/* ─── ANIMATED COUNTER ──────────────────────────────────────────────── */
 function AnimatedCounter({ target, suffix, decimal }) {
   const spanRef = useRef(null);
   const wrapperRef = useRef(null);
@@ -446,7 +441,7 @@ function AnimatedCounter({ target, suffix, decimal }) {
     function tick(ts) {
       if (start === null) start = ts;
       const progress = Math.min((ts - start) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3); // easeOutCubic
+      const eased = 1 - Math.pow(1 - progress, 3);
       const current = target * eased;
       if (spanRef.current) {
         spanRef.current.textContent =
@@ -465,10 +460,6 @@ function AnimatedCounter({ target, suffix, decimal }) {
   );
 }
 
-/* FloatingLeaf: superseded by the shared <FallingLeaves /> component
-   (src/components/effects/FallingLeaves.jsx), which uses the exact same
-   visual/animation and is now reused across every screen in the app. */
-
 /* ─── FORMIGA CANVAS COMPONENT ──────────────────────────────────────── */
 function FormigaCanvas() {
   const canvasRef = useRef(null);
@@ -483,7 +474,6 @@ function FormigaCanvas() {
 
     const ctx = canvas.getContext('2d');
 
-    // ========== CLASSE FORMIGA ==========
     class Formiga {
       constructor(y, speed, size, id) {
         this.id = id;
@@ -584,7 +574,6 @@ function FormigaCanvas() {
           this.drawCargo(ctx, this.cargoX, this.cargoY, this.hasDeposited);
         }
 
-        // Abdômen
         const abdX = x - dir * s * 0.9;
         const abdY = y;
         ctx.beginPath();
@@ -595,7 +584,6 @@ function FormigaCanvas() {
         ctx.lineWidth = 1.2;
         ctx.stroke();
 
-        // Tórax
         const thoraxX = x - dir * s * 0.2;
         const thoraxY = y - 2;
         ctx.beginPath();
@@ -604,7 +592,6 @@ function FormigaCanvas() {
         ctx.fill();
         ctx.stroke();
 
-        // Cabeça
         const headX = x + dir * s * 0.8;
         const headY = y - 3;
         ctx.beginPath();
@@ -613,7 +600,6 @@ function FormigaCanvas() {
         ctx.fill();
         ctx.stroke();
 
-        // Olhos
         const eyeOffX = dir * s * 0.2;
         const eyeOffY = -s * 0.18;
         ctx.beginPath();
@@ -638,7 +624,6 @@ function FormigaCanvas() {
         ctx.fillStyle = this.pupilColor;
         ctx.fill();
 
-        // Antenas
         ctx.strokeStyle = '#8A4A00';
         ctx.lineWidth = 1.8;
         ctx.beginPath();
@@ -657,7 +642,6 @@ function FormigaCanvas() {
         ctx.arc(headX + dir * 10, headY - 22, 2.5, 0, Math.PI * 2);
         ctx.fill();
 
-        // Patas
         ctx.strokeStyle = '#8A4A00';
         ctx.lineWidth = 2.2;
         this.drawLeg(ctx, thoraxX, thoraxY, dir, -0.9, 0.2, 0.9);
@@ -738,7 +722,6 @@ function FormigaCanvas() {
       }
     }
 
-    // ========== CRIAÇÃO DAS 5 FORMIGAS ==========
     const formigas = [];
     const numFormigas = 5;
     const linhaY = H - 18;
@@ -762,7 +745,6 @@ function FormigaCanvas() {
       formigas.push(formiga);
     }
 
-    // ========== DESENHO DO CENÁRIO ==========
     function drawScene(ctx, W, H) {
       const groundY = H - 16;
       ctx.fillStyle = '#0D3B0D';
@@ -820,7 +802,6 @@ function FormigaCanvas() {
       }
     }
 
-    // ========== LOOP ==========
     let rafId = null;
     let isActive = true;
 
@@ -863,7 +844,7 @@ function FormigaCanvas() {
   );
 }
 
-/* ─── SPARKLE WAVE DIVIDER (substitui a fileira de árvores repetida) ─── */
+/* ─── SPARKLE WAVE DIVIDER ───────────────────────────────────────────── */
 function SparkleDivider({ theme }) {
   const sparkles = Array.from({ length: 16 }, (_, i) => ({
     xPct: (i * 6.25 + 2) % 100,
@@ -981,7 +962,6 @@ function RadarCanvas({ darkMode }) {
     }
 
     function drawSweepTrail() {
-      // steps reduzido de 80 para 28 para melhorar performance
       const steps = 28;
       for (let i = 0; i < steps; i++) {
         const a = sweep - (i / steps) * (Math.PI * 0.7);
@@ -1191,7 +1171,6 @@ export default function LandingPage() {
     setAccessibilityOpen(prev => !prev);
   }
 
-  /* ── THEME TOKENS ── */
   const theme = darkMode ? {
     bg: '#0D1F0D', bgAlt: '#0A1A0A',
     text: '#FFFFFF', textMuted: '#7DAA7D',
@@ -1227,9 +1206,9 @@ export default function LandingPage() {
   );
 
   return (
-    <div style={{ minHeight: '100vh', overflowX: 'hidden', background: theme.bg, color: theme.text, fontFamily: 'Inter, sans-serif', transition: 'background 0.4s ease, color 0.4s ease', position: 'relative' }}>
+    <LeafProvider count={40}>
+      <div style={{ minHeight: '100vh', overflowX: 'hidden', background: theme.bg, color: theme.text, fontFamily: 'Inter, sans-serif', transition: 'background 0.4s ease, color 0.4s ease', position: 'relative' }}>
 
-      {/* ── GLOBAL STYLES ─────────────────────────────────────────────── */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
@@ -1399,8 +1378,8 @@ export default function LandingPage() {
         }
       `}</style>
 
-      {/* ── FLOATING LEAVES (CAEM E PARAM NO FOOTER) ────────────────── */}
-      <FallingLeaves />
+      {/* ── FLOATING LEAVES (CAEM E SE ACUMULAM NO FOOTER) ────────────────── */}
+      <FallingLeaves count={40} speed={0.5} />
 
       {/* ── STICK FIGURE ANT (Accessibility Button) ──────────────────── */}
       <StickFigureAnt
@@ -1558,7 +1537,6 @@ export default function LandingPage() {
           <Icon name="chevronDown" size={22} color={theme.textMuted} />
         </motion.div>
 
-        {/* Canvas com formigas - substituindo a ForestScene */}
         <FormigaCanvas />
 
         <motion.div
@@ -1571,9 +1549,7 @@ export default function LandingPage() {
           animate={{ opacity: 1, scale: 1, rotate: 0 }}
           transition={{ delay: 0.8, type: 'spring', stiffness: 100 }}
           whileHover={{ scale: 1.1, rotate: 5 }}
-        >
-
-        </motion.div>
+        />
 
       </section>
 
@@ -1840,7 +1816,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── FOOTER ────────────────────────────────────────────────────── */}
-      <footer style={{ position: 'relative', background: theme.footerBg, borderTop: `1px solid ${theme.footerBorder}`, padding: '40px 24px 44px', transition: 'background 0.4s', overflow: 'hidden' }}>
+      <footer style={{ position: 'relative', background: theme.footerBg, borderTop: `1px solid ${theme.footerBorder}`, padding: '40px 24px 44px', transition: 'background 0.4s', overflow: 'hidden', zIndex: 10 }}>
         <FooterLeafPile />
         <div style={{ position: 'relative', zIndex: 2, maxWidth: 1200, margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
 
@@ -1869,5 +1845,6 @@ export default function LandingPage() {
       </footer>
 
     </div>
+    </LeafProvider>
   );
 }
