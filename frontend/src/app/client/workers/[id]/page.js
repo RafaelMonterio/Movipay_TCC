@@ -177,14 +177,23 @@ export default function WorkerDetailPage() {
   const [bookingOpen, setBookingOpen] = useState(false);
   const [contractOpen, setContractOpen] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
-  const bookingDates = ['Seg, 19 ago', 'Qua, 21 ago', 'Sex, 23 ago'];
-  const bookingHours = {
-    'Seg, 19 ago': ['09:00', '11:30', '14:00', '18:30'],
-    'Qua, 21 ago': ['08:45', '10:15', '13:00', '16:45'],
-    'Sex, 23 ago': ['09:30', '12:00', '15:30', '18:00'],
-  };
-  const [selectedDate, setSelectedDate] = useState(bookingDates[0]);
-  const [selectedSlot, setSelectedSlot] = useState(bookingHours[bookingDates[0]][0]);
+  // Booking defaults (use ISO date for selectedDate to avoid format mismatch)
+  const TODAY = new Date();
+  const ISO_TODAY = `${TODAY.getFullYear()}-${String(TODAY.getMonth() + 1).padStart(2, '0')}-${String(TODAY.getDate()).padStart(2, '0')}`;
+  const modalBookingSlots = ['09:00', '11:30', '14:00', '18:30'];
+  const [selectedDate, setSelectedDate] = useState(ISO_TODAY);
+  const [selectedSlot, setSelectedSlot] = useState(modalBookingSlots[0]);
+
+  function getAvailableSlotsForDate(dateIso) {
+    if (!dateIso) return [];
+    const parts = String(dateIso).split('-').map(p => Number(p));
+    if (parts.length !== 3) return modalBookingSlots;
+    const [y, m, d] = parts; // m is 1-based
+    if (!worker?.is_available) return [];
+    const dow = new Date(y, m - 1, d).getDay();
+    if (dow === 0 || dow === 6) return []; // no weekends
+    return modalBookingSlots;
+  }
   const [selectedServiceType, setSelectedServiceType] = useState('Completo');
   const [scheduled, setScheduled] = useState(false);
 
@@ -271,7 +280,7 @@ export default function WorkerDetailPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setBookingOpen(true)}
+              onClick={() => { setSelectedDate(ISO_TODAY); setSelectedSlot(modalBookingSlots[0]); setBookingOpen(true); }}
                 className="bg-client text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-600 transition-all"
               >
                 Agendar serviço
@@ -453,17 +462,33 @@ export default function WorkerDetailPage() {
               <motion.section initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.08 }} className="bg-white rounded-3xl border border-slate-200 p-5 md:p-6">
                 <h2 className="text-lg font-black text-slate-800 mb-4">Localização</h2>
                 <div className="rounded-2xl overflow-hidden border border-slate-200">
-                  <div className="w-full h-56 bg-[radial-gradient(circle_at_center,_#e2e8f0_0,_#cbd5e1_40%,_#f8fafc_100%)] relative">
-                    <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-client border-4 border-white shadow-lg" />
-                    <div className="absolute left-6 top-8 w-16 h-16 rounded-full bg-client/10" />
-                    <div className="absolute right-10 bottom-10 w-20 h-20 rounded-full bg-worker/10" />
-                    <div className="absolute inset-0 opacity-30" style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(255,122,0,0.12) 50%, transparent 100%)' }} />
+                    {/* Google Maps embed using coordinates (no extra dependency). If you have a Google Maps Embed API key you can switch to the official embed endpoint. */}
+                    <div className="w-full h-56 relative">
+                      <iframe
+                        title="Mapa do trabalhador"
+                        className="w-full h-full border-0"
+                        src={`https://www.google.com/maps?q=${encodeURIComponent(worker.address || `${lat},${lng}`)}&z=15&output=embed`}
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                      />
+                    </div>
                   </div>
-                </div>
                 <div className="mt-4 text-sm text-slate-600 space-y-2">
                   <p className="font-semibold text-slate-800">📍 {worker.neighborhood || 'Bairro'}, {worker.city || 'Ribeirão Pires'}</p>
                   <p className="text-xs text-slate-500">Coordenadas: {lat.toFixed(4)}, {lng.toFixed(4)}</p>
                   <p className="text-xs text-slate-500">Atende em até {worker.service_area || '3 km'} da localidade.</p>
+
+                  {/* Link to open location in Google Maps */}
+                  <div className="mt-3">
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(worker.address || `${lat},${lng}`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-sm font-semibold text-client hover:underline"
+                    >
+                      Ver no Google Maps ↗
+                    </a>
+                  </div>
                 </div>
               </motion.section>
 
@@ -495,56 +520,43 @@ export default function WorkerDetailPage() {
         <div className="space-y-5">
           <div>
             <p className="text-sm font-semibold text-slate-700 mb-2">1. Escolha a data</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                {/* Mini calendar (reuse logic from worker calendar) */}
-                <CalendarMini selected={selectedDate} onSelect={(y,m,d) => {
-                  const dayStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-                  // Map available bookingDates (strings) to day label if possible, else set ISO
-                  setSelectedDate(dayStr);
-                  // reset slot
-                  const firstSlot = Object.values(bookingHours)[0]?.[0] || (bookingSlots[0]);
-                  setSelectedSlot(firstSlot);
-                }} />
-              </div>
-              <div>
-                <p className="text-sm text-slate-500 mb-2">Datas sugeridas</p>
-                <div className="grid gap-2">
-                  {bookingDates.map((date) => (
-                    <button
-                      key={date}
-                      type="button"
-                      onClick={() => {
-                        setSelectedDate(date);
-                        setSelectedSlot(bookingHours[date][0]);
-                      }}
-                      className={`rounded-xl border px-3 py-2 text-sm font-medium text-left transition-all ${
-                        selectedDate === date ? 'border-client bg-client/5 text-client' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
-                      }`}
-                    >
-                      {date}
-                    </button>
-                  ))}
-                </div>
-              </div>
+            <div>
+               {/* Mini calendar (reuse logic from worker calendar) - full width */}
+               <CalendarMini
+                 selected={selectedDate}
+                 isDateAvailable={(y,m,d) => {
+                   if (!worker?.is_available) return false;
+                   const dow = new Date(y, m, d).getDay();
+                   return dow !== 0 && dow !== 6;
+                 }}
+                 onSelect={(y,m,d) => {
+                   const dayStr = `${y}-${String(m + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                   setSelectedDate(dayStr);
+                   setSelectedSlot(modalBookingSlots[0]);
+                 }}
+               />
             </div>
           </div>
 
           <div>
             <p className="text-sm font-semibold text-slate-700 mb-2">2. Horários disponíveis</p>
             <div className="grid gap-2 sm:grid-cols-3">
-              {(bookingHours[selectedDate] || bookingSlots || []).map((slot) => (
-                <button
-                  key={slot}
-                  type="button"
-                  onClick={() => setSelectedSlot(slot)}
-                  className={`rounded-xl border px-3 py-2 text-sm font-medium text-center transition-all ${
-                    selectedSlot === slot ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
-                  }`}
-                >
-                  {slot}
-                </button>
-              ))}
+              {getAvailableSlotsForDate(selectedDate).length === 0 ? (
+                <div className="text-sm text-slate-500">Sem horários disponíveis para esta data.</div>
+              ) : (
+                getAvailableSlotsForDate(selectedDate).map((slot) => (
+                  <button
+                    key={slot}
+                    type="button"
+                    onClick={() => setSelectedSlot(slot)}
+                    className={`rounded-xl border px-3 py-2 text-sm font-medium text-center transition-all ${
+                      selectedSlot === slot ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                    }`}
+                  >
+                    {slot}
+                  </button>
+                ))
+              )}
             </div>
           </div>
 
@@ -674,10 +686,32 @@ export default function WorkerDetailPage() {
   );
 }
 
-function CalendarMini({ selected, onSelect }) {
+function getMonthDays(year, month) {
+  const first = new Date(year, month, 1).getDay();
+  const total = new Date(year, month + 1, 0).getDate();
+  return { first, total };
+}
+
+const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const DAYS   = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+function CalendarMini({ selected, onSelect, isDateAvailable }) {
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
+  const [selectedDay, setSelectedDay] = useState(today.getDate());
+
+  // Sync with external selected ISO date (format YYYY-MM-DD)
+  useEffect(() => {
+    if (!selected) return;
+    const parts = String(selected).split('-').map(p => Number(p));
+    if (parts.length !== 3) return;
+    const [y, m, d] = parts; // m is 1-based
+    setYear(y);
+    setMonth(m - 1);
+    setSelectedDay(d);
+  }, [selected]);
+
   const { first, total } = getMonthDays(year, month);
 
   function prevMonth() { if (month === 0) { setMonth(11); setYear(y => y - 1); } else setMonth(m => m - 1); }
@@ -698,9 +732,15 @@ function CalendarMini({ selected, onSelect }) {
         {[...Array(total)].map((_, i) => {
           const day = i + 1;
           const isToday = day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+          const isSel = day === selectedDay;
           const label = `${year}-${String(month + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+          const available = typeof isDateAvailable === 'function' ? isDateAvailable(year, month, day) : true;
           return (
-            <button key={label} onClick={() => onSelect?.(year, month, day)} className={`aspect-square rounded-xl text-sm flex items-center justify-center ${isToday ? 'bg-amber-100 text-amber-700' : 'hover:bg-slate-100'}`}>
+            <button
+              key={label}
+              onClick={() => { if (!available) return; setSelectedDay(day); onSelect?.(year, month, day); }}
+              disabled={!available}
+              className={`aspect-square rounded-xl text-sm flex items-center justify-center ${isSel ? 'bg-amber-500 text-white shadow-md' : isToday ? 'bg-amber-100 text-amber-700' : available ? 'hover:bg-slate-100' : 'opacity-50 text-slate-400 cursor-not-allowed'}`}>
               {day}
             </button>
           );

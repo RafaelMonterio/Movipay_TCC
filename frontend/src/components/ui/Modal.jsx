@@ -39,7 +39,7 @@ export default function Modal({ open, onClose, title, children, size = 'md' }) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 16 }}
             transition={{ duration: 0.2 }}
-            className={`relative w-full ${sizes[size]} rounded-2xl shadow-2xl overflow-hidden`}
+            className={`relative w-full ${sizes[size]} rounded-2xl shadow-2xl overflow-hidden max-h-[90vh]`}
             style={{
               backgroundColor: colors.cardBg,
               border: `1px solid ${colors.cardBorder}`,
@@ -67,8 +67,8 @@ export default function Modal({ open, onClose, title, children, size = 'md' }) {
                 ✕
               </button>
             </div>
-            {/* Content */}
-            <div className="px-6 py-5">
+            {/* Content (scrollable) */}
+            <div className="px-6 py-5 overflow-auto max-h-[70vh]">
               {children}
             </div>
           </motion.div>
