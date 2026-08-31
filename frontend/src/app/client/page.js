@@ -242,7 +242,7 @@ function AnimatedCounter({ target, suffix = '', decimal = false }) {
 }
 
 /* ─── MAPA REPOSICIONADO À ESQUERDA COM DESIGN ORGÂNICO FUTURISTA ─────── */
-function OrganicRadarMap({ themeColors, selectedCategory, onSelectCategory, searchQuery, setSearchQuery, onSearchSubmit }) {
+function OrganicMap({ themeColors, selectedCategory, onSelectCategory, searchQuery, setSearchQuery, onSearchSubmit }) {
   const router = useRouter();
   const [selectedWorker, setSelectedWorker] = useState(null);
 
@@ -256,16 +256,14 @@ function OrganicRadarMap({ themeColors, selectedCategory, onSelectCategory, sear
   return (
     <div className="hero-split-grid">
       {/* ───────────────────────────────────────────────────────────── */}
-      {/* COLUNA ESQUERDA: MAPA ORGÂNICO MODERNO COM FRAME LED          */}
+      {/* COLUNA ESQUERDA: INFORMAÇÕES, BUSCA & TELEMETRIA             */}
       {/* ───────────────────────────────────────────────────────────── */}
       <motion.div
         initial={{ opacity: 0, x: -30 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.6 }}
-        style={{ position: 'relative', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
+        style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'left' }}
       >
-        {/* Container Circular com Efeitos LED de Radar (Redondo & Mais Amplo) */}
-        <div style={{ position: 'relative', width: 'min(540px, 94vw)', height: 'min(540px, 94vw)', maxWidth: 540, maxHeight: 540, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
           
           {/* Anel LED Giratório Conic-Gradient (Laranja & Verde) */}
           <motion.div
@@ -303,36 +301,7 @@ function OrganicRadarMap({ themeColors, selectedCategory, onSelectCategory, sear
             }}
           />
 
-          {/* Badge de Status "RADAR AO VIVO" centralizada no topo */}
-          <div
-            style={{
-              position: 'absolute',
-              top: -12,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              zIndex: 35,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              background: 'rgba(15, 23, 14, 0.88)',
-              border: '1.5px solid #22D31B',
-              borderRadius: 999,
-              padding: '6px 16px',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.3), 0 0 16px rgba(34,211,27,0.4)',
-              backdropFilter: 'blur(10px)',
-              color: '#fff',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            <motion.span
-              animate={{ scale: [1, 1.4, 1], opacity: [1, 0.5, 1], boxShadow: ['0 0 0 0 rgba(34,211,27,0.7)', '0 0 0 6px rgba(34,211,27,0)', '0 0 0 0 rgba(34,211,27,0)'] }}
-              transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-              style={{ width: 8, height: 8, borderRadius: '50%', background: '#22D31B', flexShrink: 0 }}
-            />
-            <span style={{ fontSize: '0.74rem', fontWeight: 800, fontFamily: 'var(--mono)', letterSpacing: '0.04em' }}>
-              RADAR AO VIVO · {onlineCount} ONLINE
-            </span>
-          </div>
+          {/* Badge de status removido per request */}
 
           {/* CONTAINER PRINCIPAL DO MAPA (100% REDONDO / CIRCULAR) */}
           <div
@@ -344,7 +313,7 @@ function OrganicRadarMap({ themeColors, selectedCategory, onSelectCategory, sear
               borderRadius: '50%',
               overflow: 'hidden',
               background: themeColors.cardBg,
-              boxShadow: '0 20px 50px rgba(0,0,0,0.25), inset 0 0 0 3px rgba(255,122,0,0.45)',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.25)',
               zIndex: 2,
             }}
           >
@@ -461,7 +430,7 @@ function OrganicRadarMap({ themeColors, selectedCategory, onSelectCategory, sear
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,122,0,0.12)', border: '1px solid rgba(255,122,0,0.35)', padding: '6px 14px', borderRadius: 999, width: 'fit-content', marginBottom: 16 }}>
           <Icon name="sparkle" size={14} color="#FF7A00" />
           <span style={{ fontFamily: 'var(--mono)', fontSize: '0.72rem', fontWeight: 800, color: '#FF7A00', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-            RADAR INTELIGENTE MOVIPAY
+            MAPA MOVIPAY
           </span>
         </div>
 
@@ -475,7 +444,7 @@ function OrganicRadarMap({ themeColors, selectedCategory, onSelectCategory, sear
 
         {/* Subtítulo explicativo */}
         <p style={{ fontSize: '0.98rem', color: themeColors.textMuted, lineHeight: 1.6, marginBottom: 22, maxWidth: 540 }}>
-          Acompanhe no radar a disponibilidade em tempo real, combine orçamentos instantâneos com proteção de pagamento e ganhe <strong>Folhas de desconto</strong> a cada serviço.
+          Localize profissionais próximos no mapa, combine orçamentos instantâneos com proteção de pagamento e ganhe <strong>Folhas de desconto</strong> a cada serviço.
         </p>
 
         {/* Barra de Busca com Foco Neon */}
@@ -514,7 +483,7 @@ function OrganicRadarMap({ themeColors, selectedCategory, onSelectCategory, sear
           </button>
         </form>
 
-        {/* Filtros Rápidos de Categoria do Radar */}
+        {/* Filtros Rápidos de Categoria */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 24 }}>
           <span style={{ fontSize: '0.72rem', fontWeight: 800, color: themeColors.textMuted, textTransform: 'uppercase', marginRight: 4, fontFamily: 'var(--mono)' }}>
             Filtro:
@@ -995,7 +964,7 @@ const TESTIMONIALS = [
 ];
 
 const HOW_STEPS = [
-  { n: '01', icon: 'search', title: 'Localize no Radar', body: 'Veja no mapa os profissionais disponíveis perto da sua casa em tempo real.' },
+  { n: '01', icon: 'search', title: 'Localize no mapa', body: 'Veja no mapa os profissionais disponíveis perto da sua casa em tempo real.' },
   { n: '02', icon: 'users',  title: 'Negocie no Chat', body: 'Combine valores, horários e detalhes diretamente com o especialista sem intermediários.' },
   { n: '03', icon: 'star',   title: 'Avalie & Ganhe Folhas', body: 'Ao finalizar, avalie o atendimento e ganhe Folhas para descontos futuros.' },
 ];
@@ -1142,10 +1111,10 @@ export default function ClientDashboardPage() {
             }
           }
 
-          /* Split Grid do Hero (Mapa à Esquerda, Info à Direita) */
+          /* Split Grid do Hero (Campo à Esquerda, Mapa à Direita) */
           .hero-split-grid {
             display: grid;
-            grid-template-columns: 1.18fr 1fr;
+            grid-template-columns: 1fr 1.18fr;
             gap: 40px;
             align-items: center;
             width: 100%;
@@ -1353,7 +1322,7 @@ export default function ClientDashboardPage() {
 
             <div style={{ position: 'relative', zIndex: 2 }}>
               {/* O NOVO LAYOUT HARMONIOSO: MAPA À ESQUERDA, INFO À DIREITA */}
-              <OrganicRadarMap
+              <OrganicMap
                 themeColors={colors}
                 selectedCategory={selectedMapCategory}
                 onSelectCategory={setSelectedMapCategory}
