@@ -28,7 +28,8 @@ export default function Sidebar() {
   const { user, logout } = useAuth();
   const pathname = usePathname();
   const [hovered, setHovered] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
+  // Sidebar is naturally minimized; expand on hover.
+  const collapsed = !hovered;
   const { darkMode, highContrast } = useTheme();
   const isWorker = user?.mode === 'worker';
   const links = isWorker ? workerLinks : clientLinks;
@@ -115,22 +116,7 @@ export default function Sidebar() {
           </div>
         </div>
 
-        <div className="px-2 py-2 flex-shrink-0 flex items-center justify-center">
-          <button
-            onClick={() => setCollapsed(v => !v)}
-            className="group flex items-center justify-center h-12 w-12 rounded-full border-2 transition-all hover:scale-105 shadow-md"
-            aria-label={collapsed ? 'Abrir menu' : 'Recolher menu'}
-            style={{
-              background: toggleButtonBg,
-              borderColor: toggleButtonBorder,
-              color: textPrimary,
-            }}
-          >
-            <span className="text-[20px] font-black transition-transform group-hover:scale-110">
-              {collapsed ? '›' : '‹'}
-            </span>
-          </button>
-        </div>
+        {/* Removed manual toggle button: sidebar is collapsed by default and expands on hover. */}
 
         <nav className="flex-1 px-3 py-2 space-y-1">
           {links.map(l => {

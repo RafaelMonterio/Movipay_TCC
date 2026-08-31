@@ -49,8 +49,8 @@ export default function WorkerHomePage() {
   const [orders, setOrders] = useState([]);
   const [wallet, setWallet] = useState({ balance: 0, held: 0 });
   const [quotes, setQuotes] = useState([]);
-  const [available, setAvailable] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState('month'); // 'month' | 'week' | 'year'
 
   useEffect(() => {
     if (!user) return;
@@ -58,17 +58,11 @@ export default function WorkerHomePage() {
       orderService.getAll().then(d => setOrders(d.orders || [])),
       api.get('/payments/wallet').then(r => setWallet(r.data)).catch(() => {}),
       api.get('/quotes').then(r => setQuotes(r.data.quotes || [])).catch(() => {}),
-      api.get(`/workers/${user.id}`).then(r => setAvailable(r.data?.is_available ?? true)).catch(() => {}),
+      // worker availability removed from dashboard; notifications handled by the bell
     ]).finally(() => setLoading(false));
   }, [user]);
 
-  async function toggleAvailability() {
-    try {
-      const next = !available;
-      setAvailable(next);
-      await api.patch(`/workers/${user.id}/availability`, { is_available: next });
-    } catch { setAvailable(a => !a); }
-  }
+  // availability toggle removed per UI request
 
   const pending = orders.filter(o => o.status === 'pending');
   const accepted = orders.filter(o => o.status === 'accepted' || o.status === 'in_progress');
@@ -101,39 +95,81 @@ export default function WorkerHomePage() {
             <p style={{ color: theme.textMuted, fontSize: '0.85rem', marginTop: 4 }}>Painel do prestador de serviço</p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <motion.button whileTap={{ scale: 0.95 }} onClick={toggleAvailability}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8, padding: '9px 14px', borderRadius: 999, cursor: 'pointer',
-                border: `1.5px solid ${available ? 'rgba(34,211,27,0.4)' : theme.line}`,
-                background: available ? 'rgba(34,211,27,0.1)' : theme.cardBg, fontSize: '0.78rem', fontWeight: 700,
-                color: available ? '#1E9E1A' : theme.textMuted,
-              }}>
-              <motion.span animate={available ? { scale: [1, 1.3, 1] } : {}} transition={{ duration: 1.4, repeat: Infinity }}
-                style={{ width: 8, height: 8, borderRadius: '50%', background: available ? '#22D31B' : theme.textMuted, display: 'inline-block' }} />
-              {available ? 'Disponível' : 'Indisponível'}
-            </motion.button>
             <button onClick={toggleDarkMode} style={{ width: 36, height: 36, borderRadius: '50%', background: 'transparent', border: `1px solid ${theme.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} aria-label="Alternar tema">
               <Icon name={darkMode ? 'sun' : 'moon'} size={15} color={theme.textMuted} />
             </button>
           </div>
         </motion.div>
 
-        {/* Alerta de pendentes */}
-        {pending.length > 0 && (
-          <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}
-            style={{ background: 'linear-gradient(135deg, rgba(255,122,0,0.12), rgba(255,122,0,0.04))', border: '1.5px solid rgba(255,122,0,0.3)', borderRadius: 18, padding: 18, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', marginBottom: 20 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <motion.div animate={{ rotate: [0, -12, 12, 0] }} transition={{ duration: 1.6, repeat: Infinity }} style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,122,0,0.16)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon name="bell" size={19} color="#FF7A00" />
-              </motion.div>
-              <div>
-                <p style={{ fontWeight: 800, fontSize: '0.9rem', color: theme.text }}>{pending.length} pedido{pending.length > 1 ? 's' : ''} aguardando sua resposta</p>
-                <p style={{ fontSize: '0.78rem', color: theme.textMuted, marginTop: 2 }}>Responda rápido para não perder a oportunidade.</p>
-              </div>
+        {/* Pending alert removed — notifications are available via the bell in the header */}
+
+        {/* Gráfico de resumo (período selecionável) */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <h2 style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '1.05rem', color: theme.text }}>Resumo</h2>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {['month', 'week', 'year'].map(p => (
+                <button key={p} onClick={() => setPeriod(p)} style={{ padding: '6px 10px', borderRadius: 10, border: `1px solid ${period === p ? '#FF7A00' : theme.cardBorder}`, background: period === p ? '#FFFBF6' : 'transparent', cursor: 'pointer', fontWeight: 700 }}>{p === 'month' ? 'Mês' : p === 'week' ? 'Semana' : 'Ano'}</button>
+              ))}
             </div>
-            <Link href="/worker/orders" className="wk-btn-primary" style={{ whiteSpace: 'nowrap' }}>Ver pedidos</Link>
-          </motion.div>
-        )}
+          </div>
+
+          {/* compute chart data inline */}
+          {(() => {
+            const now = new Date();
+            let buckets = [];
+            if (period === 'month') {
+              // last 6 months
+              for (let i = 5; i >= 0; i--) {
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                const label = d.toLocaleString('pt-BR', { month: 'short' });
+                const value = completed.filter(o => {
+                  const od = new Date(o.completed_at || o.created_at);
+                  return od.getMonth() === d.getMonth() && od.getFullYear() === d.getFullYear();
+                }).reduce((s, o) => s + parseFloat(o.price), 0);
+                buckets.push({ label, value });
+              }
+            } else if (period === 'week') {
+              // last 6 weeks
+              for (let i = 5; i >= 0; i--) {
+                const start = new Date(now);
+                start.setDate(now.getDate() - i * 7);
+                const weekLabel = `${start.getDate()}/${start.getMonth() + 1}`;
+                const value = completed.filter(o => {
+                  const od = new Date(o.completed_at || o.created_at);
+                  const diff = Math.floor((now - od) / (1000 * 60 * 60 * 24));
+                  return diff >= i * 7 && diff < (i + 1) * 7;
+                }).reduce((s, o) => s + parseFloat(o.price), 0);
+                buckets.push({ label: weekLabel, value });
+              }
+            } else {
+              // last 6 years
+              for (let i = 5; i >= 0; i--) {
+                const y = now.getFullYear() - i;
+                const value = completed.filter(o => {
+                  const od = new Date(o.completed_at || o.created_at);
+                  return od.getFullYear() === y;
+                }).reduce((s, o) => s + parseFloat(o.price), 0);
+                buckets.push({ label: String(y), value });
+              }
+            }
+            const maxVal = Math.max(...buckets.map(b => b.value), 1);
+            return (
+              <div style={{ background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, borderRadius: 18, padding: 18, marginBottom: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: 140 }}>
+                  {buckets.map((b, i) => (
+                    <div key={b.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                      <p style={{ fontSize: '0.66rem', fontWeight: 700, color: theme.text }}>{b.value > 0 ? `R$${Math.round(b.value)}` : ''}</p>
+                      <motion.div initial={{ height: 0 }} animate={{ height: `${(b.value / maxVal) * 100}%` }} transition={{ delay: 0.1 + i * 0.06, duration: 0.5 }}
+                        style={{ width: '100%', borderRadius: '8px 8px 3px 3px', minHeight: 6, background: i === buckets.length - 1 ? '#FF7A00' : theme.line }} />
+                      <p style={{ fontSize: '0.66rem', color: theme.textMuted }}>{b.label}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+        </div>
 
         {/* Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }} className="wk-stat-grid">

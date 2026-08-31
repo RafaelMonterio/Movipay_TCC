@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform, useInView } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/Toast';
@@ -145,27 +146,7 @@ function DateSeparator({ date, theme }) {
 }
 
 /* ─── TYPING INDICATOR ──────────────────────────────────────────── */
-function TypingIndicator({ theme }) {
-  return (
-    <motion.div
-      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', color: theme.textMuted, fontSize: '0.8rem' }}
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-    >
-      <div style={{ display: 'flex', gap: 3 }}>
-        {[0, 1, 2].map(i => (
-          <motion.div
-            key={i}
-            style={{ width: 7, height: 7, borderRadius: '50%', background: theme.textMuted }}
-            animate={{ y: [0, -6, 0] }}
-            transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.15, ease: 'easeInOut' }}
-          />
-        ))}
-      </div>
-      <span>digitando...</span>
-    </motion.div>
-  );
-}
+// Typing indicator removed per user request
 
 /* ─── CONVERSATION ITEM (Sidebar) ───────────────────────────────── */
 function ConversationItem({ conversation, isActive, onClick, theme, userMode }) {
@@ -246,10 +227,20 @@ function ConversationItem({ conversation, isActive, onClick, theme, userMode }) 
 }
 
 /* ─── CHAT HEADER ───────────────────────────────────────────────── */
-function ChatHeader({ conversation, theme, onBack, onCall, onVideo, onInfo, onPin, onArchive, isPinned, isArchived }) {
+function ChatHeader({ conversation, theme, onBack, onInfo, onPin, onArchive, isPinned, isArchived, user }) {
+  const router = useRouter();
   const contactName = conversation.client_name || conversation.worker_name || 'Contato';
   const contactInitial = contactName.charAt(0);
   const status = ORDER_STATUS[conversation.status] || ORDER_STATUS.pending;
+
+  const openProfile = () => {
+    const otherId = user?.mode === 'worker' ? conversation.client_id : conversation.worker_id;
+    if (user?.mode === 'worker') {
+      router.push(`/client/profile?user=${otherId}`);
+    } else {
+      router.push(`/client/workers/${otherId}`);
+    }
+  };
 
   return (
     <motion.div
@@ -270,12 +261,13 @@ function ChatHeader({ conversation, theme, onBack, onCall, onVideo, onInfo, onPi
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         color: '#fff', fontWeight: 800, fontSize: '1.1rem', flexShrink: 0,
         boxShadow: '0 4px 16px rgba(255,122,0,0.3)',
-      }}>
+        cursor: 'pointer',
+      }} onClick={openProfile} role="button" aria-label="Abrir perfil">
         {contactInitial}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 2 }}>
-          <h3 style={{ fontWeight: 700, fontSize: '0.95rem', color: theme.text, margin: 0 }}>{contactName}</h3>
+          <h3 onClick={openProfile} style={{ fontWeight: 700, fontSize: '0.95rem', color: theme.text, margin: 0, cursor: 'pointer' }}>{contactName}</h3>
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: 4,
             padding: '3px 8px', borderRadius: 999,
@@ -292,17 +284,8 @@ function ChatHeader({ conversation, theme, onBack, onCall, onVideo, onInfo, onPi
         </p>
       </div>
       <div style={{ display: 'flex', gap: 6 }}>
-        <button onClick={onPin} style={{ padding: 8, borderRadius: 10, background: isPinned ? 'rgba(255,122,0,0.12)' : 'transparent', border: `1px solid ${isPinned ? 'rgba(255,122,0,0.3)' : theme.line}`, color: isPinned ? '#FF7A00' : theme.textMuted, cursor: 'pointer', display: 'flex', transition: 'all 0.2s' }} aria-label={isPinned ? 'Desfixar' : 'Fixar conversa'} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,122,0,0.1)'} onMouseLeave={e => e.currentTarget.style.background = isPinned ? 'rgba(255,122,0,0.12)' : 'transparent'}>
-          <Icon name="pin" size={16} />
-        </button>
         <button onClick={onArchive} style={{ padding: 8, borderRadius: 10, background: 'transparent', border: `1px solid ${theme.line}`, color: theme.textMuted, cursor: 'pointer', display: 'flex', transition: 'all 0.2s' }} aria-label="Arquivar" onMouseEnter={e => { e.currentTarget.style.background = 'rgba(184,58,8,0.08)'; e.currentTarget.style.borderColor = '#B83A08'; e.currentTarget.style.color = '#B83A08'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = theme.line; e.currentTarget.style.color = theme.textMuted; }}>
           <Icon name="archive" size={16} />
-        </button>
-        <button onClick={onCall} style={{ padding: 8, borderRadius: 10, background: 'transparent', border: `1px solid ${theme.line}`, color: theme.textMuted, cursor: 'pointer', display: 'flex', transition: 'all 0.2s' }} aria-label="Ligar" onMouseEnter={e => { e.currentTarget.style.background = 'rgba(34,211,27,0.1)'; e.currentTarget.style.borderColor = '#22D31B'; e.currentTarget.style.color = '#22D31B'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = theme.line; e.currentTarget.style.color = theme.textMuted; }}>
-          <Icon name="phone" size={16} />
-        </button>
-        <button onClick={onVideo} style={{ padding: 8, borderRadius: 10, background: 'transparent', border: `1px solid ${theme.line}`, color: theme.textMuted, cursor: 'pointer', display: 'flex', transition: 'all 0.2s' }} aria-label="Vídeo" onMouseEnter={e => { e.currentTarget.style.background = 'rgba(59,130,246,0.1)'; e.currentTarget.style.borderColor = '#3B82F6'; e.currentTarget.style.color = '#3B82F6'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = theme.line; e.currentTarget.style.color = theme.textMuted; }}>
-          <Icon name="video" size={16} />
         </button>
         <button onClick={onInfo} style={{ padding: 8, borderRadius: 10, background: 'transparent', border: `1px solid ${theme.line}`, color: theme.textMuted, cursor: 'pointer', display: 'flex', transition: 'all 0.2s' }} aria-label="Info" onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,122,0,0.1)'; e.currentTarget.style.borderColor = '#FF7A00'; e.currentTarget.style.color = '#FF7A00'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = theme.line; e.currentTarget.style.color = theme.textMuted; }}>
           <Icon name="info" size={16} />
@@ -493,7 +476,7 @@ export default function ChatPage() {
   const [sending, setSending] = useState(false);
   const [search, setSearch] = useState('');
   const [showInfo, setShowInfo] = useState(false);
-  const [typing, setTyping] = useState(false);
+  
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -538,15 +521,7 @@ export default function ChatPage() {
     return () => clearInterval(interval);
   }, [loadMessages]);
 
-  // Simulate typing indicator
-  useEffect(() => {
-    if (!text.trim() && selected) {
-      const timer = setTimeout(() => setTyping(true), 500);
-      return () => { clearTimeout(timer); setTyping(false); };
-    } else {
-      setTyping(false);
-    }
-  }, [text, selected]);
+  // typing indicator removed per user request
 
   // Send message
   const sendMessage = async (e) => {
@@ -729,9 +704,8 @@ export default function ChatPage() {
               <ChatHeader
                 conversation={selected}
                 theme={theme}
+                user={user}
                 onBack={() => setSidebarOpen(true)}
-                onCall={() => toast('Chamadas em desenvolvimento', 'info')}
-                onVideo={() => toast('Videochamadas em desenvolvimento', 'info')}
                 onInfo={() => setShowInfo(true)}
                 onPin={() => toast(isPinned ? 'Desfixado' : 'Fixado', 'success')}
                 onArchive={() => toast('Arquivado', 'success')}
@@ -762,7 +736,7 @@ export default function ChatPage() {
                           </motion.div>
                         );
                       })}
-                      {typing && <TypingIndicator theme={theme} />}
+                      {/* typing indicator removed */}
                       <div ref={messagesEndRef} />
                     </>
                   )}

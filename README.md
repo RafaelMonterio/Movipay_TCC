@@ -42,9 +42,9 @@ tela  inicial do trabalhador: Remover o capo "Disponivel", que está em verde. r
 Na tela de chat, tanto na tela de cliente ou trabalhador, remova o "...digitando", não vou usar. Quero que aqueles botões que estão acima a direita, de "localização, ligar" seja removidos. e quero que quando clique na bolinha de perfil , ou no nome, abra a tela de perfil do clente em questão. E outra, todos os outros cliente são a Ana cliente. Conserte esses erros desta tela, e depois  procure outras incoerencias desta tela para concertar. 
 
 
-Sobre o sidebar, quero que ele não "minimize" clicando no botão, remova o botão e quero que ele esteja naturalmente minimizado, e quando eu passar o mouse, 
+Sobre o sidebar quero que sejá igual o do intragam, quero que ele não "minimize" clicando no botão, remova o botão e quero que ele esteja naturalmente minimizado, e quando eu passar o mouse, quero que ele apareça inteiro (os nomes de cada icone no caso), meio com a mesma animação que está agora, sem empurrar o resto do site porque ele maximizado vai aparecer numa area que não tem nadad mesmo
 
-Mais pelo backend, quero que, como cliente, quando eu agende um serviço (pelo modal), quero que esse pedido não fique somente como algo ilusório, quero que seja um pedido real, que esse pedido fique salvo na tela de pedido do cliente, e que se eu deslogar do cliente, e logar na conta do trabalhador em questão, apareça na tela de pedidos recebidos. e quando eu acietar, que na conta do cliente esteja ativo. basicamente quero que fique funcionando mesmo.
+Mais pelo backend, quero que, como cliente, quando eu agende um serviço (pelo modal), quero que esse pedido não fique somente como algo ilusório, quero que seja um pedido real, que esse pedido fique salvo na tela de pedido do cliente, e que se eu deslogar do cliente, e logar na conta do trabalhador em questão, apareça na tela de pedidos recebidos. e quando eu acietar, que na conta do cliente esteja ativo. basicamente quero que fique funcionando mesmo. 
 
 ## Catalogo de ícones do projeto
 
