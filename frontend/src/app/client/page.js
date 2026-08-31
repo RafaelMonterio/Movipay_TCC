@@ -1,5 +1,5 @@
-  'use client';
-import { useEffect, useRef, useState } from 'react';
+'use client';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, useScroll, useInView, AnimatePresence } from 'framer-motion';
@@ -8,1234 +8,1901 @@ import Sidebar from '@/components/layout/Sidebar';
 import WorkersMap from '@/components/map/WorkersMap';
 import { useTheme, getThemeColors } from '@/context/ThemeContext';
 import AccessibilityControls from '@/components/accessibility/AccessibilityControls';
-import FallingLeaves from '@/components/effects/FallingLeaves';
+import FallingLeaves, { FooterLeafPile, LeafProvider } from '@/components/effects/FallingLeaves';
 import api from '@/services/api';
 import orderService from '@/services/orderService';
 import { formatCurrency, formatDate } from '@/utils/formatters';
 
 /* ─── FOLHAS (moedas de desconto do MoviPay) ─────────────────────────
-   1 folha = R$ 0,04 em desconto acumulado. Puramente decorativo/derivado
-   do saldo de pontos existente, só que agora com identidade visual e
-   propósito de cupom claros — combina com o mascote de formigas + folhas
-   usado no resto do app (FallingLeaves). */
+   1 folha = R$ 0,04 em desconto acumulado. */
 const FOLHA_VALUE = 0.04;
 
-const FAVORITE_WORKERS = [
-  { id: 1, profileId: 'barbeiro-1', name: 'Marina Souza', role: 'Cabeleireira', emoji: '✂️', photo: '/img/cabeleireiro.jpg', avg_rating: 4.9 },
-  { id: 2, profileId: 'faxina-1', name: 'Eduardo Ramos', role: 'Eletricista', emoji: '⚡', photo: '/img/eletricista.jpg', avg_rating: 4.8 },
-  { id: 4, profileId: 'faxina-2', name: 'Maria Oliveira', role: 'Diarista', emoji: '🧹', photo: '/img/faxineira.jpg', avg_rating: 5.0 },
+const FAVORITE_WORKERS_DATA = [
+  { id: 1, profileId: 'barbeiro-1', name: 'Marina Souza', role: 'Cabeleireira', emoji: '✂️', photo: '/img/cabeleireiro.jpg', avg_rating: 4.9, completed_jobs: 142, distance_km: 0.3, specialty: 'Cortes & Visagismo' },
+  { id: 2, profileId: 'faxina-1', name: 'Eduardo Ramos', role: 'Eletricista', emoji: '⚡', photo: '/img/eletricista.jpg', avg_rating: 4.8, completed_jobs: 98, distance_km: 0.7, specialty: 'Instalações & Quadros' },
+  { id: 4, profileId: 'faxina-2', name: 'Maria Oliveira', role: 'Diarista', emoji: '🧹', photo: '/img/faxineira.jpg', avg_rating: 5.0, completed_jobs: 215, distance_km: 0.5, specialty: 'Limpeza Residencial' },
+  { id: 3, profileId: 'pintura-1', name: 'Thiago Alves', role: 'Pedreiro', emoji: '🧱', photo: '/img/pedreiro.jpg', avg_rating: 4.7, completed_jobs: 83, distance_km: 1.1, specialty: 'Reformas & Alvenaria' },
+];
+
+const CLIENT_MAP_WORKERS = [
+  {
+    id: 1,
+    profileId: 'barbeiro-1',
+    name: 'Marina Souza',
+    role: 'Cabeleireira',
+    specialty: 'Cortes e styling',
+    service: 'Barbearia',
+    category: 'cabelo',
+    emoji: '✂️',
+    photo: '/img/cabeleireiro.jpg',
+    neighborhood: 'Centro',
+    distance_km: 0.3,
+    avg_rating: 4.9,
+    is_available: true,
+    lat: -23.7048,
+    lng: -46.3671,
+  },
+  {
+    id: 2,
+    profileId: 'faxina-1',
+    name: 'Eduardo Ramos',
+    role: 'Eletricista',
+    specialty: 'Instalações e revisões',
+    service: 'Elétrica',
+    category: 'eletrica',
+    emoji: '⚡',
+    photo: '/img/eletricista.jpg',
+    neighborhood: 'Vila Nova',
+    distance_km: 0.7,
+    avg_rating: 4.8,
+    is_available: true,
+    lat: -23.7032,
+    lng: -46.3642,
+  },
+  {
+    id: 3,
+    profileId: 'pintura-1',
+    name: 'Thiago Alves',
+    role: 'Pedreiro',
+    specialty: 'Reformas e acabamento',
+    service: 'Pedreiro',
+    category: 'pedreiro',
+    emoji: '🧱',
+    photo: '/img/pedreiro.jpg',
+    neighborhood: 'Jardim das Flores',
+    distance_km: 1.1,
+    avg_rating: 4.7,
+    is_available: true,
+    lat: -23.7073,
+    lng: -46.3709,
+  },
+  {
+    id: 4,
+    profileId: 'faxina-2',
+    name: 'Maria Oliveira',
+    role: 'Diarista',
+    specialty: 'Limpeza e Higienização',
+    service: 'Limpeza',
+    category: 'limpeza',
+    emoji: '🧹',
+    photo: '/img/faxineira.jpg',
+    neighborhood: 'Centro',
+    distance_km: 0.5,
+    avg_rating: 5.0,
+    is_available: true,
+    lat: -23.7055,
+    lng: -46.3662,
+  },
+  {
+    id: 5,
+    profileId: 'jardim-1',
+    name: 'Carlos Mendes',
+    role: 'Jardineiro',
+    specialty: 'Paisagismo & Poda',
+    service: 'Jardinagem',
+    category: 'jardim',
+    emoji: '🌿',
+    photo: '/img/jardineiro.jpg',
+    neighborhood: 'Bela Vista',
+    distance_km: 1.4,
+    avg_rating: 4.9,
+    is_available: true,
+    lat: -23.7082,
+    lng: -46.3638,
+  },
+  {
+    id: 6,
+    profileId: 'mudanca-1',
+    name: 'Roberto Santos',
+    role: 'Mudanças & Fretes',
+    specialty: 'Transporte e Montagem',
+    service: 'Mudança',
+    category: 'mudanca',
+    emoji: '📦',
+    photo: '/img/mudanca.jpg',
+    neighborhood: 'Vila Suíça',
+    distance_km: 1.8,
+    avg_rating: 4.8,
+    is_available: true,
+    lat: -23.7020,
+    lng: -46.3715,
+  },
 ];
 
 /* ─── SVG ICONS ─────────────────────────────────────────────────────── */
-  function Icon({ name, size = 24, color = 'currentColor', strokeWidth = 1.8, style }) {
-    const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth, strokeLinecap: 'round', strokeLinejoin: 'round', style };
-    switch (name) {
-      case 'search': return <svg {...p}><circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>;
-      case 'star': return <svg width={size} height={size} viewBox="0 0 24 24" fill={color} stroke="none" style={style}><polygon points="12 2 15.09 8.63 22 9.24 16.5 14.14 18.18 21 12 17.27 5.82 21 7.5 14.14 2 9.24 8.91 8.63 12 2" /></svg>;
-      case 'arrowRight': return <svg {...p}><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>;
-      case 'bolt': return <svg {...p}><polygon points="13 2 3 14 11 14 9 22 21 10 13 10 13 2" /></svg>;
-      case 'broom': return <svg {...p}><line x1="13" y1="2" x2="7" y2="15" /><path d="M7 15l-3.5 6.5 9-2.5 3.5-6.5z" /></svg>;
-      case 'leaf': return <svg {...p}><path d="M5 21c0-9 6-15 15-15-1 9-7 15-15 15z" /><path d="M5 21c3-3 6-6 9-9" /></svg>;
-      case 'box': return <svg {...p}><path d="M21 8l-9-5-9 5 9 5 9-5z" /><path d="M3 8v8l9 5 9-5V8" /><line x1="12" y1="13" x2="12" y2="21" /></svg>;
-      case 'scissors': return <svg {...p}><circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><line x1="20" y1="4" x2="8.12" y2="15.88" /><line x1="14.47" y1="14.48" x2="20" y2="20" /><line x1="8.12" y1="8.12" x2="12" y2="12" /></svg>;
-      case 'hammer': return <svg {...p}><path d="M15 12l-8.5 8.5a2.12 2.12 0 0 1-3-3L12 9" /><path d="M17.64 15L22 10.64" /><path d="M20.91 11.7l-1.25-1.25c-.6-.6-.93-1.4-.93-2.25v-.86L16.01 4.6a5.56 5.56 0 0 0-3.94-1.64H9l.92.82A6.18 6.18 0 0 1 12 8.4v1.56l2 2h2.47l2.26 1.91" /></svg>;
-      case 'motorcycle': return <svg {...p}><circle cx="5" cy="16" r="3" /><circle cx="19" cy="16" r="3" /><path d="M3 16L8.5 6h4l4 4h4v2h-2.5l-3-3H12l-4 7" /></svg>;
-      case 'sparkle': return <svg {...p}><path d="M12 2l1.5 5h5L14 10.5l1.5 5L12 13l-3.5 2.5L10 10.5 5.5 7h5z" /></svg>;
-      case 'shield': return <svg {...p}><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z" /></svg>;
-      case 'lock': return <svg {...p}><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>;
-      case 'clock': return <svg {...p}><circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 16 14" /></svg>;
-      case 'sun': return <svg {...p}><circle cx="12" cy="12" r="4.5" /><line x1="12" y1="1.5" x2="12" y2="4" /><line x1="12" y1="20" x2="12" y2="22.5" /><line x1="4.2" y1="4.2" x2="6" y2="6" /><line x1="18" y1="18" x2="19.8" y2="19.8" /><line x1="1.5" y1="12" x2="4" y2="12" /><line x1="20" y1="12" x2="22.5" y2="12" /></svg>;
-      case 'moon': return <svg {...p}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>;
-      case 'x': return <svg {...p}><line x1="4" y1="4" x2="20" y2="20" /><line x1="20" y1="4" x2="4" y2="20" /></svg>;
-      case 'mapPin': return <svg {...p}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>;
-      case 'checkCircle': return <svg {...p}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>;
-      case 'trendingUp': return <svg {...p}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" /></svg>;
-      case 'users': return <svg {...p}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>;
-      case 'paint': return <svg {...p}><rect x="3" y="4" width="12" height="6" rx="1" /><line x1="9" y1="10" x2="9" y2="16" /><rect x="6" y="16" width="6" height="5" rx="1" /></svg>;
-      default: return null;
-    }
+function Icon({ name, size = 24, color = 'currentColor', strokeWidth = 1.8, style, className }) {
+  const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth, strokeLinecap: 'round', strokeLinejoin: 'round', style, className };
+  switch (name) {
+    case 'search': return <svg {...p}><circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>;
+    case 'star': return <svg width={size} height={size} viewBox="0 0 24 24" fill={color} stroke="none" style={style} className={className}><polygon points="12 2 15.09 8.63 22 9.24 16.5 14.14 18.18 21 12 17.27 5.82 21 7.5 14.14 2 9.24 8.91 8.63 12 2" /></svg>;
+    case 'arrowRight': return <svg {...p}><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>;
+    case 'bolt': return <svg {...p}><polygon points="13 2 3 14 11 14 9 22 21 10 13 10 13 2" /></svg>;
+    case 'broom': return <svg {...p}><line x1="13" y1="2" x2="7" y2="15" /><path d="M7 15l-3.5 6.5 9-2.5 3.5-6.5z" /></svg>;
+    case 'leaf': return <svg {...p}><path d="M5 21c0-9 6-15 15-15-1 9-7 15-15 15z" /><path d="M5 21c3-3 6-6 9-9" /></svg>;
+    case 'box': return <svg {...p}><path d="M21 8l-9-5-9 5 9 5 9-5z" /><path d="M3 8v8l9 5 9-5V8" /><line x1="12" y1="13" x2="12" y2="21" /></svg>;
+    case 'scissors': return <svg {...p}><circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><line x1="20" y1="4" x2="8.12" y2="15.88" /><line x1="14.47" y1="14.48" x2="20" y2="20" /><line x1="8.12" y1="8.12" x2="12" y2="12" /></svg>;
+    case 'hammer': return <svg {...p}><path d="M15 12l-8.5 8.5a2.12 2.12 0 0 1-3-3L12 9" /><path d="M17.64 15L22 10.64" /><path d="M20.91 11.7l-1.25-1.25c-.6-.6-.93-1.4-.93-2.25v-.86L16.01 4.6a5.56 5.56 0 0 0-3.94-1.64H9l.92.82A6.18 6.18 0 0 1 12 8.4v1.56l2 2h2.47l2.26 1.91" /></svg>;
+    case 'motorcycle': return <svg {...p}><circle cx="5" cy="16" r="3" /><circle cx="19" cy="16" r="3" /><path d="M3 16L8.5 6h4l4 4h4v2h-2.5l-3-3H12l-4 7" /></svg>;
+    case 'sparkle': return <svg {...p}><path d="M12 2l1.5 5h5L14 10.5l1.5 5L12 13l-3.5 2.5L10 10.5 5.5 7h5z" /></svg>;
+    case 'shield': return <svg {...p}><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z" /></svg>;
+    case 'lock': return <svg {...p}><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>;
+    case 'clock': return <svg {...p}><circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 16 14" /></svg>;
+    case 'sun': return <svg {...p}><circle cx="12" cy="12" r="4.5" /><line x1="12" y1="1.5" x2="12" y2="4" /><line x1="12" y1="20" x2="12" y2="22.5" /><line x1="4.2" y1="4.2" x2="6" y2="6" /><line x1="18" y1="18" x2="19.8" y2="19.8" /><line x1="1.5" y1="12" x2="4" y2="12" /><line x1="20" y1="12" x2="22.5" y2="12" /></svg>;
+    case 'moon': return <svg {...p}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>;
+    case 'x': return <svg {...p}><line x1="4" y1="4" x2="20" y2="20" /><line x1="20" y1="4" x2="4" y2="20" /></svg>;
+    case 'mapPin': return <svg {...p}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>;
+    case 'checkCircle': return <svg {...p}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>;
+    case 'trendingUp': return <svg {...p}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" /></svg>;
+    case 'users': return <svg {...p}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>;
+    case 'paint': return <svg {...p}><rect x="3" y="4" width="12" height="6" rx="1" /><line x1="9" y1="10" x2="9" y2="16" /><rect x="6" y="16" width="6" height="5" rx="1" /></svg>;
+    case 'gift': return <svg {...p}><polyline points="20 12 20 22 4 22 4 12" /><rect x="2" y="7" width="20" height="5" /><line x1="12" y1="22" x2="12" y2="7" /><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" /><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" /></svg>;
+    case 'calculator': return <svg {...p}><rect x="4" y="2" width="16" height="20" rx="2" /><line x1="8" y1="6" x2="16" y2="6" /><line x1="16" y1="14" x2="16" y2="18" /><path d="M16 10h.01" /><path d="M12 10h.01" /><path d="M8 10h.01" /><path d="M12 14h.01" /><path d="M8 14h.01" /><path d="M12 18h.01" /><path d="M8 18h.01" /></svg>;
+    case 'phone': return <svg {...p}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></svg>;
+    default: return null;
   }
+}
 
-  const CLIENT_MAP_WORKERS = [
-    {
-      id: 1,
-      profileId: 'barbeiro-1',
-      name: 'Marina Souza',
-      role: 'Cabeleireira',
-      specialty: 'Cortes e styling',
-      service: 'Barbearia',
-      emoji: '✂️',
-      photo: '/img/cabeleireiro.jpg',
-      neighborhood: 'Centro',
-      distance_km: 0.3,
-      avg_rating: 4.9,
-      is_available: true,
-      lat: -23.7048,
-      lng: -46.3671,
-    },
-    {
-      id: 2,
-      profileId: 'faxina-1',
-      name: 'Eduardo Ramos',
-      role: 'Eletricista',
-      specialty: 'Instalações e revisões',
-      service: 'Elétrica',
-      emoji: '⚡',
-      photo: '/img/eletricista.jpg',
-      neighborhood: 'Vila Nova',
-      distance_km: 0.7,
-      avg_rating: 4.8,
-      is_available: true,
-      lat: -23.7032,
-      lng: -46.3642,
-    },
-    {
-      id: 3,
-      profileId: 'pintura-1',
-      name: 'Thiago Alves',
-      role: 'Pedreiro',
-      specialty: 'Reformas e acabamento',
-      service: 'Pedreiro',
-      emoji: '🧱',
-      photo: '/img/pedreiro.jpg',
-      neighborhood: 'Jardim das Flores',
-      distance_km: 1.1,
-      avg_rating: 4.7,
-      is_available: true,
-      lat: -23.7073,
-      lng: -46.3709,
-    },
-  ];
+/* ─── PARTICLE FIELD ─────────────────────────────────────────────────── */
+function ParticleField({ themeColors }) {
+  const canvasRef = useRef(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const W = canvas.parentElement?.clientWidth || 1200;
+    const H = 680;
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d');
 
-  function FunctionalMapPanel({ themeColors }) {
-    const router = useRouter();
-    const [selectedWorker, setSelectedWorker] = useState(null);
+    const pts = Array.from({ length: 36 }, () => ({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      vx: (Math.random() - 0.5) * 0.3,
+      vy: (Math.random() - 0.5) * 0.3,
+      r: 1.5 + Math.random() * 2,
+      alpha: 0.2 + Math.random() * 0.45,
+      color: Math.random() > 0.5 ? '255,122,0' : '34,211,27',
+    }));
 
-    return (
-      <motion.div
-        className="radar-col"
-        style={{ flex: '0 0 560px', position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
-        initial={{ opacity: 0, scale: 0.88 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.7, delay: 0.2 }}
-      >
-        <div style={{ position: 'relative', width: 560, height: 560, borderRadius: '50%', overflow: 'hidden', border: 'none', boxShadow: 'none', background: 'transparent' }}>
-          <WorkersMap
-            workers={CLIENT_MAP_WORKERS}
-            center={[-23.7058, -46.3685]}
-            onSelectWorker={setSelectedWorker}
-            selectedWorkerId={selectedWorker?.id}
-            height={560}
-          />
-
-          {selectedWorker && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35 }}
-              style={{
-                position: 'absolute',
-                left: 26,
-                bottom: 26,
-                width: 240,
-                background: themeColors.cardBg,
-                border: `1px solid ${themeColors.cardBorder}`,
-                borderRadius: 18,
-                boxShadow: '0 20px 50px rgba(15,23,42,0.25)',
-                padding: 12,
-                backdropFilter: 'blur(10px)',
-                zIndex: 400,
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <img
-                  src={selectedWorker.photo}
-                  alt={selectedWorker.name}
-                  style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', border: '2px solid #FF7A00' }}
-                />
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontSize: '0.78rem', color: '#FF7A00', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                    {selectedWorker.role}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => router.push(`/client/workers/${selectedWorker.profileId}`)}
-                    style={{
-                      fontFamily: 'var(--display)',
-                      fontSize: '1.2rem',
-                      color: themeColors.text,
-                      lineHeight: 1.1,
-                      marginTop: 2,
-                      background: 'transparent',
-                      border: 'none',
-                      padding: 0,
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                    }}
-                  >
-                    {selectedWorker.name}
-                  </button>
-                </div>
-              </div>
-              <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                <span style={{ fontSize: '0.72rem', color: themeColors.textMuted }}>{selectedWorker.specialty}</span>
-                <span style={{ fontSize: '1.1rem' }}>{selectedWorker.emoji}</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => router.push(`/client/workers/${selectedWorker.profileId}`)}
-                style={{
-                  marginTop: 12,
-                  width: '100%',
-                  border: 'none',
-                  borderRadius: 10,
-                  background: 'linear-gradient(135deg, #FF7A00, #FF9A33)',
-                  color: '#fff',
-                  fontWeight: 800,
-                  fontSize: '0.72rem',
-                  padding: '9px 10px',
-                  cursor: 'pointer',
-                }}
-              >
-                Ver perfil completo
-              </button>
-            </motion.div>
-          )}
-        </div>
-      </motion.div>
-    );
-  }
-
-  /* ─── ANIMATED COUNTER ───────────────────────────────────────────────── */
-  function AnimatedCounter({ target, suffix = '', decimal = false }) {
-    const [count, setCount] = useState(0);
-    const ref = useRef(null);
-    const inView = useInView(ref, { once: true });
-    useEffect(() => {
-      if (!inView) return;
-      const steps = 60, duration = 1600;
-      const inc = target / steps;
-      let cur = 0;
-      const t = setInterval(() => {
-        cur += inc;
-        if (cur >= target) { setCount(target); clearInterval(t); }
-        else setCount(cur);
-      }, duration / steps);
-      return () => clearInterval(t);
-    }, [inView, target]);
-    return <span ref={ref}>{decimal ? count.toFixed(1) : Math.floor(count).toLocaleString('pt-BR')}{suffix}</span>;
-  }
-
-  /* FloatingLeaf: replaced by the shared <FallingLeaves /> component
-     (imported at the top of this file) so this screen's leaves are
-     visually identical to every other screen instead of using its own
-     emoji-based version. */
-
-  /* ─── RADAR CANVAS — o coração visual da landing ─────────────────────── */
-  function RadarCanvas({ themeColors }) {
-    const canvasRef = useRef(null);
-
-    useEffect(() => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const W = 560, H = 560;
-      canvas.width = W; canvas.height = H;
-      const ctx = canvas.getContext('2d');
-      const cx = W / 2, cy = H / 2;
-
-      const ORANGE = '#FF7A00';
-      const GREEN = '#22D31B';
-      const BG = themeColors.bg;
-      const RING = themeColors.line;
-      const RING_STROKE = themeColors.line;
-      const TEXT_COL = themeColors.textMuted;
-
-      /* dots representing workers/services in the radar */
-      const dots = [
-        { r: 95,  angle: 0.4,  label: 'Limpeza',    icon: '🧹', color: ORANGE,  size: 7,  pulse: true  },
-        { r: 140, angle: 1.9,  label: 'Elétrica',   icon: '⚡',  color: GREEN,  size: 6,  pulse: false },
-        { r: 78,  angle: 3.3,  label: 'Jardim',     icon: '🌿',  color: ORANGE, size: 5,  pulse: false },
-        { r: 170, angle: 4.7,  label: 'Mudança',    icon: '📦',  color: GREEN,  size: 8,  pulse: true  },
-        { r: 120, angle: 5.8,  label: 'Motoboy',    icon: '🏍',  color: ORANGE, size: 6,  pulse: false },
-        { r: 55,  angle: 2.5,  label: 'Manicure',   icon: '✨',  color: GREEN,  size: 5,  pulse: false },
-        { r: 195, angle: 0.9,  label: 'Pedreiro',   icon: '🔨',  color: ORANGE, size: 7,  pulse: true  },
-        { r: 160, angle: 3.9,  label: 'Cabelo',     icon: '✂️', color: GREEN,  size: 5,  pulse: false },
-      ].map(d => ({ ...d, x: cx + Math.cos(d.angle) * d.r, y: cy + Math.sin(d.angle) * d.r, baseAngle: d.angle, baseR: d.r, pulsePhase: Math.random() * Math.PI * 2 }));
-
-      /* sweep angle */
-      let sweep = 0;
-      /* trail — last 180° of sweep */
-      const TRAIL_STEPS = 80;
-      const trailFade = (i) => i / TRAIL_STEPS;
-
-      /* "pings" that appear when sweep crosses a dot */
-      const pings = [];
-
-      let frame = 0;
-      let animId;
-
-      function drawRings() {
-        [220, 170, 120, 70].forEach((r, i) => {
-          ctx.beginPath();
-          ctx.arc(cx, cy, r, 0, Math.PI * 2);
-          ctx.strokeStyle = RING_STROKE;
-          ctx.lineWidth = 0.8;
-          ctx.stroke();
-          /* distance label */
-          ctx.fillStyle = TEXT_COL;
-          ctx.font = '500 10px "IBM Plex Mono", monospace';
-          ctx.fillText(`${(i === 3 ? 0.3 : i === 2 ? 0.6 : i === 1 ? 1.0 : 1.5).toFixed(1)}km`, cx + r + 4, cy - 4);
-        });
-        /* crosshairs */
-        [0, Math.PI / 2].forEach(a => {
-          ctx.beginPath();
-          ctx.moveTo(cx + Math.cos(a) * 220, cy + Math.sin(a) * 220);
-          ctx.lineTo(cx - Math.cos(a) * 220, cy - Math.sin(a) * 220);
-          ctx.strokeStyle = RING_STROKE;
-          ctx.lineWidth = 0.5;
-          ctx.stroke();
-        });
-      }
-
-      function drawSweepTrail() {
-        for (let i = 0; i < TRAIL_STEPS; i++) {
-          const a = sweep - (i / TRAIL_STEPS) * (Math.PI * 0.7);
-          const alpha = (1 - i / TRAIL_STEPS) * 0.25;
-          ctx.beginPath();
-          ctx.moveTo(cx, cy);
-          ctx.arc(cx, cy, 220, a, a + (Math.PI * 0.7) / TRAIL_STEPS);
-          ctx.closePath();
-          ctx.fillStyle = `rgba(255,122,0,${alpha * 0.5})`;
-          ctx.fill();
-        }
-        /* sweep line */
+    let animId;
+    function loop() {
+      ctx.clearRect(0, 0, W, H);
+      pts.forEach(p => {
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < 0 || p.x > W) p.vx *= -1;
+        if (p.y < 0 || p.y > H) p.vy *= -1;
         ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.lineTo(cx + Math.cos(sweep) * 222, cy + Math.sin(sweep) * 222);
-        ctx.strokeStyle = ORANGE;
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-        /* tip glow */
-        ctx.beginPath();
-        ctx.arc(cx + Math.cos(sweep) * 222, cy + Math.sin(sweep) * 222, 3, 0, Math.PI * 2);
-        ctx.fillStyle = ORANGE;
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${p.color},${p.alpha})`;
         ctx.fill();
-      }
-
-      function drawDots() {
-        dots.forEach(d => {
-          /* tiny orbital drift */
-          const drift = Math.sin(frame * 0.008 + d.pulsePhase) * 3;
-          const dx = d.x + Math.cos(d.baseAngle + Math.PI / 2) * drift;
-          const dy = d.y + Math.sin(d.baseAngle + Math.PI / 2) * drift;
-
-          /* glow ring if pulse */
-          if (d.pulse) {
-            const pulseScale = 1 + 0.5 * Math.abs(Math.sin(frame * 0.04 + d.pulsePhase));
+      });
+      pts.forEach((a, i) => {
+        pts.slice(i + 1).forEach(b => {
+          const dist = Math.hypot(a.x - b.x, a.y - b.y);
+          if (dist < 100) {
             ctx.beginPath();
-            ctx.arc(dx, dy, d.size * pulseScale + 4, 0, Math.PI * 2);
-            ctx.strokeStyle = d.color + '44';
-            ctx.lineWidth = 1.2;
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(b.x, b.y);
+            ctx.strokeStyle = `rgba(255,122,0,${0.08 * (1 - dist / 100)})`;
+            ctx.lineWidth = 0.6;
             ctx.stroke();
           }
-
-          /* dot */
-          ctx.beginPath();
-          ctx.arc(dx, dy, d.size, 0, Math.PI * 2);
-          ctx.fillStyle = d.color;
-          ctx.fill();
-          ctx.strokeStyle = themeColors.bg;
-          ctx.lineWidth = 1.5;
-          ctx.stroke();
         });
-      }
+      });
+      animId = requestAnimationFrame(loop);
+    }
+    loop();
+    return () => cancelAnimationFrame(animId);
+  }, [themeColors]);
 
-      function drawPings() {
-        for (let i = pings.length - 1; i >= 0; i--) {
-          const p = pings[i];
-          p.life--;
-          p.r += 1.4;
-          const alpha = p.life / p.maxLife;
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-          ctx.strokeStyle = `rgba(34,211,27,${alpha * 0.8})`;
-          ctx.lineWidth = 1.5;
-          ctx.stroke();
-          if (p.life <= 0) pings.splice(i, 1);
-        }
-      }
+  return (
+    <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 0 }} />
+  );
+}
 
-      function drawCenter() {
-        /* center circle */
-        ctx.beginPath();
-        ctx.arc(cx, cy, 22, 0, Math.PI * 2);
-        ctx.fillStyle = themeColors.cardBg;
-        ctx.fill();
-        ctx.strokeStyle = ORANGE;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        /* "NEST" label inside */
-        ctx.fillStyle = ORANGE;
-        ctx.font = '700 8px "IBM Plex Mono", monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText('YOU', cx, cy + 3);
-        ctx.textAlign = 'left';
-      }
+/* ─── ANIMATED COUNTER ───────────────────────────────────────────────── */
+function AnimatedCounter({ target, suffix = '', decimal = false }) {
+  const [count, setCount] = useState(0);
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true });
+  useEffect(() => {
+    if (!inView) return;
+    const steps = 40;
+    const duration = 1400;
+    const inc = target / steps;
+    let cur = 0;
+    const t = setInterval(() => {
+      cur += inc;
+      if (cur >= target) { setCount(target); clearInterval(t); }
+      else setCount(cur);
+    }, duration / steps);
+    return () => clearInterval(t);
+  }, [inView, target]);
+  return <span ref={ref}>{decimal ? count.toFixed(1) : Math.floor(count).toLocaleString('pt-BR')}{suffix}</span>;
+}
 
-      function loop() {
-        frame++;
-        ctx.clearRect(0, 0, W, H);
+/* ─── MAPA REPOSICIONADO À ESQUERDA COM DESIGN ORGÂNICO FUTURISTA ─────── */
+function OrganicRadarMap({ themeColors, selectedCategory, onSelectCategory, searchQuery, setSearchQuery, onSearchSubmit }) {
+  const router = useRouter();
+  const [selectedWorker, setSelectedWorker] = useState(null);
 
-        /* subtle bg fill */
-        ctx.fillStyle = BG;
-        ctx.fillRect(0, 0, W, H);
+  const filteredWorkers = useMemo(() => {
+    if (!selectedCategory || selectedCategory === 'todos') return CLIENT_MAP_WORKERS;
+    return CLIENT_MAP_WORKERS.filter(w => w.category === selectedCategory);
+  }, [selectedCategory]);
 
-        drawRings();
-        drawSweepTrail();
+  const onlineCount = filteredWorkers.filter(w => w.is_available).length;
 
-        /* check if sweep crosses any dot → spawn ping */
-        dots.forEach(d => {
-          const da = ((sweep - d.baseAngle) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
-          if (da < 0.06) {
-            pings.push({ x: d.x, y: d.y, r: d.size, life: 48, maxLife: 48 });
-          }
-        });
-
-        drawPings();
-        drawDots();
-        drawCenter();
-
-        sweep += 0.018;
-        if (sweep > Math.PI * 2) sweep -= Math.PI * 2;
-
-        animId = requestAnimationFrame(loop);
-      }
-      loop();
-
-      const resize = () => {
-        const cw = Math.min(canvas.parentElement?.clientWidth || W, W);
-        canvas.style.width = cw + 'px';
-        canvas.style.height = cw + 'px';
-      };
-      window.addEventListener('resize', resize); resize();
-
-      return () => { cancelAnimationFrame(animId); window.removeEventListener('resize', resize); };
-    }, [themeColors]);
-
-    return (
-      <canvas
-        ref={canvasRef}
-        style={{ display: 'block', width: '100%', height: 'auto', borderRadius: '50%', maxWidth: 560 }}
-      />
-    );
-  }
-
-  /* ─── PARTICLE FIELD — fundo do hero ──────────────────────────────────── */
-  function ParticleField({ themeColors }) {
-    const canvasRef = useRef(null);
-    useEffect(() => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const W = canvas.parentElement?.clientWidth || 1200;
-      const H = 520;
-      canvas.width = W; canvas.height = H;
-      const ctx = canvas.getContext('2d');
-
-      const PARTICLE_COLOR = 'rgba(255,122,0,';
-      const LINE_COLOR = 'rgba(34,211,27,';
-
-      const pts = Array.from({ length: 42 }, () => ({
-        x: Math.random() * W, y: Math.random() * H,
-        vx: (Math.random() - 0.5) * 0.35,
-        vy: (Math.random() - 0.5) * 0.35,
-        r: 1.5 + Math.random() * 2,
-        alpha: 0.2 + Math.random() * 0.5,
-      }));
-
-      let animId;
-      function loop() {
-        ctx.clearRect(0, 0, W, H);
-        pts.forEach(p => {
-          p.x += p.vx; p.y += p.vy;
-          if (p.x < 0 || p.x > W) p.vx *= -1;
-          if (p.y < 0 || p.y > H) p.vy *= -1;
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-          ctx.fillStyle = PARTICLE_COLOR + p.alpha + ')';
-          ctx.fill();
-        });
-        pts.forEach((a, i) => {
-          pts.slice(i + 1).forEach(b => {
-            const dist = Math.hypot(a.x - b.x, a.y - b.y);
-            if (dist < 110) {
-              ctx.beginPath();
-              ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
-              ctx.strokeStyle = LINE_COLOR + (0.12 * (1 - dist / 110)) + ')';
-              ctx.lineWidth = 0.7;
-              ctx.stroke();
-            }
-          });
-        });
-        animId = requestAnimationFrame(loop);
-      }
-      loop();
-      return () => cancelAnimationFrame(animId);
-    }, [themeColors]);
-
-    return (
-      <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }} />
-    );
-  }
-
-  /* ─── FLOATING SERVICE CARD ───────────────────────────────────────────── */
-  function FloatingCard({ icon, label, rating, dist, delay, x, y, theme }) {
-    return (
+  return (
+    <div className="hero-split-grid">
+      {/* ───────────────────────────────────────────────────────────── */}
+      {/* COLUNA ESQUERDA: MAPA ORGÂNICO MODERNO COM FRAME LED          */}
+      {/* ───────────────────────────────────────────────────────────── */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.7, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: [0, -8, 0] }}
-        transition={{ delay, duration: 4 + delay, repeat: Infinity, ease: 'easeInOut', type: 'spring', stiffness: 120 }}
-        style={{
-          position: 'absolute', left: x, top: y,
-          background: theme.cardBg,
-          border: `1px solid ${theme.cardBorder}`,
-          borderRadius: 12, padding: '10px 14px',
-          display: 'flex', alignItems: 'center', gap: 10,
-          boxShadow: `0 8px 32px rgba(0,0,0,0.10)`,
-          minWidth: 160, zIndex: 3,
-          backdropFilter: 'blur(6px)',
-        }}
+        initial={{ opacity: 0, x: -30 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.6 }}
+        style={{ position: 'relative', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
       >
-        <div style={{ width: 34, height: 34, borderRadius: 8, background: '#FF7A0018', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Icon name={icon} size={17} color="#FF7A00" />
-        </div>
-        <div>
-          <p style={{ fontWeight: 700, fontSize: '0.82rem', color: theme.text }}>{label}</p>
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            <Icon name="star" size={10} color="#FF7A00" />
-            <span style={{ fontFamily: 'var(--mono)', fontSize: '0.68rem', color: theme.textMuted }}>{rating} · {dist}</span>
+        {/* Container Circular com Efeitos LED de Radar (Redondo & Mais Amplo) */}
+        <div style={{ position: 'relative', width: 'min(540px, 94vw)', height: 'min(540px, 94vw)', maxWidth: 540, maxHeight: 540, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
+          
+          {/* Anel LED Giratório Conic-Gradient (Laranja & Verde) */}
+          <motion.div
+            aria-hidden="true"
+            animate={{ rotate: 360 }}
+            transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+            style={{
+              position: 'absolute',
+              inset: -5,
+              borderRadius: '50%',
+              background: 'conic-gradient(from 0deg, #FF7A00, transparent 20%, #22D31B 50%, transparent 70%, #FF7A00 100%)',
+              padding: 4,
+              WebkitMask: 'radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px))',
+              mask: 'radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px))',
+              opacity: 0.88,
+              pointerEvents: 'none',
+              boxShadow: '0 0 35px rgba(255,122,0,0.3)',
+              zIndex: 1,
+            }}
+          />
+
+          {/* Halo Neon de Fundo com Pulso Suave */}
+          <motion.div
+            aria-hidden="true"
+            animate={{ scale: [1, 1.04, 1], opacity: [0.35, 0.55, 0.35] }}
+            transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+            style={{
+              position: 'absolute',
+              inset: -14,
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(255,122,0,0.22) 0%, rgba(34,211,27,0.14) 55%, transparent 75%)',
+              filter: 'blur(20px)',
+              pointerEvents: 'none',
+              zIndex: 0,
+            }}
+          />
+
+          {/* Badge de Status "RADAR AO VIVO" centralizada no topo */}
+          <div
+            style={{
+              position: 'absolute',
+              top: -12,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 35,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              background: 'rgba(15, 23, 14, 0.88)',
+              border: '1.5px solid #22D31B',
+              borderRadius: 999,
+              padding: '6px 16px',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.3), 0 0 16px rgba(34,211,27,0.4)',
+              backdropFilter: 'blur(10px)',
+              color: '#fff',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <motion.span
+              animate={{ scale: [1, 1.4, 1], opacity: [1, 0.5, 1], boxShadow: ['0 0 0 0 rgba(34,211,27,0.7)', '0 0 0 6px rgba(34,211,27,0)', '0 0 0 0 rgba(34,211,27,0)'] }}
+              transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+              style={{ width: 8, height: 8, borderRadius: '50%', background: '#22D31B', flexShrink: 0 }}
+            />
+            <span style={{ fontSize: '0.74rem', fontWeight: 800, fontFamily: 'var(--mono)', letterSpacing: '0.04em' }}>
+              RADAR AO VIVO · {onlineCount} ONLINE
+            </span>
+          </div>
+
+          {/* CONTAINER PRINCIPAL DO MAPA (100% REDONDO / CIRCULAR) */}
+          <div
+            className="map-frame"
+            style={{
+              position: 'relative',
+              width: '100%',
+              height: '100%',
+              borderRadius: '50%',
+              overflow: 'hidden',
+              background: themeColors.cardBg,
+              boxShadow: '0 20px 50px rgba(0,0,0,0.25), inset 0 0 0 3px rgba(255,122,0,0.45)',
+              zIndex: 2,
+            }}
+          >
+            {/* Componente do Mapa Leaflet */}
+            <WorkersMap
+              workers={filteredWorkers}
+              center={[-23.7058, -46.3685]}
+              onSelectWorker={setSelectedWorker}
+              selectedWorkerId={selectedWorker?.id}
+              height={540}
+            />
+
+            {/* Card Flutuante com Efeito Glassmorphism do Profissional Selecionado */}
+            <AnimatePresence>
+              {selectedWorker && (
+                <motion.div
+                  initial={{ opacity: 0, y: 18, scale: 0.94 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 18, scale: 0.94 }}
+                  transition={{ duration: 0.22 }}
+                  style={{
+                    position: 'absolute',
+                    bottom: 18,
+                    left: 24,
+                    right: 24,
+                    background: 'rgba(15, 23, 14, 0.94)',
+                    border: '2px solid #FF7A00',
+                    borderRadius: 18,
+                    boxShadow: '0 20px 45px rgba(0,0,0,0.5), 0 0 20px rgba(255,122,0,0.3)',
+                    padding: 12,
+                    backdropFilter: 'blur(16px)',
+                    zIndex: 50,
+                    color: '#fff',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <span style={{ fontSize: '0.66rem', fontWeight: 800, color: '#FF7A00', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      {selectedWorker.role} · {selectedWorker.distance_km} km
+                    </span>
+                    <button
+                      onClick={() => setSelectedWorker(null)}
+                      style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#bbb' }}
+                    >
+                      <Icon name="x" size={15} />
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <img
+                      src={selectedWorker.photo}
+                      alt={selectedWorker.name}
+                      style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', border: '2px solid #FF7A00' }}
+                    />
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <h4 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#fff', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {selectedWorker.name} {selectedWorker.emoji}
+                      </h4>
+                      <p style={{ fontSize: '0.7rem', color: '#ccc', marginTop: 1 }}>{selectedWorker.specialty}</p>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/client/workers/${selectedWorker.profileId}`)}
+                      style={{
+                        flex: 1,
+                        border: 'none',
+                        borderRadius: 8,
+                        background: 'linear-gradient(135deg, #FF7A00, #FF9A33)',
+                        color: '#fff',
+                        fontWeight: 800,
+                        fontSize: '0.74rem',
+                        padding: '7px 8px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Ver Perfil
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/client/chat?worker=${selectedWorker.profileId}`)}
+                      style={{
+                        border: '1.5px solid rgba(255,255,255,0.25)',
+                        borderRadius: 8,
+                        background: 'rgba(255,255,255,0.1)',
+                        color: '#fff',
+                        fontWeight: 700,
+                        fontSize: '0.74rem',
+                        padding: '7px 10px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      💬 Chat
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
-        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22D31B', marginLeft: 'auto', flexShrink: 0 }} />
       </motion.div>
-    );
+
+      {/* ───────────────────────────────────────────────────────────── */}
+      {/* COLUNA DIREITA: INFORMAÇÕES ESTRUTURADAS, BUSCA & TELEMETRIA   */}
+      {/* ───────────────────────────────────────────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0, x: 30 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.6, delay: 0.1 }}
+        style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'left' }}
+      >
+        {/* Eyebrow Badge com Efeito Neon */}
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,122,0,0.12)', border: '1px solid rgba(255,122,0,0.35)', padding: '6px 14px', borderRadius: 999, width: 'fit-content', marginBottom: 16 }}>
+          <Icon name="sparkle" size={14} color="#FF7A00" />
+          <span style={{ fontFamily: 'var(--mono)', fontSize: '0.72rem', fontWeight: 800, color: '#FF7A00', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            RADAR INTELIGENTE MOVIPAY
+          </span>
+        </div>
+
+        {/* Título Principal de Impacto */}
+        <h1 style={{ fontFamily: 'var(--display)', fontWeight: 800, fontSize: 'clamp(2.2rem, 3.8vw, 3.2rem)', lineHeight: 1.12, letterSpacing: '-0.03em', marginBottom: 14 }}>
+          Encontre os melhores profissionais{' '}
+          <span style={{ background: 'linear-gradient(135deg, #FF7A00 0%, #22D31B 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontStyle: 'italic' }}>
+            ao vivo perto de você
+          </span>
+        </h1>
+
+        {/* Subtítulo explicativo */}
+        <p style={{ fontSize: '0.98rem', color: themeColors.textMuted, lineHeight: 1.6, marginBottom: 22, maxWidth: 540 }}>
+          Acompanhe no radar a disponibilidade em tempo real, combine orçamentos instantâneos com proteção de pagamento e ganhe <strong>Folhas de desconto</strong> a cada serviço.
+        </p>
+
+        {/* Barra de Busca com Foco Neon */}
+        <form
+          onSubmit={onSearchSubmit}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            background: themeColors.inputBg,
+            border: '2px solid rgba(255,122,0,0.45)',
+            borderRadius: 16,
+            padding: '6px 8px 6px 16px',
+            boxShadow: '0 8px 30px rgba(255,122,0,0.14), 0 0 0 3px rgba(255,122,0,0.06)',
+            marginBottom: 20,
+          }}
+        >
+          <Icon name="search" size={18} color="#FF7A00" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Qual serviço procura? (ex: diarista, eletricista, pedreiro...)"
+            style={{
+              flex: 1,
+              border: 'none',
+              background: 'transparent',
+              color: themeColors.text,
+              fontSize: '0.9rem',
+              fontFamily: 'var(--body)',
+              outline: 'none',
+            }}
+          />
+          <button type="submit" className="btn-primary" style={{ padding: '10px 22px', fontSize: '0.84rem', borderRadius: 12 }}>
+            Buscar
+          </button>
+        </form>
+
+        {/* Filtros Rápidos de Categoria do Radar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 24 }}>
+          <span style={{ fontSize: '0.72rem', fontWeight: 800, color: themeColors.textMuted, textTransform: 'uppercase', marginRight: 4, fontFamily: 'var(--mono)' }}>
+            Filtro:
+          </span>
+          {[
+            { id: 'todos', label: 'Todos', icon: 'sparkle' },
+            { id: 'limpeza', label: 'Diarista', icon: 'broom' },
+            { id: 'eletrica', label: 'Elétrica', icon: 'bolt' },
+            { id: 'cabelo', label: 'Cabelo', icon: 'scissors' },
+            { id: 'pedreiro', label: 'Pedreiro', icon: 'hammer' },
+            { id: 'jardim', label: 'Jardim', icon: 'leaf' },
+            { id: 'mudanca', label: 'Mudança', icon: 'box' },
+          ].map(cat => {
+            const isActive = (selectedCategory || 'todos') === cat.id;
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => onSelectCategory(cat.id)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  padding: '5px 12px',
+                  borderRadius: 999,
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  background: isActive ? 'linear-gradient(135deg, #FF7A00, #FF9A33)' : themeColors.cardBg,
+                  color: isActive ? '#fff' : themeColors.text,
+                  border: `1.5px solid ${isActive ? '#FF7A00' : themeColors.cardBorder}`,
+                  boxShadow: isActive ? '0 0 12px rgba(255,122,0,0.35)' : 'none',
+                }}
+              >
+                <Icon name={cat.icon} size={12} color={isActive ? '#fff' : '#FF7A00'} />
+                <span>{cat.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* 4 Cards de Telemetria e Destaques (Grid 2x2 Elegante) */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+          {/* Card 1 */}
+          <div
+            style={{
+              background: themeColors.cardBg,
+              border: `1.5px solid ${themeColors.cardBorder}`,
+              borderRadius: 14,
+              padding: '12px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              boxShadow: '0 4px 14px rgba(0,0,0,0.04)',
+            }}
+          >
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(255,122,0,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Icon name="clock" size={17} color="#FF7A00" />
+            </div>
+            <div>
+              <p style={{ fontFamily: 'var(--display)', fontSize: '0.96rem', fontWeight: 800, color: themeColors.text, lineHeight: 1.1 }}>~12 min</p>
+              <p style={{ fontSize: '0.68rem', color: themeColors.textMuted, marginTop: 2 }}>Chegada rápida</p>
+            </div>
+          </div>
+
+          {/* Card 2 */}
+          <div
+            style={{
+              background: themeColors.cardBg,
+              border: `1.5px solid ${themeColors.cardBorder}`,
+              borderRadius: 14,
+              padding: '12px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              boxShadow: '0 4px 14px rgba(0,0,0,0.04)',
+            }}
+          >
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(34,211,27,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Icon name="star" size={17} color="#22D31B" />
+            </div>
+            <div>
+              <p style={{ fontFamily: 'var(--display)', fontSize: '0.96rem', fontWeight: 800, color: themeColors.text, lineHeight: 1.1 }}>4.95 ★</p>
+              <p style={{ fontSize: '0.68rem', color: themeColors.textMuted, marginTop: 2 }}>Avaliação média</p>
+            </div>
+          </div>
+
+          {/* Card 3 */}
+          <div
+            style={{
+              background: themeColors.cardBg,
+              border: `1.5px solid ${themeColors.cardBorder}`,
+              borderRadius: 14,
+              padding: '12px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              boxShadow: '0 4px 14px rgba(0,0,0,0.04)',
+            }}
+          >
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(34,211,27,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Icon name="shield" size={17} color="#22D31B" />
+            </div>
+            <div>
+              <p style={{ fontFamily: 'var(--display)', fontSize: '0.96rem', fontWeight: 800, color: themeColors.text, lineHeight: 1.1 }}>100% Seguro</p>
+              <p style={{ fontSize: '0.68rem', color: themeColors.textMuted, marginTop: 2 }}>Garantia MoviPay</p>
+            </div>
+          </div>
+
+          {/* Card 4 */}
+          <div
+            style={{
+              background: themeColors.cardBg,
+              border: `1.5px solid ${themeColors.cardBorder}`,
+              borderRadius: 14,
+              padding: '12px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              boxShadow: '0 4px 14px rgba(0,0,0,0.04)',
+            }}
+          >
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(255,122,0,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Icon name="leaf" size={17} color="#FF7A00" />
+            </div>
+            <div>
+              <p style={{ fontFamily: 'var(--display)', fontSize: '0.96rem', fontWeight: 800, color: themeColors.text, lineHeight: 1.1 }}>+50 Folhas</p>
+              <p style={{ fontSize: '0.68rem', color: themeColors.textMuted, marginTop: 2 }}>Cashback no pedido</p>
+            </div>
+          </div>
+        </div>
+
+      </motion.div>
+    </div>
+  );
+}
+
+/* ─── MINI-GAME / BÔNUS DIÁRIO DE FOLHAS (CRIATIVO & INTERATIVO) ─────── */
+function DailyFolhasBonusCard({ themeColors, onCollectBonus }) {
+  const [claimed, setClaimed] = useState(false);
+  const [rewardAmount, setRewardAmount] = useState(null);
+  const [isOpening, setIsOpening] = useState(false);
+
+  function handleClaim() {
+    if (claimed || isOpening) return;
+    setIsOpening(true);
+    setTimeout(() => {
+      const bonus = Math.floor(Math.random() * 15) + 10; // 10 a 25 folhas
+      setRewardAmount(bonus);
+      setIsOpening(false);
+      setClaimed(true);
+      if (onCollectBonus) onCollectBonus(bonus);
+    }, 900);
   }
 
-  /* ─── ACCESSIBILITY MENU ─────────────────────────────────────────────── */
-  // Using global AccessibilityControls from @/components/accessibility/AccessibilityControls
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      className="neon-glow-card"
+      style={{
+        position: 'relative',
+        overflow: 'hidden',
+        background: `linear-gradient(135deg, ${themeColors.cardBg} 0%, rgba(255,122,0,0.06) 100%)`,
+        border: '1.5px solid rgba(255,122,0,0.35)',
+        borderRadius: 20,
+        padding: '24px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: 20,
+        boxShadow: '0 10px 35px rgba(255,122,0,0.12)',
+      }}
+    >
+      {/* Luz ambiente de LED de fundo */}
+      <div style={{
+        position: 'absolute',
+        top: -20,
+        right: -20,
+        width: 140,
+        height: 140,
+        borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(34,211,27,0.22), transparent 70%)',
+        filter: 'blur(20px)',
+        pointerEvents: 'none',
+      }} />
 
-  /* ─── DATA ───────────────────────────────────────────────────────────── */
-  const CATEGORIES = [
-    { icon: 'broom',      name: 'Limpeza',       img: '/img/faxineira.jpg', description: 'Casa, escritório e espaços com cuidado.' },
-    { icon: 'bolt',       name: 'Elétrica',      img: '/img/eletricista.jpg', description: 'Instalações e pequenos reparos em minutos.' },
-    { icon: 'leaf',       name: 'Jardinagem',    img: '/img/jardineiro.jpg', description: 'Manutenção de jardins e áreas verdes.' },
-    { icon: 'box',        name: 'Mudança',       img: '/img/mudanca.jpg', description: 'Montagem e transporte com planejamento.' },
-    { icon: 'scissors',   name: 'Cabeleireiro',  img: '/img/cabeleireiro.jpg', description: 'Cortes, hidratação e estética pessoal.' },
-    { icon: 'hammer',     name: 'Pedreiro',      img: '/img/pedreiro.jpg', description: 'Reformas, reparos e acabamento local.' },
-    { icon: 'paint',      name: 'Pintor',        img: '/img/pintor.jpg', description: 'Pintura de ambientes e retoques rápidos.' },
-    { icon: 'motorcycle', name: 'Motoboy',       img: '/img/motoboy.jpg', description: 'Entregas locais com rapidez e confiança.' },
-    { icon: 'sparkle',    name: 'Manicure',      img: '/img/manicure.jpg', description: 'Cuidados com unhas e beleza pessoal.' },
-  ];
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, minWidth: 260, flex: '1 1 300px' }}>
+        <motion.div
+          whileHover={{ scale: 1.1, rotate: [0, -6, 6, 0] }}
+          animate={isOpening ? { rotate: [0, -15, 15, -15, 0], scale: 1.2 } : {}}
+          style={{
+            width: 60,
+            height: 60,
+            borderRadius: 16,
+            background: 'linear-gradient(135deg, #FF7A00, #FF9A33)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 0 20px rgba(255,122,0,0.45)',
+            flexShrink: 0,
+            cursor: claimed ? 'default' : 'pointer',
+          }}
+          onClick={handleClaim}
+        >
+          <span style={{ fontSize: '1.8rem' }}>{claimed ? '🎉' : '🎁'}</span>
+        </motion.div>
 
-  const TESTIMONIALS = [
-    { name: 'Ana Paula', role: 'Cliente · São Paulo', avatar: 'A', rating: 5, text: 'Encontrei um eletricista em 5 minutos. Serviço impecável e ainda ganhei pontos!' },
-    { name: 'Bruno Silva', role: 'Trabalhador · ABC', avatar: 'B', rating: 5, text: 'Minha agenda encheu em uma semana. A plataforma é simples e os pagamentos são rápidos.' },
-    { name: 'Carla Souza', role: 'Cliente · Guarulhos', avatar: 'C', rating: 5, text: 'Já usei três vezes. Todo profissional foi pontual e competente. Recomendo demais!' },
-  ];
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: '0.68rem', fontWeight: 800, color: '#22D31B', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+              BÔNUS DIÁRIO
+            </span>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22D31B', boxShadow: '0 0 6px #22D31B' }} />
+          </div>
+          <h3 style={{ fontFamily: 'var(--display)', fontSize: '1.15rem', fontWeight: 800, color: themeColors.text, marginTop: 2 }}>
+            {claimed ? `Você resgatou +${rewardAmount} Folhas hoje!` : 'Resgate suas Folhas da Sorte Diárias'}
+          </h3>
+          <p style={{ fontSize: '0.78rem', color: themeColors.textMuted, marginTop: 4 }}>
+            {claimed ? 'Volte amanhã para uma nova caixa misteriosa e mais descontos!' : 'Clique na caixa para abrir seu presente e acumular cupons instantâneos.'}
+          </p>
+        </div>
+      </div>
 
-  const HOW_STEPS = [
-    { n: '01', icon: 'search',    title: 'Descreva o que precisa',       body: 'Digite o serviço e o radar localiza profissionais disponíveis perto de você em tempo real.' },
-    { n: '02', icon: 'users',     title: 'Escolha o profissional certo', body: 'Compare avaliações, preços e tempo de resposta. Confirmação em segundos, sem burocracia.' },
-    { n: '03', icon: 'star',      title: 'Avalie e ganhe pontos',        body: 'Após o serviço, sua nota ajuda a comunidade. Cada avaliação rende pontos para a próxima contratação.' },
-  ];
+      <button
+        onClick={handleClaim}
+        disabled={claimed || isOpening}
+        style={{
+          background: claimed
+            ? 'rgba(34,211,27,0.15)'
+            : 'linear-gradient(135deg, #22D31B, #16A34A)',
+          color: claimed ? '#22D31B' : '#fff',
+          border: `1.5px solid ${claimed ? '#22D31B' : 'transparent'}`,
+          borderRadius: 12,
+          padding: '12px 24px',
+          fontWeight: 800,
+          fontSize: '0.86rem',
+          cursor: claimed ? 'default' : 'pointer',
+          boxShadow: claimed ? 'none' : '0 0 20px rgba(34,211,27,0.4)',
+          transition: 'all 0.2s',
+        }}
+      >
+        {isOpening ? 'Abrindo...' : claimed ? '✓ Resgatado Hoje' : '🎁 Abrir Caixa Surpresa'}
+      </button>
+    </motion.div>
+  );
+}
 
-  const BENEFITS = [
-    { icon: 'shield',     title: 'Verificado e avaliado',   body: 'Cada profissional passa por verificação e é avaliado por clientes reais após cada serviço.', accent: '#FF7A00' },
-    { icon: 'clock',      title: 'Resposta em até 15 min',  body: 'Sistema de notificação em tempo real. O profissional mais próximo recebe seu pedido primeiro.', accent: '#22D31B' },
-    { icon: 'trendingUp', title: 'Preço transparente',      body: 'Orçamento fechado antes de confirmar. Sem surpresa no final, sem cobranças extras.', accent: '#FF7A00' },
-    { icon: 'mapPin',     title: 'Sempre perto de você',    body: 'O radar prioriza profissionais no seu bairro. Quanto mais perto, menor o deslocamento e o custo.', accent: '#22D31B' },
-  ];
+/* ─── SIMULADOR DE ORÇAMENTO INTELIGENTE (CRIATIVO) ──────────────────── */
+function InstantQuoteSimulator({ themeColors }) {
+  const [category, setCategory] = useState('limpeza');
+  const [urgency, setUrgency] = useState('urgente');
+  const [hours, setHours] = useState(3);
 
-  /* ─── MAIN ───────────────────────────────────────────────────────────── */
-  export default function LandingPage() {
-    const { user, loading, logout } = useAuth();
-    const { darkMode, toggleDarkMode: globalToggleTheme } = useTheme();
-    const colors = getThemeColors(darkMode);
-    const router = useRouter();
-    const { scrollY, scrollYProgress } = useScroll();
-    const [navSolid, setNavSolid] = useState(false);
-    const [profileOpen, setProfileOpen] = useState(false);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [navSearchOpen, setNavSearchOpen] = useState(false);
-    const navSearchInputRef = useRef(null);
+  const baseRates = {
+    limpeza: 35,
+    eletrica: 65,
+    cabelo: 45,
+    pedreiro: 55,
+    jardim: 40,
+    mudanca: 70,
+  };
 
-    /* favoritos (serviços/trabalhadores salvos pelo cliente) */
-    const [favoriteIds, setFavoriteIds] = useState(() => FAVORITE_WORKERS.map(w => w.id));
-    function toggleFavorite(id) {
-      setFavoriteIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  const multiplier = urgency === 'urgente' ? 1.25 : urgency === 'hoje' ? 1.1 : 1.0;
+  const rawPrice = (baseRates[category] || 40) * hours * multiplier;
+  const minPrice = Math.round(rawPrice * 0.9);
+  const maxPrice = Math.round(rawPrice * 1.15);
+  const estimatedLeavesBonus = Math.floor(rawPrice * 0.4);
+
+  return (
+    <div
+      style={{
+        background: themeColors.cardBg,
+        border: `1.5px solid ${themeColors.cardBorder}`,
+        borderRadius: 24,
+        padding: '32px 28px',
+        boxShadow: '0 16px 45px rgba(0,0,0,0.06)',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 24 }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icon name="calculator" size={16} color="#FF7A00" />
+            <span style={{ fontFamily: 'var(--mono)', fontSize: '0.72rem', fontWeight: 800, color: '#FF7A00', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+              SIMULADOR INTELIGENTE
+            </span>
+          </div>
+          <h3 style={{ fontFamily: 'var(--display)', fontSize: '1.45rem', fontWeight: 800, color: themeColors.text, marginTop: 4 }}>
+            Estime seu orçamento em segundos
+          </h3>
+        </div>
+        <span style={{ fontSize: '0.76rem', color: themeColors.textMuted, background: themeColors.line, padding: '4px 12px', borderRadius: 999 }}>
+          Valores médios calculados em Ribeirão Pires
+        </span>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20 }}>
+        {/* Escolher Categoria */}
+        <div>
+          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: themeColors.text, display: 'block', marginBottom: 8 }}>
+            1. Tipo de Serviço
+          </label>
+          <select
+            value={category}
+            onChange={e => setCategory(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '11px 14px',
+              borderRadius: 10,
+              border: `1.5px solid ${themeColors.line}`,
+              background: themeColors.inputBg,
+              color: themeColors.text,
+              fontSize: '0.88rem',
+              fontWeight: 600,
+              outline: 'none',
+            }}
+          >
+            <option value="limpeza">🧹 Limpeza / Diarista</option>
+            <option value="eletrica">⚡ Eletricista</option>
+            <option value="cabelo">✂️ Cabelo & Estética</option>
+            <option value="pedreiro">🧱 Pedreiro & Reformas</option>
+            <option value="jardim">🌿 Jardinagem</option>
+            <option value="mudanca">📦 Mudanças & Frete</option>
+          </select>
+        </div>
+
+        {/* Escolher Urgência */}
+        <div>
+          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: themeColors.text, display: 'block', marginBottom: 8 }}>
+            2. Quando você precisa?
+          </label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {[
+              { id: 'urgente', label: '⚡ Em 1 hora' },
+              { id: 'hoje', label: '📅 Hoje' },
+              { id: 'semana', label: '🗓️ Esta semana' },
+            ].map(u => (
+              <button
+                key={u.id}
+                type="button"
+                onClick={() => setUrgency(u.id)}
+                style={{
+                  flex: 1,
+                  padding: '9px 6px',
+                  borderRadius: 10,
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  border: `1.5px solid ${urgency === u.id ? '#FF7A00' : themeColors.line}`,
+                  background: urgency === u.id ? 'rgba(255,122,0,0.12)' : 'transparent',
+                  color: urgency === u.id ? '#FF7A00' : themeColors.textMuted,
+                  transition: 'all 0.2s',
+                }}
+              >
+                {u.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Quantidade de Horas */}
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+            <label style={{ fontSize: '0.8rem', fontWeight: 700, color: themeColors.text }}>
+              3. Estimativa de Tempo
+            </label>
+            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#FF7A00' }}>
+              {hours} hora{hours > 1 ? 's' : ''}
+            </span>
+          </div>
+          <input
+            type="range"
+            min="1"
+            max="8"
+            step="1"
+            value={hours}
+            onChange={e => setHours(Number(e.target.value))}
+            style={{ width: '100%', accentColor: '#FF7A00', cursor: 'pointer' }}
+          />
+        </div>
+      </div>
+
+      {/* Resultado do Orçamento com LED */}
+      <div
+        style={{
+          marginTop: 24,
+          padding: '20px 24px',
+          borderRadius: 18,
+          background: `linear-gradient(135deg, rgba(255,122,0,0.08), rgba(34,211,27,0.08))`,
+          border: `1.5px solid rgba(255,122,0,0.25)`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 16,
+        }}
+      >
+        <div>
+          <p style={{ fontSize: '0.76rem', color: themeColors.textMuted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            Faixa Estimada de Investimento
+          </p>
+          <p style={{ fontFamily: 'var(--display)', fontSize: '2rem', fontWeight: 800, color: themeColors.text, lineHeight: 1.1, marginTop: 4 }}>
+            R$ {minPrice} – R$ {maxPrice}
+          </p>
+          <p style={{ fontSize: '0.74rem', color: '#22D31B', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+            <Icon name="leaf" size={14} color="#22D31B" />
+            Você acumulará aprox. +{estimatedLeavesBonus} Folhas neste pedido
+          </p>
+        </div>
+
+        <Link
+          href={`/client/services?category=${category}`}
+          className="btn-primary"
+          style={{ fontSize: '0.88rem', padding: '12px 24px' }}
+        >
+          Ver Profissionais Disponíveis <Icon name="arrowRight" size={15} className="arrow-icon" />
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+/* ─── LIVE ACTIVITY TICKER ───────────────────────────────────────────── */
+const LIVE_ACTIVITY = [
+  { icon: 'checkCircle', text: 'Ana Paula acabou de contratar uma diarista no Centro', color: '#22D31B' },
+  { icon: 'bolt', text: 'Eduardo Ramos concluiu um serviço de elétrica com nota 5.0', color: '#FF7A00' },
+  { icon: 'star', text: 'Marina Souza recebeu uma avaliação 5 estrelas em Visagismo', color: '#22D31B' },
+  { icon: 'leaf', text: 'Carla Souza resgatou R$ 12,00 em desconto usando Folhas', color: '#FF7A00' },
+  { icon: 'mapPin', text: '4 novos profissionais entraram online na sua região agora', color: '#22D31B' },
+  { icon: 'checkCircle', text: 'Thiago Alves fechou um orçamento de alvenaria', color: '#FF7A00' },
+];
+
+function LiveActivityTicker({ theme }) {
+  const loopItems = [...LIVE_ACTIVITY, ...LIVE_ACTIVITY];
+  return (
+    <div className="ticker-wrap" style={{ borderTop: `1.5px solid ${theme.line}`, borderBottom: `1.5px solid ${theme.line}`, background: theme.cardBg, overflow: 'hidden', position: 'relative', zIndex: 10 }}>
+      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, zIndex: 2, display: 'flex', alignItems: 'center', gap: 8, padding: '0 20px', background: `linear-gradient(90deg, ${theme.cardBg} 65%, transparent)` }}>
+        <motion.span
+          aria-hidden="true"
+          animate={{ opacity: [1, 0.3, 1] }}
+          transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+          style={{ width: 8, height: 8, borderRadius: '50%', background: '#22D31B', boxShadow: '0 0 8px #22D31B', flexShrink: 0 }}
+        />
+        <span style={{ fontFamily: 'var(--mono)', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: theme.text, whiteSpace: 'nowrap' }}>
+          AO VIVO
+        </span>
+      </div>
+      <div className="ticker-track" style={{ display: 'flex', alignItems: 'center', gap: 40, padding: '12px 0 12px 140px', width: 'max-content' }}>
+        {loopItems.map((item, i) => (
+          <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem', color: theme.textMuted, whiteSpace: 'nowrap' }}>
+            <Icon name={item.icon} size={14} color={item.color} />{item.text}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const CATEGORIES = [
+  { icon: 'broom',      name: 'Limpeza',       img: '/img/faxineira.jpg', description: 'Casa, escritório e higienização com cuidado.' },
+  { icon: 'bolt',       name: 'Elétrica',      img: '/img/eletricista.jpg', description: 'Instalações, quadros e reparos rápidos.' },
+  { icon: 'leaf',       name: 'Jardinagem',    img: '/img/jardineiro.jpg', description: 'Manutenção de jardins, corte e poda.' },
+  { icon: 'box',        name: 'Mudança',       img: '/img/mudanca.jpg', description: 'Transporte e montagem com segurança.' },
+  { icon: 'scissors',   name: 'Cabeleireiro',  img: '/img/cabeleireiro.jpg', description: 'Cortes, hidratação e estética pessoal.' },
+  { icon: 'hammer',     name: 'Pedreiro',      img: '/img/pedreiro.jpg', description: 'Reformas, pisos, alvenaria e acabamento.' },
+  { icon: 'paint',      name: 'Pintor',        img: '/img/pintor.jpg', description: 'Pintura residencial e texturas modernas.' },
+  { icon: 'motorcycle', name: 'Motoboy',       img: '/img/motoboy.jpg', description: 'Entregas expressas locais e compras.' },
+  { icon: 'sparkle',    name: 'Manicure',      img: '/img/manicure.jpg', description: 'Cuidados com unhas, spa e beleza.' },
+];
+
+const TESTIMONIALS = [
+  { name: 'Ana Paula', role: 'Cliente · Centro', avatar: 'A', rating: 5, text: 'Encontrei um eletricista em 5 minutos. O mapa em tempo real facilitou muito e ainda ganhei Folhas de desconto!' },
+  { name: 'Bruno Silva', role: 'Cliente · Vila Nova', avatar: 'B', rating: 5, text: 'Chamei uma diarista ontem e o atendimento foi nota 10. O pagamento protegido dá uma segurança enorme.' },
+  { name: 'Carla Souza', role: 'Cliente · Ouro Fino', avatar: 'C', rating: 5, text: 'Já usei quatro vezes para serviços diferentes. Todos pontuais e prestativos. Melhor plataforma da região!' },
+];
+
+const HOW_STEPS = [
+  { n: '01', icon: 'search', title: 'Localize no Radar', body: 'Veja no mapa os profissionais disponíveis perto da sua casa em tempo real.' },
+  { n: '02', icon: 'users',  title: 'Negocie no Chat', body: 'Combine valores, horários e detalhes diretamente com o especialista sem intermediários.' },
+  { n: '03', icon: 'star',   title: 'Avalie & Ganhe Folhas', body: 'Ao finalizar, avalie o atendimento e ganhe Folhas para descontos futuros.' },
+];
+
+/* ══════════════════════════════════════════════════════════════════════ */
+/* ── MAIN CLIENT COMPONENT ───────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════════ */
+export default function ClientDashboardPage() {
+  const { user, loading, logout } = useAuth();
+  const { darkMode, toggleTheme: globalToggleTheme } = useTheme();
+  const colors = getThemeColors(darkMode);
+  const router = useRouter();
+  const { scrollY, scrollYProgress } = useScroll();
+  const [navSolid, setNavSolid] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedMapCategory, setSelectedMapCategory] = useState('todos');
+
+  /* Indicação de amigos & cupom */
+  const [referralCopied, setReferralCopied] = useState(false);
+  function handleCopyReferral() {
+    const code = (user?.name || 'cliente').split(/\s+/)[0].toLowerCase() + '2026';
+    const link = `https://movipay.com.br/register?ref=${code}`;
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(link).catch(() => {});
     }
-    const favorites = FAVORITE_WORKERS.filter(w => favoriteIds.includes(w.id));
+    setReferralCopied(true);
+    setTimeout(() => setReferralCopied(false), 2400);
+  }
 
-    /* panorama — folhas, gastos e últimos serviços contratados */
-    const [folhasBalance, setFolhasBalance] = useState(0);
-    const [recentOrders, setRecentOrders] = useState([]);
-    const [panoramaLoading, setPanoramaLoading] = useState(true);
+  function handleShareWhatsApp() {
+    const code = (user?.name || 'cliente').split(/\s+/)[0].toLowerCase() + '2026';
+    const text = encodeURIComponent(`Olá! Estou usando o MoviPay para contratar serviços rápidos e de confiança. Cadastre-se pelo meu link para ganhar R$ 2,00 em Folhas de desconto no seu 1º serviço: https://movipay.com.br/register?ref=${code}`);
+    window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+  }
 
-    useEffect(() => {
-      if (!user) { setPanoramaLoading(false); return; }
-      Promise.all([
-        api.get('/points/balance').then(r => setFolhasBalance(r.data?.balance ?? 0)).catch(() => {}),
-        orderService.getAll().then(d => setRecentOrders((d.orders || []).slice().sort((a, b) => new Date(b.created_at) - new Date(a.created_at)))).catch(() => {}),
-      ]).finally(() => setPanoramaLoading(false));
-    }, [user]);
+  /* Favoritos */
+  const [favoriteIds, setFavoriteIds] = useState([1, 2, 4]);
+  function toggleFavorite(id) {
+    setFavoriteIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  }
+  const favorites = FAVORITE_WORKERS_DATA.filter(w => favoriteIds.includes(w.id));
 
-    const totalGasto = recentOrders
-      .filter(o => o.status === 'completed')
-      .reduce((s, o) => s + parseFloat(o.price || 0), 0);
-    const folhasDesconto = folhasBalance * FOLHA_VALUE;
-    const lastServices = recentOrders.slice(0, 3);
+  /* Panorama */
+  const [folhasBalance, setFolhasBalance] = useState(85);
+  const [recentOrders, setRecentOrders] = useState([]);
+  const [panoramaLoading, setPanoramaLoading] = useState(true);
 
-    useEffect(() => { if (!loading && user) router.push(user.mode === 'worker' ? '/worker' : '/client'); }, [user, loading]);
-    useEffect(() => { const u = scrollY.on('change', v => setNavSolid(v > 40)); return u; }, [scrollY]);
+  useEffect(() => {
+    if (!user) { setPanoramaLoading(false); return; }
+    Promise.all([
+      api.get('/points/balance').then(r => {
+        if (r.data?.balance !== undefined) setFolhasBalance(r.data.balance);
+      }).catch(() => {}),
+      orderService.getAll().then(d => {
+        setRecentOrders((d.orders || []).slice().sort((a, b) => new Date(b.created_at) - new Date(a.created_at)));
+      }).catch(() => {}),
+    ]).finally(() => setPanoramaLoading(false));
+  }, [user]);
 
-    function getInitials(name = '') {
-      if (!name) return 'MP';
-      return name.split(/\s+/).slice(0, 2).map(p => p[0]).join('').toUpperCase();
+  function handleAddDailyBonus(amount) {
+    setFolhasBalance(prev => prev + amount);
+  }
+
+  const totalGasto = recentOrders
+    .filter(o => o.status === 'completed')
+    .reduce((s, o) => s + parseFloat(o.price || 0), 0);
+  const folhasDesconto = folhasBalance * FOLHA_VALUE;
+  const lastServices = recentOrders.slice(0, 3);
+
+  useEffect(() => {
+    if (!loading && user && user.mode === 'worker') {
+      router.push('/worker');
     }
+  }, [user, loading, router]);
 
-    const theme = {
-      bg: colors.bg,
-      bgAlt: darkMode ? '#0D130B' : '#F1EAD9',
-      bgAlt2: darkMode ? '#0F1A0C' : '#F5F1E5',
-      text: colors.text,
-      textMuted: colors.textMuted,
-      cardBg: colors.cardBg,
-      cardBorder: colors.cardBorder,
-      navBg: darkMode ? 'rgba(18,26,15,0.94)' : 'rgba(250,246,236,0.92)',
-      navBorder: darkMode ? 'rgba(243,239,226,0.07)' : 'rgba(23,36,26,0.07)',
-      line: colors.line,
-      mono: colors.mono,
-      orange: colors.orange,
-      green: colors.green,
-      inputBg: darkMode ? '#1A2417' : '#FFFFFF',
-    };
+  useEffect(() => {
+    const u = scrollY.on('change', v => setNavSolid(v > 40));
+    return u;
+  }, [scrollY]);
 
-    if (loading) return (
+  function getInitials(name = '') {
+    if (!name) return 'MP';
+    return name.split(/\s+/).slice(0, 2).map(p => p[0]).join('').toUpperCase();
+  }
+
+  const theme = {
+    bg: colors.bg,
+    bgAlt: darkMode ? '#0D130B' : '#F1EAD9',
+    bgAlt2: darkMode ? '#0F1A0C' : '#F5F1E5',
+    text: colors.text,
+    textMuted: colors.textMuted,
+    cardBg: colors.cardBg,
+    cardBorder: colors.cardBorder,
+    navBg: darkMode ? 'rgba(18,26,15,0.95)' : 'rgba(250,246,236,0.95)',
+    navBorder: darkMode ? 'rgba(243,239,226,0.08)' : 'rgba(23,36,26,0.08)',
+    line: colors.line,
+    mono: colors.mono,
+    orange: colors.orange,
+    green: colors.green,
+    inputBg: darkMode ? '#1A2417' : '#FFFFFF',
+  };
+
+  function handleSearchSubmit(e) {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/client/services?q=${encodeURIComponent(searchQuery.trim())}`);
+    } else {
+      router.push('/client/services');
+    }
+  }
+
+  if (loading) {
+    return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: theme.bg }}>
         <motion.img src="/img/logo.png" alt="MoviPay" style={{ width: 64, height: 64, borderRadius: '50%' }} animate={{ rotate: 360 }} transition={{ duration: 1.2, repeat: Infinity, ease: 'linear' }} />
       </div>
     );
+  }
 
-    function handleSearch(e) {
-      e.preventDefault();
-      router.push(searchQuery.trim() ? `/register?q=${encodeURIComponent(searchQuery.trim())}` : '/register');
-    }
-
-    return (
-      <div style={{ minHeight: '100vh', overflowX: 'hidden', background: theme.bg, color: theme.text, fontFamily: 'var(--body)', transition: 'background 0.4s, color 0.4s' }}>
+  return (
+    <LeafProvider count={36}>
+      <div style={{ minHeight: '100vh', overflowX: 'hidden', background: theme.bg, color: theme.text, fontFamily: 'var(--body)', transition: 'background 0.4s, color 0.4s', position: 'relative' }}>
         <Sidebar />
 
-        <FallingLeaves />
+        {/* Efeitos Globais */}
+        <FallingLeaves count={36} />
 
-        {/* ── GLOBAL STYLES ─────────────────────────────────────────── */}
+        {/* ── ESTILOS GLOBAIS ─────────────────────────────────────────── */}
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,700;0,900;1,500;1,700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
           :root { --display: 'Fraunces', serif; --body: 'Inter', sans-serif; --mono: 'IBM Plex Mono', monospace; }
           * { box-sizing: border-box; margin: 0; padding: 0; }
           html { scroll-behavior: smooth; }
 
+          /* Layout adaptativo com a Sidebar */
+          .client-main-wrapper {
+            margin-left: 0px;
+            transition: margin-left 0.26s ease;
+          }
+          @media (min-width: 1024px) {
+            .client-main-wrapper {
+              margin-left: 250px;
+            }
+          }
+
+          /* Split Grid do Hero (Mapa à Esquerda, Info à Direita) */
+          .hero-split-grid {
+            display: grid;
+            grid-template-columns: 1.18fr 1fr;
+            gap: 40px;
+            align-items: center;
+            width: 100%;
+            max-width: 1260px;
+            margin: 0 auto;
+          }
+          @media (max-width: 1060px) {
+            .hero-split-grid {
+              grid-template-columns: 1fr;
+              gap: 36px;
+            }
+          }
+
           .btn-primary {
             position: relative; overflow: hidden;
-            background: #FF7A00; color: #fff; font-weight: 700;
-            border-radius: 6px; padding: 14px 28px; font-size: 0.92rem;
+            background: linear-gradient(135deg, #FF7A00, #FF9A33);
+            color: #fff; font-weight: 800;
+            border-radius: 10px; padding: 14px 28px; font-size: 0.92rem;
             border: none; cursor: pointer; display: inline-flex; align-items: center;
-            gap: 8px; text-decoration: none; font-family: var(--body);
+            justify-content: center; gap: 8px; text-decoration: none; font-family: var(--body);
             transition: transform 0.2s, box-shadow 0.2s;
             box-shadow: 0 4px 20px rgba(255,122,0,0.32);
           }
-          .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(255,122,0,0.44); }
+          .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(255,122,0,0.48); }
           .btn-primary .arrow-icon { transition: transform 0.22s; }
-          .btn-primary:hover .arrow-icon { transform: translateX(5px); }
+          .btn-primary:hover .arrow-icon { transform: translateX(4px); }
 
           .btn-ghost {
             background: transparent; border: 1.5px solid ${theme.line};
-            color: ${theme.text}; font-weight: 700; border-radius: 6px;
-            padding: 13px 26px; font-size: 0.92rem; cursor: pointer;
-            display: inline-block; text-decoration: none; font-family: var(--body);
-            transition: border-color 0.2s, color 0.2s;
+            color: ${theme.text}; font-weight: 700; border-radius: 10px;
+            padding: 13px 24px; font-size: 0.9rem; cursor: pointer;
+            display: inline-flex; align-items: center; justify-content: center;
+            text-decoration: none; font-family: var(--body);
+            transition: border-color 0.2s, color 0.2s, background 0.2s;
           }
-          .btn-ghost:hover { border-color: #FF7A00; color: #FF7A00; }
+          .btn-ghost:hover { border-color: #FF7A00; color: #FF7A00; background: rgba(255,122,0,0.06); }
 
           .eyebrow {
-            font-family: var(--mono); font-size: 0.7rem; font-weight: 600;
+            font-family: var(--mono); font-size: 0.72rem; font-weight: 700;
             letter-spacing: 0.14em; text-transform: uppercase; color: ${theme.mono};
             display: inline-flex; align-items: center; gap: 8px; margin-bottom: 12px;
           }
-          .eyebrow::before { content: ''; width: 20px; height: 1.5px; background: ${theme.orange}; display: inline-block; }
+          .eyebrow::before { content: ''; width: 18px; height: 2px; background: ${theme.orange}; display: inline-block; }
 
-          .nav-link { color: ${theme.textMuted}; font-weight: 600; font-size: 0.86rem; text-decoration: none; padding: 8px 14px; transition: color 0.2s; border-radius: 4px; }
-          .nav-link:hover { color: #FF7A00; }
+          .cat-card-item {
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+            padding: 22px 14px; border-radius: 18px;
+            border: 1.5px solid ${theme.cardBorder}; background: ${theme.cardBg};
+            cursor: pointer; text-decoration: none; transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+            color: ${theme.textMuted}; text-align: center;
+          }
+          .cat-card-item:hover {
+            border-color: #FF7A00; transform: translateY(-5px);
+            box-shadow: 0 14px 36px rgba(255,122,0,0.18);
+          }
+          .cat-card-item img { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; border: 2px solid transparent; transition: border-color 0.2s; }
+          .cat-card-item:hover img { border-color: #FF7A00; }
 
-          .section-divider {
-            display: flex; align-items: center; gap: 14px;
-            margin: 0 auto 48px; max-width: 320px; text-align: center;
+          /* Correção do Leaflet attribution e centralização */
+          .map-frame .leaflet-control-container .leaflet-bottom {
+            left: 0 !important; right: 0 !important;
+            display: flex !important; justify-content: center !important;
+            bottom: 14px !important; pointer-events: none !important;
           }
-          .section-divider::before, .section-divider::after {
-            content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, ${theme.line}, transparent);
+          .map-frame .leaflet-control-attribution {
+            float: none !important; margin: 0 auto !important; text-align: center !important;
+            font-family: var(--mono); font-size: 9px !important; line-height: 1.4;
+            background: rgba(255,255,255,0.92) !important; color: #334 !important;
+            border-radius: 999px !important; padding: 2px 12px !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15); pointer-events: auto !important;
+          }
+          .map-frame .leaflet-control-zoom {
+            border: none !important; box-shadow: 0 6px 20px rgba(0,0,0,0.18) !important;
+            border-radius: 12px !important; overflow: hidden;
           }
 
-          .cat-pill {
-            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
-            padding: 24px 14px; border-radius: 16px;
-            border: 1px solid ${theme.cardBorder}; background: ${theme.cardBg};
-            cursor: pointer; text-decoration: none; transition: all 0.22s;
-            color: ${theme.textMuted}; font-size: 0.82rem; font-weight: 800;
-            min-height: 160px;
-          }
-          .cat-pill:hover {
-            border-color: rgba(255,122,0,0.4); color: #FF7A00;
-            transform: translateY(-4px) scale(1.03); box-shadow: 0 12px 36px rgba(255,122,0,0.12);
-          }
-          .cat-pill img { width: 76px; height: 76px; border-radius: 50%; object-fit: cover; border: 2px solid transparent; transition: border-color 0.2s; }
-          .cat-pill:hover img { border-color: rgba(255,122,0,0.45); }
+          /* Ticker contínuo */
+          .ticker-track { animation: ticker-scroll 32s linear infinite; }
+          .ticker-wrap:hover .ticker-track { animation-play-state: paused; }
+          @keyframes ticker-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 
-          .cat-pill-title { font-size: 0.82rem; font-weight: 800; color: ${theme.text}; }
-          .cat-pill-subtitle { font-size: 0.68rem; color: ${theme.textMuted}; margin-top: 2px; line-height: 1.5; }
-
-          .benefit-card {
-            background: ${theme.cardBg}; border: 1px solid ${theme.cardBorder};
-            border-radius: 12px; padding: 26px;
-            transition: transform 0.22s, box-shadow 0.22s, border-color 0.22s;
-          }
-          .benefit-card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(0,0,0,0.07); border-color: rgba(255,122,0,0.28); }
-
-          .testimonial-card {
-            background: ${theme.cardBg}; border: 1px solid ${theme.cardBorder};
-            border-radius: 12px; padding: 28px; display: flex; flex-direction: column; gap: 16px;
-            transition: transform 0.22s, box-shadow 0.22s;
-          }
-          .testimonial-card:hover { transform: translateY(-4px); box-shadow: 0 14px 36px rgba(0,0,0,0.08); }
-
-          .search-wrap {
-            display: flex; align-items: center; gap: 8px;
-            background: ${theme.inputBg}; border: 1.5px solid ${theme.line};
-            border-radius: 8px; padding: 4px 6px 4px 16px; max-width: 480px;
-            transition: border-color 0.2s;
-          }
-          .search-wrap:focus-within { border-color: #FF7A00; }
-          .search-input { flex: 1; background: transparent; border: none; outline: none; font-size: 0.94rem; color: ${theme.text}; font-family: var(--body); padding: 12px 4px; }
-          .search-input::placeholder { color: ${theme.textMuted}; }
-
-          /* compact search bar — lives in the navbar now, left of the dark-mode toggle */
-          .nav-search-wrap {
-            display: flex; align-items: center; gap: 6px;
-            background: ${theme.inputBg}; border: 1.5px solid ${theme.line};
-            border-radius: 999px; padding: 6px 6px 6px 14px;
-            width: 230px; transition: width 0.28s ease, border-color 0.2s, box-shadow 0.2s;
-          }
-          .nav-search-wrap:focus-within { width: 300px; border-color: #FF7A00; box-shadow: 0 4px 18px rgba(255,122,0,0.16); }
-          .nav-search-input { flex: 1; min-width: 0; background: transparent; border: none; outline: none; font-size: 0.82rem; color: ${theme.text}; font-family: var(--body); }
-          .nav-search-input::placeholder { color: ${theme.textMuted}; }
-          .nav-search-submit {
-            width: 28px; height: 28px; border-radius: 50%; border: none; cursor: pointer;
-            background: #FF7A00; color: #fff; display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0; transition: transform 0.18s, background 0.18s;
-          }
-          .nav-search-submit:hover { transform: scale(1.08); background: #E86D00; }
           @media (max-width: 860px) {
-            .nav-search-wrap { width: 42px; padding: 6px; border-radius: 50%; }
-            .nav-search-wrap:focus-within, .nav-search-wrap.expanded { width: 200px; padding: 6px 6px 6px 14px; border-radius: 999px; }
-            .nav-search-input { width: 0; opacity: 0; transition: width 0.25s ease, opacity 0.2s ease; }
-            .nav-search-wrap:focus-within .nav-search-input, .nav-search-wrap.expanded .nav-search-input { width: auto; opacity: 1; }
-          }
-
-          @media (max-width: 900px) { .hero-split { flex-direction: column !important; } .radar-col { display: none !important; } }
-          @media (max-width: 768px) {
-            .hero-title { font-size: 2.6rem !important; }
             .hide-mobile { display: none !important; }
-            .cats-grid { grid-template-columns: repeat(4, 1fr) !important; }
-            .benefits-grid { grid-template-columns: 1fr 1fr !important; }
-            .how-row { flex-direction: column !important; }
-            .steps-connector { display: none !important; }
-            .test-grid { grid-template-columns: 1fr !important; }
           }
-          @media (max-width: 480px) { .cats-grid { grid-template-columns: repeat(2, 1fr) !important; } .benefits-grid { grid-template-columns: 1fr !important; } }
         `}</style>
 
-        {/* scroll progress */}
-        <motion.div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 2, transformOrigin: '0%', zIndex: 400, background: 'linear-gradient(90deg, #FF7A00, #22D31B)', scaleX: scrollYProgress }} />
+        {/* Barra de progresso de rolagem */}
+        <motion.div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 3, transformOrigin: '0%', zIndex: 500, background: 'linear-gradient(90deg, #FF7A00, #22D31B)', scaleX: scrollYProgress }} />
 
-        {/* accessibility */}
+        {/* Menu de Acessibilidade */}
         <AccessibilityControls />
 
-        {/* ── NAVBAR ──────────────────────────────────────────────────── */}
-        <nav style={{ position: 'sticky', top: 0, zIndex: 100, borderBottom: navSolid ? `1px solid ${theme.navBorder}` : '1px solid transparent', background: navSolid ? theme.navBg : 'transparent', transition: 'all 0.35s' }}>
-          <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              {/* campo de busca de serviço — antes ficava no hero, agora mora aqui, à esquerda do botão de modo escuro */}
-              <form
-                onSubmit={handleSearch}
-                className={`nav-search-wrap${navSearchOpen ? ' expanded' : ''}`}
-                onClick={() => { setNavSearchOpen(true); navSearchInputRef.current?.focus(); }}
-              >
-                <Icon name="search" size={14} color={theme.textMuted} style={{ flexShrink: 0 }} />
-                <input
-                  ref={navSearchInputRef}
-                  className="nav-search-input"
-                  type="text"
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  onFocus={() => setNavSearchOpen(true)}
-                  onBlur={() => !searchQuery && setNavSearchOpen(false)}
-                  placeholder="Buscar serviço…"
-                  aria-label="Buscar serviço"
-                />
-                <button type="submit" className="nav-search-submit" aria-label="Buscar">
-                  <Icon name="arrowRight" size={13} color="#fff" />
-                </button>
-              </form>
-              <button onClick={globalToggleTheme} style={{ width: 38, height: 38, borderRadius: '50%', background: 'transparent', border: `1px solid ${theme.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'border-color 0.2s', flexShrink: 0 }} aria-label="Alternar tema">
-                <Icon name={colors.darkMode ? 'sun' : 'moon'} size={16} color={theme.mono} />
-              </button>
-              <div style={{ position: 'relative' }}>
-                <button onClick={() => setProfileOpen(v => !v)} style={{ width: 38, height: 38, borderRadius: '50%', background: '#FF7A00', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, boxShadow: '0 6px 14px rgba(255,122,0,0.16)' }} aria-label="Abrir perfil">
-                  <span style={{ width: 34, height: 34, borderRadius: '50%', background: '#173C17', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.76rem', border: '2px solid #fff' }}>{getInitials(user?.name || 'Cliente')}</span>
-                </button>
+        {/* WRAPPER PRINCIPAL QUE RESPEITA A SIDEBAR */}
+        <div className="client-main-wrapper" style={{ position: 'relative', minHeight: '100vh' }}>
 
-                <AnimatePresence>
-                  {profileOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -8, scale: 0.98 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -8, scale: 0.98 }}
-                      transition={{ duration: 0.2 }}
-                      style={{ position: 'absolute', top: 52, right: 0, width: 240, background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, borderRadius: 12, padding: 14, zIndex: 220, boxShadow: '0 12px 32px rgba(0,0,0,0.12)' }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 12, borderBottom: `1px solid ${theme.line}` }}>
-                        <span style={{ width: 38, height: 38, borderRadius: '50%', background: '#FF7A00', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>{getInitials(user?.name || 'Cliente')}</span>
-                        <div>
-                          <p style={{ fontSize: '0.84rem', fontWeight: 800, color: theme.text, lineHeight: 1.1 }}>{user?.name || 'Cliente MoviPay'}</p>
-                          <p style={{ fontSize: '0.71rem', color: theme.textMuted, marginTop: 3 }}>{user?.email || 'conta@movipay.com'}</p>
-                        </div>
-                      </div>
-                      <div style={{ paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <Link href="/client/profile" onClick={() => setProfileOpen(false)} style={{ textDecoration: 'none', color: theme.text, fontSize: '0.78rem', fontWeight: 700, padding: '8px 10px', borderRadius: 8, background: 'transparent' }}>Meu perfil</Link>
-                        <Link href="/client/orders" onClick={() => setProfileOpen(false)} style={{ textDecoration: 'none', color: theme.text, fontSize: '0.78rem', fontWeight: 700, padding: '8px 10px', borderRadius: 8, background: 'transparent' }}>Meus pedidos</Link>
-                        <Link href="/client/services" onClick={() => setProfileOpen(false)} style={{ textDecoration: 'none', color: theme.text, fontSize: '0.78rem', fontWeight: 700, padding: '8px 10px', borderRadius: 8, background: 'transparent' }}>Buscar serviços</Link>
-                        <button onClick={() => { setProfileOpen(false); logout(); }} style={{ marginTop: 5, width: '100%', padding: '9px 10px', borderRadius: 8, border: `1px solid ${theme.line}`, background: 'rgba(255,122,0,0.08)', color: '#B83A08', cursor: 'pointer', fontWeight: 800, fontSize: '0.75rem' }}>Sair da conta</button>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
-          </div>
-        </nav>
+          {/* ── NAVBAR SUPERIOR ──────────────────────────────────────────── */}
+          <nav style={{ position: 'sticky', top: 0, zIndex: 100, borderBottom: navSolid ? `1px solid ${theme.navBorder}` : '1px solid transparent', background: navSolid ? theme.navBg : 'transparent', backdropFilter: 'blur(12px)', transition: 'all 0.35s' }}>
+            <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', height: 68, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
 
-        {/* ══════════════════════════════════════════════════════════════ */}
-        {/* ── HERO — split layout: texto esquerda, radar direita ─────── */}
-        {/* ══════════════════════════════════════════════════════════════ */}
-        <section style={{ position: 'relative', overflow: 'hidden', minHeight: '88vh', display: 'flex', alignItems: 'center' }}>
-          <ParticleField themeColors={colors} />
-
-          <div style={{ position: 'relative', zIndex: 2, maxWidth: 1200, margin: '0 auto', padding: '64px 24px', width: '100%' }}>
-            <div className="hero-split" style={{ display: 'flex', alignItems: 'center', gap: 60 }}>
-
-              {/* LEFT — agora é o painel de favoritos do cliente */}
-              <motion.div style={{ flex: '1 1 460px' }} initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.65 }}>
-                <div className="eyebrow">seus favoritos</div>
-
-                <h1 className="hero-title" style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '3.4rem', lineHeight: 1.05, letterSpacing: '-0.025em', marginBottom: 14 }}>
-                  Quem você já<br />
-                  <span style={{ color: '#FF7A00', fontStyle: 'italic' }}>confia</span>, direto aqui.
-                </h1>
-
-                <p style={{ fontSize: '0.98rem', color: theme.textMuted, maxWidth: 440, marginBottom: 26, lineHeight: 1.65 }}>
-                  Salve profissionais e serviços preferidos para pedir de novo em um toque, sem precisar procurar tudo outra vez.
-                </p>
-
-                <AnimatePresence mode="wait">
-                  {favorites.length > 0 ? (
-                    <motion.div key="fav-list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      {favorites.map((w, i) => (
-                        <motion.div
-                          key={w.id}
-                          layout
-                          initial={{ opacity: 0, x: -16 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: 16, height: 0, marginBottom: 0, paddingTop: 0, paddingBottom: 0 }}
-                          transition={{ delay: i * 0.06 }}
-                          whileHover={{ y: -3 }}
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: 12,
-                            background: theme.cardBg, border: `1px solid ${theme.cardBorder}`,
-                            borderRadius: 14, padding: '10px 12px',
-                            boxShadow: '0 6px 20px rgba(0,0,0,0.05)',
-                          }}
-                        >
-                          <img src={w.photo} alt={w.name} style={{ width: 46, height: 46, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,122,0,0.35)', flexShrink: 0 }} />
-                          <button
-                            type="button"
-                            onClick={() => router.push(`/client/workers/${w.profileId}`)}
-                            style={{ flex: 1, minWidth: 0, textAlign: 'left', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}
-                          >
-                            <p style={{ fontWeight: 800, fontSize: '0.88rem', color: theme.text, display: 'flex', alignItems: 'center', gap: 6 }}>{w.name} <span>{w.emoji}</span></p>
-                            <p style={{ fontSize: '0.74rem', color: theme.textMuted, display: 'flex', alignItems: 'center', gap: 5, marginTop: 2 }}>
-                              <Icon name="star" size={10} color="#FF7A00" /> {w.avg_rating} · {w.role}
-                            </p>
-                          </button>
-                          <motion.button
-                            type="button"
-                            onClick={() => toggleFavorite(w.id)}
-                            whileTap={{ scale: 0.8 }}
-                            whileHover={{ scale: 1.15 }}
-                            aria-label="Remover dos favoritos"
-                            style={{ background: 'transparent', border: 'none', cursor: 'pointer', flexShrink: 0, color: '#FF3B5C', display: 'flex' }}
-                          >
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
-                          </motion.button>
-                        </motion.div>
-                      ))}
-                      <Link href="/client/workers" style={{ marginTop: 4, fontSize: '0.78rem', fontWeight: 700, color: '#FF7A00', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                        Ver todos os profissionais <Icon name="arrowRight" size={12} />
-                      </Link>
-                    </motion.div>
-                  ) : (
-                    <motion.div key="fav-empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ border: `1.5px dashed ${theme.line}`, borderRadius: 16, padding: '26px 20px', textAlign: 'center', maxWidth: 420 }}>
-                      <p style={{ fontSize: '1.6rem', marginBottom: 6 }}>🤍</p>
-                      <p style={{ fontSize: '0.85rem', color: theme.textMuted, marginBottom: 14 }}>Você ainda não tem favoritos salvos.</p>
-                      <Link href="/client/workers" className="btn-primary" style={{ fontSize: '0.8rem', padding: '9px 16px' }}>Encontrar profissionais</Link>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-
-              {/* RIGHT — mapa funcional + floating cards */}
-              <FunctionalMapPanel themeColors={colors} />
-
-            </div>
-          </div>
-
-          {/* selo de confiança discreto, no lugar da antiga faixa de estatísticas */}
-          <div style={{ position: 'relative', zIndex: 2, maxWidth: 1200, margin: '0 auto', padding: '0 24px 28px', width: '100%', display: 'flex', flexWrap: 'wrap', gap: 20 }}>
-            {[
-              { icon: 'lock',  label: 'Pagamento seguro' },
-              { icon: 'clock', label: 'Resposta em 15min' },
-              { icon: 'star',  label: 'Nota 4.9/5' },
-            ].map((b, i) => (
-              <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.76rem', color: theme.textMuted, fontWeight: 600 }}>
-                <Icon name={b.icon} size={12} color="#22D31B" />{b.label}
-              </span>
-            ))}
-          </div>
-        </section>
-
-        {/* ══════════════════════════════════════════════════════════════ */}
-        {/* ── PANORAMA — resumo de gastos, últimos serviços e Folhas ─────── */}
-        {/*    Versão detalhada mora em /client/profile (aba "Folhas").      */}
-        {/* ══════════════════════════════════════════════════════════════ */}
-        {user && (
-          <section style={{ background: theme.bg, padding: '0 0 56px', transition: 'background 0.4s' }}>
-            <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
-              <motion.div initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 18, gap: 12, flexWrap: 'wrap' }}>
+              {/* Logo / Título de boas-vindas */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: '1.25rem' }}>👋</span>
                 <div>
-                  <div className="eyebrow" style={{ marginBottom: 6 }}>seu panorama</div>
-                  <h2 style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '1.5rem', letterSpacing: '-0.01em' }}>Resumo da sua conta</h2>
+                  <p style={{ fontSize: '0.92rem', fontWeight: 800, color: theme.text, lineHeight: 1.1 }}>
+                    Olá, {user?.name ? user.name.split(' ')[0] : 'Cliente'}
+                  </p>
+                  <p style={{ fontSize: '0.7rem', color: theme.textMuted }}>O que vamos resolver hoje?</p>
                 </div>
-                <Link href="/client/profile" style={{ fontSize: '0.8rem', fontWeight: 700, color: '#FF7A00', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  Ver detalhes completos <Icon name="arrowRight" size={12} />
-                </Link>
-              </motion.div>
-
-              <div className="panorama-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
-
-                {/* últimos serviços contratados */}
-                <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.04 }}
-                  style={{ background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, borderRadius: 16, padding: 20 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                    <div style={{ width: 32, height: 32, borderRadius: 9, background: 'rgba(34,211,27,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Icon name="checkCircle" size={16} color="#22D31B" />
-                    </div>
-                    <p style={{ fontWeight: 800, fontSize: '0.85rem', color: theme.text }}>Últimos serviços</p>
-                  </div>
-                  {panoramaLoading ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {[0, 1, 2].map(i => <div key={i} style={{ height: 34, borderRadius: 8, background: theme.line, opacity: 0.5 }} />)}
-                    </div>
-                  ) : lastServices.length === 0 ? (
-                    <p style={{ fontSize: '0.78rem', color: theme.textMuted }}>Você ainda não contratou nenhum serviço.</p>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {lastServices.map(o => (
-                        <div key={o.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                          <div style={{ minWidth: 0 }}>
-                            <p style={{ fontSize: '0.78rem', fontWeight: 700, color: theme.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.service_title}</p>
-                            <p style={{ fontSize: '0.68rem', color: theme.textMuted }}>{formatDate(o.created_at)}</p>
-                          </div>
-                          <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#FF7A00', flexShrink: 0 }}>{formatCurrency(o.price)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </motion.div>
-
-                {/* total gasto */}
-                <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.09 }}
-                  style={{ background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, borderRadius: 16, padding: 20, display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                    <div style={{ width: 32, height: 32, borderRadius: 9, background: 'rgba(255,122,0,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Icon name="trendingUp" size={16} color="#FF7A00" />
-                    </div>
-                    <p style={{ fontWeight: 800, fontSize: '0.85rem', color: theme.text }}>Total investido</p>
-                  </div>
-                  <p style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '1.9rem', color: theme.text, lineHeight: 1 }}>
-                    {panoramaLoading ? '···' : formatCurrency(totalGasto)}
-                  </p>
-                  <p style={{ fontSize: '0.72rem', color: theme.textMuted, marginTop: 8 }}>
-                    em {recentOrders.filter(o => o.status === 'completed').length} serviço{recentOrders.filter(o => o.status === 'completed').length !== 1 ? 's' : ''} concluído{recentOrders.filter(o => o.status === 'completed').length !== 1 ? 's' : ''}
-                  </p>
-                </motion.div>
-
-                {/* saldo de folhas */}
-                <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.14 }}
-                  style={{ position: 'relative', overflow: 'hidden', borderRadius: 16, padding: 20, background: 'linear-gradient(135deg, #1B5E20, #2E7D32 55%, #22D31B)', color: '#fff' }}>
-                  <svg width="90" height="90" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1" style={{ position: 'absolute', right: -14, bottom: -14, opacity: 0.14 }}>
-                    <path d="M5 21c0-9 6-15 15-15-1 9-7 15-15 15z" /><path d="M5 21c3-3 6-6 9-9" />
-                  </svg>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                    <div style={{ width: 32, height: 32, borderRadius: 9, background: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Icon name="leaf" size={16} color="#fff" />
-                    </div>
-                    <p style={{ fontWeight: 800, fontSize: '0.85rem' }}>Saldo de Folhas</p>
-                  </div>
-                  <p style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '1.9rem', lineHeight: 1, position: 'relative' }}>
-                    {panoramaLoading ? '···' : <AnimatedCounter target={folhasBalance} />} <span style={{ fontSize: '1rem', opacity: 0.85 }}>folhas</span>
-                  </p>
-                  <p style={{ fontSize: '0.74rem', opacity: 0.9, marginTop: 8, position: 'relative' }}>
-                    ≈ {formatCurrency(folhasDesconto)} em desconto já garantido em cupons
-                  </p>
-                </motion.div>
-
               </div>
-            </div>
 
-            <style>{`@media (max-width: 900px) { .panorama-grid { grid-template-columns: 1fr !important; } }`}</style>
-          </section>
-        )}
+              {/* Controles da Navbar */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                {/* Saldo de Folhas rápido */}
+                <Link
+                  href="/client/profile"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    background: 'rgba(34,211,27,0.12)',
+                    border: '1px solid rgba(34,211,27,0.3)',
+                    borderRadius: 999,
+                    padding: '6px 14px',
+                    textDecoration: 'none',
+                    color: '#22D31B',
+                    fontWeight: 800,
+                    fontSize: '0.78rem',
+                  }}
+                >
+                  <Icon name="leaf" size={14} color="#22D31B" />
+                  <span>{folhasBalance} Folhas</span>
+                </Link>
 
-        {/* ══════════════════════════════════════════════════════════════ */}
-        {/* ── SERVIÇOS — grid de categorias ────────────────────────────── */}
-        {/* ══════════════════════════════════════════════════════════════ */}
-        <section id="servicos" style={{ background: theme.bgAlt, padding: '80px 0', transition: 'background 0.4s' }}>
-          <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
-            <div style={{ textAlign: 'center', marginBottom: 48 }}>
-              <div className="eyebrow" style={{ justifyContent: 'center' }}>categorias</div>
-              <h2 style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '2.3rem', letterSpacing: '-0.02em', marginBottom: 10 }}>
-                O que você <span style={{ color: '#FF7A00', fontStyle: 'italic' }}>precisa</span> hoje?
-              </h2>
-              <p style={{ color: theme.textMuted, fontSize: '0.95rem' }}>Toque em qualquer categoria e encontre quem pode ajudar agora.</p>
-            </div>
+                {/* Alternar Tema */}
+                <button
+                  onClick={globalToggleTheme}
+                  style={{ width: 38, height: 38, borderRadius: '50%', background: 'transparent', border: `1px solid ${theme.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+                  aria-label="Alternar tema"
+                >
+                  <Icon name={colors.darkMode ? 'sun' : 'moon'} size={16} color={theme.mono} />
+                </button>
 
-            <div className="cats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(210px, 1fr))', gap: 14 }}>
-              {CATEGORIES.map((c, i) => (
-                <motion.div key={c.name} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }} viewport={{ once: true }}>
-                  <Link href="/register" className="cat-pill">
-                    <img src={c.img} alt={c.name} />
-                    <span className="cat-pill-title">{c.name}</span>
-                    <span className="cat-pill-subtitle">{c.description}</span>
-                  </Link>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ══════════════════════════════════════════════════════════════ */}
-        {/* ── COMO FUNCIONA — timeline horizontal ──────────────────────── */}
-        {/* ══════════════════════════════════════════════════════════════ */}
-        <section id="como-funciona" style={{ background: theme.bg, padding: '88px 0', transition: 'background 0.4s' }}>
-          <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px' }}>
-            <div style={{ textAlign: 'center', marginBottom: 64 }}>
-              <div className="eyebrow" style={{ justifyContent: 'center' }}>o processo</div>
-              <h2 style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '2.3rem', letterSpacing: '-0.02em' }}>
-                Do pedido ao <span style={{ color: '#FF7A00', fontStyle: 'italic' }}>serviço pronto</span>
-              </h2>
-            </div>
-
-            <div className="how-row" style={{ display: 'flex', alignItems: 'flex-start', gap: 0 }}>
-              {HOW_STEPS.map((s, i) => (
-                <>
-                  <motion.div
-                    key={s.n}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.13 }}
-                    viewport={{ once: true }}
-                    style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '0 16px' }}
+                {/* Avatar do Usuário com Dropdown */}
+                <div style={{ position: 'relative' }}>
+                  <button
+                    onClick={() => setProfileOpen(v => !v)}
+                    style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, #FF7A00, #FF9A33)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, boxShadow: '0 4px 14px rgba(255,122,0,0.25)' }}
+                    aria-label="Menu do perfil"
                   >
-                    <motion.div
-                      whileHover={{ scale: 1.08, rotate: -4 }}
-                      style={{ width: 72, height: 72, borderRadius: 20, background: i % 2 === 0 ? 'rgba(255,122,0,0.1)' : 'rgba(34,211,27,0.1)', border: `2px solid ${i % 2 === 0 ? 'rgba(255,122,0,0.3)' : 'rgba(34,211,27,0.3)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18 }}
-                    >
-                      <Icon name={s.icon} size={28} color={i % 2 === 0 ? '#FF7A00' : '#22D31B'} />
-                    </motion.div>
-                    <span style={{ fontFamily: 'var(--mono)', fontSize: '0.68rem', fontWeight: 700, color: i % 2 === 0 ? '#FF7A00' : '#22D31B', letterSpacing: '0.1em', marginBottom: 8, display: 'block' }}>{s.n}</span>
-                    <h3 style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '1.1rem', marginBottom: 10, color: theme.text }}>{s.title}</h3>
-                    <p style={{ fontSize: '0.87rem', color: theme.textMuted, lineHeight: 1.68, maxWidth: 260 }}>{s.body}</p>
-                  </motion.div>
-                  {i < HOW_STEPS.length - 1 && (
-                    <div className="steps-connector" style={{ flex: '0 0 auto', display: 'flex', alignItems: 'flex-start', paddingTop: 34 }}>
-                      <svg width="60" height="28" viewBox="0 0 60 28">
-                        <path d="M0 14 Q30 0 60 14" stroke={`${theme.orange}55`} strokeWidth="1.5" strokeDasharray="3 4" fill="none" />
-                        <circle cx="60" cy="14" r="3" fill={theme.orange} opacity="0.5" />
-                      </svg>
-                    </div>
-                  )}
-                </>
-              ))}
-            </div>
+                    <span style={{ width: 34, height: 34, borderRadius: '50%', background: '#173C17', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.78rem', border: '2px solid #fff' }}>
+                      {getInitials(user?.name || 'Cliente')}
+                    </span>
+                  </button>
 
-            <div style={{ textAlign: 'center', marginTop: 56 }}>
-              <Link href="/register" className="btn-primary" style={{ fontSize: '0.95rem' }}>
-                Quero começar agora <Icon name="arrowRight" size={16} className="arrow-icon" />
+                  <AnimatePresence>
+                    {profileOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                        transition={{ duration: 0.18 }}
+                        style={{ position: 'absolute', top: 52, right: 0, width: 250, background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, borderRadius: 16, padding: 16, zIndex: 220, boxShadow: '0 16px 40px rgba(0,0,0,0.18)' }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 12, borderBottom: `1px solid ${theme.line}` }}>
+                          <span style={{ width: 38, height: 38, borderRadius: '50%', background: '#FF7A00', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>
+                            {getInitials(user?.name || 'Cliente')}
+                          </span>
+                          <div style={{ minWidth: 0 }}>
+                            <p style={{ fontSize: '0.85rem', fontWeight: 800, color: theme.text, lineHeight: 1.1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {user?.name || 'Cliente MoviPay'}
+                            </p>
+                            <p style={{ fontSize: '0.7rem', color: theme.textMuted, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {user?.email || 'conta@movipay.com'}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div style={{ paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          <Link href="/client/profile" onClick={() => setProfileOpen(false)} style={{ textDecoration: 'none', color: theme.text, fontSize: '0.8rem', fontWeight: 700, padding: '8px 10px', borderRadius: 8, background: 'transparent' }}>👤 Meu Perfil</Link>
+                          <Link href="/client/orders" onClick={() => setProfileOpen(false)} style={{ textDecoration: 'none', color: theme.text, fontSize: '0.8rem', fontWeight: 700, padding: '8px 10px', borderRadius: 8, background: 'transparent' }}>🛒 Meus Pedidos</Link>
+                          <Link href="/client/quotes" onClick={() => setProfileOpen(false)} style={{ textDecoration: 'none', color: theme.text, fontSize: '0.8rem', fontWeight: 700, padding: '8px 10px', borderRadius: 8, background: 'transparent' }}>📋 Orçamentos</Link>
+                          <Link href="/client/services" onClick={() => setProfileOpen(false)} style={{ textDecoration: 'none', color: theme.text, fontSize: '0.8rem', fontWeight: 700, padding: '8px 10px', borderRadius: 8, background: 'transparent' }}>🔍 Buscar Serviços</Link>
+                          <button onClick={() => { setProfileOpen(false); logout(); }} style={{ marginTop: 6, width: '100%', padding: '9px 10px', borderRadius: 8, border: `1px solid ${theme.line}`, background: 'rgba(255,122,0,0.08)', color: '#FF7A00', cursor: 'pointer', fontWeight: 800, fontSize: '0.78rem' }}>
+                            Sair da conta
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+
+            </div>
+          </nav>
+
+          {/* ══════════════════════════════════════════════════════════════ */}
+          {/* ── HERO SECTION: MAPA À ESQUERDA & INFORMAÇÕES À DIREITA ───── */}
+          {/* ══════════════════════════════════════════════════════════════ */}
+          <section style={{ position: 'relative', overflow: 'hidden', padding: '36px 24px 64px' }}>
+            <ParticleField themeColors={colors} />
+
+            {/* Halos Neon de Fundo */}
+            <div style={{ position: 'absolute', top: '15%', left: '5%', width: 380, height: 380, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,122,0,0.15), transparent 70%)', filter: 'blur(40px)', pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', top: '30%', right: '10%', width: 380, height: 380, borderRadius: '50%', background: 'radial-gradient(circle, rgba(34,211,27,0.12), transparent 70%)', filter: 'blur(40px)', pointerEvents: 'none' }} />
+
+            <div style={{ position: 'relative', zIndex: 2 }}>
+              {/* O NOVO LAYOUT HARMONIOSO: MAPA À ESQUERDA, INFO À DIREITA */}
+              <OrganicRadarMap
+                themeColors={colors}
+                selectedCategory={selectedMapCategory}
+                onSelectCategory={setSelectedMapCategory}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                onSearchSubmit={handleSearchSubmit}
+              />
+            </div>
+          </section>
+
+          {/* Ticker de Atividade ao Vivo */}
+          <LiveActivityTicker theme={theme} />
+
+          {/* ══════════════════════════════════════════════════════════════ */}
+          {/* ── PANORAMA DO CLIENTE (FOLHAS, GASTOS & RECOMPENSAS) ──────── */}
+          {/* ══════════════════════════════════════════════════════════════ */}
+          <section style={{ padding: '56px 24px', maxWidth: 1200, margin: '0 auto' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+              <div>
+                <div className="eyebrow" style={{ marginBottom: 6 }}>seu panorama</div>
+                <h2 style={{ fontFamily: 'var(--display)', fontWeight: 800, fontSize: '1.8rem', letterSpacing: '-0.02em' }}>
+                  Resumo da sua conta
+                </h2>
+              </div>
+              <Link href="/client/profile" style={{ fontSize: '0.84rem', fontWeight: 700, color: '#FF7A00', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                Ver perfil completo <Icon name="arrowRight" size={14} />
               </Link>
             </div>
-          </div>
-        </section>
 
-        {/* ══════════════════════════════════════════════════════════════ */}
-        {/* ── VANTAGENS — 2×2 grid de benefícios ──────────────────────── */}
-        {/* ══════════════════════════════════════════════════════════════ */}
-        <section style={{ background: theme.bgAlt2, padding: '84px 0', transition: 'background 0.4s' }}>
-          <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px' }}>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 52, alignItems: 'flex-start' }}>
-              {/* left — headline */}
-              <motion.div style={{ flex: '0 1 340px' }} initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
-                <div className="eyebrow">por que aqui</div>
-                <h2 style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '2.3rem', letterSpacing: '-0.02em', lineHeight: 1.1, marginBottom: 18 }}>
-                  A plataforma que<br /><span style={{ color: '#FF7A00', fontStyle: 'italic' }}>trabalha por você</span>
-                </h2>
-                <p style={{ fontSize: '0.93rem', color: theme.textMuted, lineHeight: 1.7, marginBottom: 28 }}>
-                  Segurança, velocidade e transparência em cada pedido. Sem surpresas, sem burocracia.
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 18, marginBottom: 28 }}>
+
+              {/* Saldo de Folhas */}
+              <motion.div
+                initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+                style={{
+                  position: 'relative',
+                  overflow: 'hidden',
+                  borderRadius: 20,
+                  padding: 24,
+                  background: 'linear-gradient(135deg, #1B5E20 0%, #2E7D32 50%, #22D31B 100%)',
+                  color: '#fff',
+                  boxShadow: '0 12px 30px rgba(34,211,27,0.22)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon name="leaf" size={18} color="#fff" />
+                  </div>
+                  <p style={{ fontWeight: 800, fontSize: '0.9rem' }}>Saldo de Folhas</p>
+                </div>
+                <p style={{ fontFamily: 'var(--display)', fontWeight: 800, fontSize: '2.2rem', lineHeight: 1 }}>
+                  {panoramaLoading ? '···' : <AnimatedCounter target={folhasBalance} />} <span style={{ fontSize: '1.1rem', opacity: 0.9 }}>🍃</span>
                 </p>
-                <Link href="/register" className="btn-primary" style={{ fontSize: '0.88rem', padding: '12px 22px' }}>
-                  Criar conta grátis <Icon name="arrowRight" size={14} className="arrow-icon" />
-                </Link>
+                <p style={{ fontSize: '0.78rem', opacity: 0.95, marginTop: 8 }}>
+                  ≈ {formatCurrency(folhasDesconto)} garantidos em cupons de desconto
+                </p>
               </motion.div>
 
-              {/* right — 2×2 benefits */}
-              <div className="benefits-grid" style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                {BENEFITS.map((b, i) => (
-                  <motion.div key={b.title} className="benefit-card" initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }} viewport={{ once: true }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 12, background: b.accent + '14', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
-                      <Icon name={b.icon} size={20} color={b.accent} />
+              {/* Total Investido */}
+              <motion.div
+                initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.08 }}
+                style={{
+                  background: theme.cardBg,
+                  border: `1.5px solid ${theme.cardBorder}`,
+                  borderRadius: 20,
+                  padding: 24,
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.05)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(255,122,0,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon name="trendingUp" size={18} color="#FF7A00" />
+                  </div>
+                  <p style={{ fontWeight: 800, fontSize: '0.9rem', color: theme.text }}>Total investido</p>
+                </div>
+                <p style={{ fontFamily: 'var(--display)', fontWeight: 800, fontSize: '2.2rem', color: theme.text, lineHeight: 1 }}>
+                  {panoramaLoading ? '···' : formatCurrency(totalGasto)}
+                </p>
+                <p style={{ fontSize: '0.78rem', color: theme.textMuted, marginTop: 8 }}>
+                  em {recentOrders.filter(o => o.status === 'completed').length} serviço{recentOrders.filter(o => o.status === 'completed').length !== 1 ? 's' : ''} concluído{recentOrders.filter(o => o.status === 'completed').length !== 1 ? 's' : ''}
+                </p>
+              </motion.div>
+
+              {/* Últimos Serviços */}
+              <motion.div
+                initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.16 }}
+                style={{
+                  background: theme.cardBg,
+                  border: `1.5px solid ${theme.cardBorder}`,
+                  borderRadius: 20,
+                  padding: 24,
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.05)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(34,211,27,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon name="checkCircle" size={18} color="#22D31B" />
+                  </div>
+                  <p style={{ fontWeight: 800, fontSize: '0.9rem', color: theme.text }}>Últimos pedidos</p>
+                </div>
+                {lastServices.length === 0 ? (
+                  <p style={{ fontSize: '0.8rem', color: theme.textMuted }}>Você ainda não possui pedidos recentes.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {lastServices.map(o => (
+                      <div key={o.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: theme.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.service_title}</span>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#FF7A00' }}>{formatCurrency(o.price)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+
+              {/* Nível da Comunidade */}
+              <motion.div
+                initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.24 }}
+                style={{
+                  background: theme.cardBg,
+                  border: `1.5px solid ${theme.cardBorder}`,
+                  borderRadius: 20,
+                  padding: 24,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 16,
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.05)',
+                }}
+              >
+                <div
+                  style={{
+                    position: 'relative', width: 64, height: 64, borderRadius: '50%', flexShrink: 0,
+                    background: `conic-gradient(#FF7A00 ${Math.min(100, folhasBalance % 100)}%, ${theme.line} 0)`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                >
+                  <div style={{ width: 50, height: 50, borderRadius: '50%', background: theme.cardBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+                    <span style={{ fontFamily: 'var(--display)', fontWeight: 800, fontSize: '1.1rem', color: theme.text, lineHeight: 1 }}>
+                      {Math.floor(folhasBalance / 100) + 1}
+                    </span>
+                    <span style={{ fontSize: '0.52rem', color: theme.textMuted, fontWeight: 800, textTransform: 'uppercase' }}>nível</span>
+                  </div>
+                </div>
+                <div>
+                  <p style={{ fontWeight: 800, fontSize: '0.9rem', color: theme.text }}>Formiga VIP 🐜</p>
+                  <p style={{ fontSize: '0.74rem', color: theme.textMuted, marginTop: 2 }}>
+                    Faltam {100 - (folhasBalance % 100)} folhas para o nível {Math.floor(folhasBalance / 100) + 2}
+                  </p>
+                </div>
+              </motion.div>
+
+            </div>
+
+            {/* BÔNUS DIÁRIO INTERATIVO */}
+            <DailyFolhasBonusCard
+              themeColors={colors}
+              onCollectBonus={handleAddDailyBonus}
+            />
+          </section>
+
+          {/* ══════════════════════════════════════════════════════════════ */}
+          {/* ── SIMULADOR DE ORÇAMENTO INSTANTÂNEO ──────────────────────── */}
+          {/* ══════════════════════════════════════════════════════════════ */}
+          <section style={{ padding: '0 24px 64px', maxWidth: 1200, margin: '0 auto' }}>
+            <InstantQuoteSimulator themeColors={colors} />
+          </section>
+
+          {/* ══════════════════════════════════════════════════════════════ */}
+          {/* ── SEUS PROFISSIONAIS FAVORITOS ────────────────────────────── */}
+          {/* ══════════════════════════════════════════════════════════════ */}
+          <section style={{ padding: '0 24px 64px', maxWidth: 1200, margin: '0 auto' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+              <div>
+                <div className="eyebrow" style={{ marginBottom: 6 }}>profissionais salvos</div>
+                <h2 style={{ fontFamily: 'var(--display)', fontWeight: 800, fontSize: '1.8rem', letterSpacing: '-0.02em' }}>
+                  Seus Favoritos de Confiança
+                </h2>
+              </div>
+              <Link href="/client/workers" style={{ fontSize: '0.84rem', fontWeight: 700, color: '#FF7A00', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                Explorar todos os profissionais <Icon name="arrowRight" size={14} />
+              </Link>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 16 }}>
+              {favorites.map(w => (
+                <motion.div
+                  key={w.id}
+                  whileHover={{ y: -4 }}
+                  style={{
+                    background: theme.cardBg,
+                    border: `1.5px solid ${theme.cardBorder}`,
+                    borderRadius: 18,
+                    padding: 18,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.05)',
+                  }}
+                >
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#FF7A00', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        {w.role}
+                      </span>
+                      <button
+                        onClick={() => toggleFavorite(w.id)}
+                        style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#FF3B5C' }}
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                        </svg>
+                      </button>
                     </div>
-                    <h3 style={{ fontWeight: 700, fontSize: '0.96rem', marginBottom: 8, color: theme.text }}>{b.title}</h3>
-                    <p style={{ fontSize: '0.83rem', color: theme.textMuted, lineHeight: 1.65 }}>{b.body}</p>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                      <img src={w.photo} alt={w.name} style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', border: '2px solid #FF7A00' }} />
+                      <div>
+                        <h4 style={{ fontSize: '0.96rem', fontWeight: 800, color: theme.text }}>{w.name} {w.emoji}</h4>
+                        <p style={{ fontSize: '0.75rem', color: theme.textMuted, marginTop: 2 }}>{w.specialty}</p>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.74rem', color: theme.textMuted, paddingTop: 10, borderTop: `1px solid ${theme.line}` }}>
+                      <span>⭐ {w.avg_rating} ({w.completed_jobs} serviços)</span>
+                      <span>📍 {w.distance_km} km</span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/client/workers/${w.profileId}`)}
+                      style={{
+                        flex: 1,
+                        border: 'none',
+                        borderRadius: 10,
+                        background: 'linear-gradient(135deg, #FF7A00, #FF9A33)',
+                        color: '#fff',
+                        fontWeight: 800,
+                        fontSize: '0.76rem',
+                        padding: '9px 10px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Pedir Serviço
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/client/chat?worker=${w.profileId}`)}
+                      style={{
+                        border: `1.5px solid ${theme.line}`,
+                        borderRadius: 10,
+                        background: 'transparent',
+                        color: theme.text,
+                        fontWeight: 700,
+                        fontSize: '0.76rem',
+                        padding: '9px 12px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      💬
+                    </button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </section>
+
+          {/* ══════════════════════════════════════════════════════════════ */}
+          {/* ── CATEGORIAS DE SERVIÇOS ──────────────────────────────────── */}
+          {/* ══════════════════════════════════════════════════════════════ */}
+          <section id="servicos" style={{ background: theme.bgAlt, padding: '72px 24px', transition: 'background 0.4s' }}>
+            <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+              <div style={{ textAlign: 'center', marginBottom: 44 }}>
+                <div className="eyebrow" style={{ justifyContent: 'center' }}>todas as categorias</div>
+                <h2 style={{ fontFamily: 'var(--display)', fontWeight: 800, fontSize: '2.2rem', letterSpacing: '-0.02em', marginBottom: 8 }}>
+                  O que você precisa resolver hoje?
+                </h2>
+                <p style={{ color: theme.textMuted, fontSize: '0.95rem' }}>Profissionais verificados e com garantia em todas as áreas.</p>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
+                {CATEGORIES.map((c, i) => (
+                  <motion.div key={c.name} initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} viewport={{ once: true }}>
+                    <Link href={`/client/services?category=${c.name.toLowerCase()}`} className="cat-card-item">
+                      <img src={c.img} alt={c.name} />
+                      <span style={{ fontSize: '0.9rem', fontWeight: 800, color: theme.text }}>{c.name}</span>
+                      <span style={{ fontSize: '0.72rem', color: theme.textMuted, lineHeight: 1.4 }}>{c.description}</span>
+                    </Link>
                   </motion.div>
                 ))}
               </div>
             </div>
-          </div>
-        </section>
+          </section>
 
-        {/* ═══════════════════════════════════════════════════ */}
-        {/* ── DEPOIMENTOS ──────────────────────────────────────────────── */}
-        {/* ══════════════════════════════════════════════════════════════ */}
-        <section id="depoimentos" style={{ background: theme.bg, padding: '84px 0', transition: 'background 0.4s' }}>
-          <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px' }}>
-            <div style={{ textAlign: 'center', marginBottom: 52 }}>
-              <div className="eyebrow" style={{ justifyContent: 'center' }}>quem usa</div>
-              <h2 style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '2.3rem', letterSpacing: '-0.02em' }}>
-                A comunidade <span style={{ color: '#22D31B', fontStyle: 'italic' }}>fala</span>
-              </h2>
-            </div>
+          {/* ══════════════════════════════════════════════════════════════ */}
+          {/* ── COMO FUNCIONA ───────────────────────────────────────────── */}
+          {/* ══════════════════════════════════════════════════════════════ */}
+          <section style={{ padding: '80px 24px', maxWidth: 1100, margin: '0 auto', textAlign: 'center' }}>
+            <div className="eyebrow" style={{ justifyContent: 'center' }}>fluxo simples</div>
+            <h2 style={{ fontFamily: 'var(--display)', fontWeight: 800, fontSize: '2.2rem', letterSpacing: '-0.02em', marginBottom: 50 }}>
+              Do pedido ao serviço pronto em 3 passos
+            </h2>
 
-            <div className="test-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 18 }}>
-              {TESTIMONIALS.map((t, i) => (
-                <motion.div key={t.name} className="testimonial-card" initial={{ opacity: 0, scale: 0.94 }} whileInView={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.1 }} viewport={{ once: true }}>
-                  <div style={{ display: 'flex', gap: 2 }}>
-                    {Array.from({ length: t.rating }).map((_, j) => <Icon key={j} name="star" size={13} color="#FF7A00" />)}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 24 }}>
+              {HOW_STEPS.map((s, i) => (
+                <motion.div
+                  key={s.n}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.12 }}
+                  viewport={{ once: true }}
+                  style={{
+                    background: theme.cardBg,
+                    border: `1.5px solid ${theme.cardBorder}`,
+                    borderRadius: 20,
+                    padding: '30px 20px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                  }}
+                >
+                  <div style={{ width: 64, height: 64, borderRadius: 18, background: i % 2 === 0 ? 'rgba(255,122,0,0.12)' : 'rgba(34,211,27,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18 }}>
+                    <Icon name={s.icon} size={28} color={i % 2 === 0 ? '#FF7A00' : '#22D31B'} />
                   </div>
-                  <p style={{ fontSize: '0.9rem', color: theme.textMuted, lineHeight: 1.72, flex: 1 }}>"{t.text}"</p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 11, paddingTop: 12, borderTop: `1px solid ${theme.line}` }}>
-                    <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg, #FF7A00, #22D31B)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.9rem', color: '#fff', flexShrink: 0 }}>
-                      {t.avatar}
-                    </div>
-                    <div>
-                      <p style={{ fontWeight: 700, fontSize: '0.85rem', color: theme.text }}>{t.name}</p>
-                      <p style={{ fontSize: '0.72rem', color: theme.textMuted, marginTop: 2 }}>{t.role}</p>
-                    </div>
-                  </div>
+                  <span style={{ fontFamily: 'var(--mono)', fontSize: '0.72rem', fontWeight: 800, color: i % 2 === 0 ? '#FF7A00' : '#22D31B', marginBottom: 8 }}>{s.n}</span>
+                  <h3 style={{ fontFamily: 'var(--display)', fontWeight: 800, fontSize: '1.15rem', color: theme.text, marginBottom: 8 }}>{s.title}</h3>
+                  <p style={{ fontSize: '0.85rem', color: theme.textMuted, lineHeight: 1.6 }}>{s.body}</p>
                 </motion.div>
               ))}
             </div>
-          </div>
-        </section>
+          </section>
 
-        {/* ══════════════════════════════════════════════════════════════ */}
-        {/* ── CTA FINAL — dark/orange band ──────────────────────────────── */}
-        {/* ══════════════════════════════════════════════════════════════ */}
-        <section style={{ background: '#FF7A00', padding: '20px 24px', position: 'relative', overflow: 'hidden' }}>
-          {/* subtle pattern */}
-          <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.07, pointerEvents: 'none' }} xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="ctaDots" x="0" y="0" width="28" height="28" patternUnits="userSpaceOnUse">
-                <circle cx="2" cy="2" r="1.5" fill="#fff" />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#ctaDots)" />
-          </svg>
+          {/* ══════════════════════════════════════════════════════════════ */}
+          {/* ── DEPOIMENTOS DA COMUNIDADE ───────────────────────────────── */}
+          {/* ══════════════════════════════════════════════════════════════ */}
+          <section style={{ background: theme.bgAlt2, padding: '72px 24px', transition: 'background 0.4s' }}>
+            <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+              <div style={{ textAlign: 'center', marginBottom: 44 }}>
+                <div className="eyebrow" style={{ justifyContent: 'center' }}>quem usa aprova</div>
+                <h2 style={{ fontFamily: 'var(--display)', fontWeight: 800, fontSize: '2.2rem', letterSpacing: '-0.02em' }}>
+                  A comunidade MoviPay recomenda
+                </h2>
+              </div>
 
-          <motion.div
-            style={{ maxWidth: 680, margin: '0 auto', textAlign: 'center', position: 'relative', zIndex: 1 }}
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
+                {TESTIMONIALS.map((t, i) => (
+                  <motion.div
+                    key={t.name}
+                    initial={{ opacity: 0, y: 15 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                    viewport={{ once: true }}
+                    style={{
+                      background: theme.cardBg,
+                      border: `1.5px solid ${theme.cardBorder}`,
+                      borderRadius: 18,
+                      padding: 24,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      gap: 16,
+                    }}
+                  >
+                    <div style={{ display: 'flex', gap: 2 }}>
+                      {Array.from({ length: t.rating }).map((_, j) => <Icon key={j} name="star" size={14} color="#FF7A00" />)}
+                    </div>
+                    <p style={{ fontSize: '0.88rem', color: theme.textMuted, lineHeight: 1.7, flex: 1 }}>"{t.text}"</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 12, borderTop: `1px solid ${theme.line}` }}>
+                      <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg, #FF7A00, #22D31B)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.9rem', color: '#fff', flexShrink: 0 }}>
+                        {t.avatar}
+                      </div>
+                      <div>
+                        <p style={{ fontWeight: 800, fontSize: '0.86rem', color: theme.text }}>{t.name}</p>
+                        <p style={{ fontSize: '0.72rem', color: theme.textMuted }}>{t.role}</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* ══════════════════════════════════════════════════════════════ */}
+          {/* ── CENTRAL DE VANTAGENS, SUPORTE 24H & INDIQUE UM AMIGO ───── */}
+          {/* ══════════════════════════════════════════════════════════════ */}
+          <section style={{ padding: '64px 24px', maxWidth: 1200, margin: '0 auto' }}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.98 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              style={{
+                position: 'relative',
+                overflow: 'hidden',
+                borderRadius: 28,
+                background: 'linear-gradient(135deg, #FF7A00 0%, #FF9A33 60%, #22D31B 100%)',
+                color: '#fff',
+                padding: '48px 36px',
+                boxShadow: '0 20px 50px rgba(255,122,0,0.3)',
+              }}
+            >
+              <div style={{ position: 'absolute', right: -30, bottom: -30, opacity: 0.15, pointerEvents: 'none' }}>
+                <img src="/img/logo.png" alt="" style={{ width: 260, height: 260, filter: 'brightness(0) invert(1)' }} />
+              </div>
+
+              <div style={{ position: 'relative', zIndex: 2, maxWidth: 680 }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(0,0,0,0.25)', padding: '6px 14px', borderRadius: 999, fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 16 }}>
+                  <span>🍃</span> CLUBE DE VANTAGENS MOVIPAY
+                </div>
+
+                <h2 style={{ fontFamily: 'var(--display)', fontWeight: 800, fontSize: 'clamp(1.8rem, 4vw, 2.6rem)', lineHeight: 1.1, marginBottom: 12 }}>
+                  Indique amigos e ganhe 50 Folhas de bônus por indicação!
+                </h2>
+
+                <p style={{ fontSize: '0.98rem', opacity: 0.95, lineHeight: 1.6, marginBottom: 28 }}>
+                  Compartilhe seu link exclusivo. Assim que seu amigo concluir o primeiro serviço, ambos ganham 50 Folhas direto na carteira para usar como desconto real.
+                </p>
+
+                <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+                  {/* Botão Copiar Link */}
+                  <button
+                    type="button"
+                    onClick={handleCopyReferral}
+                    style={{
+                      background: '#fff',
+                      color: '#FF7A00',
+                      fontWeight: 800,
+                      borderRadius: 12,
+                      padding: '14px 26px',
+                      fontSize: '0.92rem',
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      boxShadow: '0 6px 20px rgba(0,0,0,0.18)',
+                      transition: 'transform 0.2s',
+                    }}
+                  >
+                    {referralCopied ? (
+                      <>
+                        <Icon name="checkCircle" size={18} color="#22D31B" />
+                        <span>Link Copiado com Sucesso!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Icon name="sparkle" size={18} color="#FF7A00" />
+                        <span>Copiar Meu Link de Indicação</span>
+                      </>
+                    )}
+                  </button>
+
+                  {/* Botão Compartilhar WhatsApp */}
+                  <button
+                    type="button"
+                    onClick={handleShareWhatsApp}
+                    style={{
+                      background: '#25D366',
+                      color: '#fff',
+                      fontWeight: 800,
+                      borderRadius: 12,
+                      padding: '14px 24px',
+                      fontSize: '0.92rem',
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      boxShadow: '0 6px 20px rgba(37,211,102,0.3)',
+                    }}
+                  >
+                    <span>💬 Compartilhar no WhatsApp</span>
+                  </button>
+
+                  {/* Botão Suporte / Ajuda 24h */}
+                  <Link
+                    href="/client/chat"
+                    style={{
+                      background: 'rgba(0,0,0,0.22)',
+                      color: '#fff',
+                      fontWeight: 700,
+                      borderRadius: 12,
+                      padding: '14px 22px',
+                      fontSize: '0.92rem',
+                      border: '1.5px solid rgba(255,255,255,0.4)',
+                      textDecoration: 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 8,
+                    }}
+                  >
+                    <Icon name="phone" size={16} color="#fff" />
+                    <span>Suporte 24h & Ajuda</span>
+                  </Link>
+                </div>
+              </div>
+            </motion.div>
+          </section>
+
+          {/* ══════════════════════════════════════════════════════════════ */}
+          {/* ── FOOTER COM O CAMINHÃOZINHO COLETOR DE FOLHAS ────────────── */}
+          {/* ══════════════════════════════════════════════════════════════ */}
+          <footer
+            style={{
+              position: 'relative',
+              background: theme.bgAlt,
+              borderTop: `1.5px solid ${theme.line}`,
+              padding: '46px 24px 50px',
+              transition: 'background 0.4s',
+              overflow: 'hidden',
+              zIndex: 10,
+            }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <img src="/img/logo.png" alt="" style={{ width: 120, height: 120, borderRadius: '50%', marginBottom: 0, filter: 'brightness(0) invert(1)', opacity: 0.9 }} />
-            </div>
-            <h2 style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '2.5rem', color: '#fff', letterSpacing: '-0.025em', lineHeight: 1.1, marginBottom: 14 }}>
-              Seu próximo serviço a<br />um toque de distância.
-            </h2>
-            <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '1.02rem', marginBottom: 34, lineHeight: 1.65 }}>
-              Grátis para buscar, contratar e avaliar. Sem mensalidade, sem letra miúda.
-            </p>
-            <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Link href="/register" style={{ background: '#fff', color: '#FF7A00', fontWeight: 800, borderRadius: 6, padding: '14px 30px', fontSize: '0.95rem', display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none', transition: 'transform 0.2s, box-shadow 0.2s' }}
-                onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
-                onMouseLeave={e => e.currentTarget.style.transform = 'none'}
-              >
-                Criar conta grátis <Icon name="arrowRight" size={16} color="#FF7A00" />
-              </Link>
-              <Link href="/login" style={{ background: 'rgba(255,255,255,0.18)', color: '#fff', fontWeight: 700, borderRadius: 6, padding: '14px 28px', fontSize: '0.95rem', display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none', border: '1.5px solid rgba(255,255,255,0.4)', transition: 'background 0.2s' }}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.28)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.18)'}
-              >
-                Já tenho conta
-              </Link>
-            </div>
-          </motion.div>
-        </section>
+            {/* O CAMINHÃOZINHO 60FPS QUE ASPIRA AS FOLHAS DO FOOTER */}
+            <FooterLeafPile />
 
-        {/* ── FOOTER ────────────────────────────────────────────────────── */}
-        <footer style={{ background: theme.bgAlt, borderTop: `1px solid ${theme.line}`, padding: '28px 24px', transition: 'background 0.4s' }}>
-          <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-              <img src="/img/logo.png" alt="MoviPay" style={{ width: 24, height: 24, borderRadius: '50%' }} />
-              <span style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '0.92rem' }}>
-                <span style={{ color: '#FF7A00' }}>Movi</span><span style={{ color: '#22D31B' }}>Pay</span>
-              </span>
-            </div>
-            <p style={{ fontFamily: 'var(--mono)', fontSize: '0.7rem', color: theme.textMuted }}>
-              © 2026 MoviPay — TCC ETEC Maria Cristina Medeiros
-            </p>
-            <div style={{ display: 'flex', gap: 18 }}>
-              {[{ href: '/register', l: 'Cadastrar' }, { href: '/login', l: 'Entrar' }].map(x => (
-                <Link key={x.href} href={x.href} style={{ fontSize: '0.8rem', color: theme.textMuted, textDecoration: 'none', fontWeight: 600 }}>{x.l}</Link>
-              ))}
-            </div>
-          </div>
-        </footer>
+            <div style={{ position: 'relative', zIndex: 10, maxWidth: 1200, margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <img src="/img/logo.png" alt="MoviPay" style={{ width: 30, height: 30, borderRadius: '50%' }} />
+                <span style={{ fontFamily: 'var(--display)', fontWeight: 800, fontSize: '1.1rem' }}>
+                  <span style={{ color: '#FF7A00' }}>Movi</span><span style={{ color: '#22D31B' }}>Pay</span>
+                </span>
+              </div>
 
+              <p style={{ fontFamily: 'var(--mono)', fontSize: '0.74rem', color: theme.textMuted }}>
+                © 2026 MoviPay — TCC ETEC Maria Cristina Medeiros · Área do Cliente
+              </p>
+
+              <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+                <Link href="/client/profile" style={{ fontSize: '0.82rem', color: theme.textMuted, textDecoration: 'none', fontWeight: 700 }}>
+                  Meu Perfil
+                </Link>
+                <Link href="/client/orders" style={{ fontSize: '0.82rem', color: theme.textMuted, textDecoration: 'none', fontWeight: 700 }}>
+                  Meus Pedidos
+                </Link>
+                <Link href="/client/quotes" style={{ fontSize: '0.82rem', color: theme.textMuted, textDecoration: 'none', fontWeight: 700 }}>
+                  Orçamentos
+                </Link>
+                <Link href="/client/services" style={{ fontSize: '0.82rem', color: theme.textMuted, textDecoration: 'none', fontWeight: 700 }}>
+                  Buscar Serviços
+                </Link>
+                <Link href="/client/chat" style={{ fontSize: '0.82rem', color: theme.textMuted, textDecoration: 'none', fontWeight: 700 }}>
+                  Suporte
+                </Link>
+              </div>
+            </div>
+          </footer>
+
+        </div>
       </div>
-    );
-  }
+    </LeafProvider>
+  );
+}
