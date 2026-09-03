@@ -1705,6 +1705,53 @@ export default function LandingPage() {
 
       </section>
 
+      {/* ── FLUXO SIMPLES ─────────────────────────────────────────────── */}
+      <section style={{ background: theme.bg, paddingTop: 96, paddingBottom: 96, position: 'relative', overflow: 'hidden', transition: 'background 0.4s' }}>
+        <div style={{ position: 'absolute', top: '20%', left: '8%', width: 240, height: 240, background: `radial-gradient(circle, ${theme.glowOrange} 0%, transparent 70%)`, borderRadius: '50%', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: '12%', right: '8%', width: 240, height: 240, background: `radial-gradient(circle, ${theme.glowGreen} 0%, transparent 70%)`, borderRadius: '50%', pointerEvents: 'none' }} />
+
+        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px', textAlign: 'center', position: 'relative', zIndex: 1 }}>
+          <div className="section-label" style={{ margin: '0 auto 16px' }}>fluxo simples</div>
+          <h2 style={{ fontWeight: 900, fontSize: '2.4rem', letterSpacing: '-0.03em', marginBottom: 12 }}>
+            Do pedido ao serviço pronto em <span style={{ color: '#22D31B' }}>3 passos</span>
+          </h2>
+          <p style={{ color: theme.textMuted, marginBottom: 52 }}>Tudo pensado para ser rápido, simples e confiável.</p>
+
+          <div className="grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 24 }}>
+            {[
+              { step: '01', icon: 'search', title: 'Busque', body: 'Descubra o serviço ideal na sua região em poucos segundos.', color: '#FF7A00' },
+              { step: '02', icon: 'clipboard', title: 'Contrate', body: 'Compare profissionais, veja avaliações e confirme em instantes.', color: '#FFB347' },
+              { step: '03', icon: 'star', title: 'Avalie', body: 'Finalize o serviço e ganhe pontos para descontos futuros.', color: '#22D31B' },
+            ].map((item, index) => (
+              <motion.div
+                key={item.step}
+                initial={{ opacity: 0, y: 22 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.12 }}
+                viewport={{ once: true }}
+                style={{
+                  background: theme.cardBg,
+                  border: `1px solid ${theme.cardBorder}`,
+                  borderRadius: 20,
+                  padding: 28,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  textAlign: 'center',
+                }}
+              >
+                <div style={{ width: 72, height: 72, borderRadius: 18, background: item.color === '#22D31B' ? 'rgba(34,211,27,0.12)' : 'rgba(255,122,0,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18 }}>
+                  <Icon name={item.icon} size={28} color={item.color} />
+                </div>
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.1em', color: item.color, marginBottom: 8 }}>{item.step}</span>
+                <h3 style={{ fontWeight: 800, fontSize: '1.15rem', marginBottom: 10 }}>{item.title}</h3>
+                <p style={{ fontSize: '0.88rem', color: theme.textMuted, lineHeight: 1.7, margin: 0 }}>{item.body}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── DEPOIMENTOS ───────────────────────────────────────────────── */}
       <section id="depoimentos" style={{ background: theme.bgAlt, paddingTop: 96, paddingBottom: 96, transition: 'background 0.4s' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>

@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence, useInView, useScroll, useTransform } from 'framer-motion';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import AvatarUpload from '@/components/ui/AvatarUpload';
@@ -503,9 +504,10 @@ function EditForm({ profile, form, onSave, onCancel, saving, theme, userMode }) 
 }
 
 /* ─── ACTIONS CARD ──────────────────────────────────────────────── */
-function ActionsCard({ user, switchMode, logout, theme }) {
+function ActionsCard({ user, switchMode, logout, theme, router }) {
   const actions = [
     { icon: 'swap', label: 'Trocar para trabalhador', desc: 'Ofereça seus serviços', onClick: () => switchMode('worker'), color: '#FF7A00', bg: 'rgba(255,122,0,0.1)' },
+    { icon: 'briefcase', label: 'Meus pedidos', desc: 'Acompanhe seus serviços', onClick: () => router.push('/client/orders'), color: '#22D31B', bg: 'rgba(34,211,27,0.1)' },
     { icon: 'settings', label: 'Configurações', desc: 'Privacidade e segurança', onClick: () => {}, color: '#3B82F6', bg: 'rgba(59,130,246,0.1)' },
     { icon: 'shield', label: 'Central de ajuda', desc: 'Dúvidas e suporte', onClick: () => {}, color: '#22D31B', bg: 'rgba(34,211,27,0.1)' },
   ];
@@ -546,6 +548,7 @@ function ActionsCard({ user, switchMode, logout, theme }) {
 /* ─── MAIN COMPONENT ────────────────────────────────────────────── */
 export default function ClientProfilePage() {
   const { user, logout, switchMode } = useAuth();
+  const router = useRouter();
   const toast = useToast();
   const { darkMode } = useTheme();
   const theme = getThemeColors(darkMode);
@@ -796,7 +799,7 @@ export default function ClientProfilePage() {
           )}
 
           {/* Actions */}
-          <ActionsCard user={user} switchMode={switchMode} logout={logout} theme={theme} />
+          <ActionsCard user={user} switchMode={switchMode} logout={logout} theme={theme} router={router} />
         </div>
 
         {/* Right column - Stats & Gamification */}

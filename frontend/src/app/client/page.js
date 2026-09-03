@@ -1512,56 +1512,6 @@ export default function ClientDashboardPage() {
           </section>
 
           {/* ══════════════════════════════════════════════════════════════ */}
-          {/* ── DEPOIMENTOS DA COMUNIDADE ───────────────────────────────── */}
-          {/* ══════════════════════════════════════════════════════════════ */}
-          <section style={{ background: theme.bgAlt2, padding: '72px 24px', transition: 'background 0.4s' }}>
-            <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-              <div style={{ textAlign: 'center', marginBottom: 44 }}>
-                <div className="eyebrow" style={{ justifyContent: 'center' }}>quem usa aprova</div>
-                <h2 style={{ fontFamily: 'var(--display)', fontWeight: 800, fontSize: '2.2rem', letterSpacing: '-0.02em' }}>
-                  A comunidade MoviPay recomenda
-                </h2>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
-                {TESTIMONIALS.map((t, i) => (
-                  <motion.div
-                    key={t.name}
-                    initial={{ opacity: 0, y: 15 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    viewport={{ once: true }}
-                    style={{
-                      background: theme.cardBg,
-                      border: `1.5px solid ${theme.cardBorder}`,
-                      borderRadius: 18,
-                      padding: 24,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                      gap: 16,
-                    }}
-                  >
-                    <div style={{ display: 'flex', gap: 2 }}>
-                      {Array.from({ length: t.rating }).map((_, j) => <Icon key={j} name="star" size={14} color="#FF7A00" />)}
-                    </div>
-                    <p style={{ fontSize: '0.88rem', color: theme.textMuted, lineHeight: 1.7, flex: 1 }}>"{t.text}"</p>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 12, borderTop: `1px solid ${theme.line}` }}>
-                      <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg, #FF7A00, #22D31B)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.9rem', color: '#fff', flexShrink: 0 }}>
-                        {t.avatar}
-                      </div>
-                      <div>
-                        <p style={{ fontWeight: 800, fontSize: '0.86rem', color: theme.text }}>{t.name}</p>
-                        <p style={{ fontSize: '0.72rem', color: theme.textMuted }}>{t.role}</p>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          {/* ══════════════════════════════════════════════════════════════ */}
           {/* ── CENTRAL DE VANTAGENS, SUPORTE 24H & INDIQUE UM AMIGO ───── */}
           {/* ══════════════════════════════════════════════════════════════ */}
           <section style={{ padding: '64px 24px', maxWidth: 1200, margin: '0 auto' }}>

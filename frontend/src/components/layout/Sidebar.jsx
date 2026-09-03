@@ -9,7 +9,6 @@ const clientLinks = [
   { href: '/client', icon: '🏠', label: 'Home' },
   { href: '/client/services', icon: '🔍', label: 'Serviços' },
   { href: '/client/quotes', icon: '📋', label: 'Orçamentos' },
-  { href: '/client/orders', icon: '🛒', label: 'Pedidos' },
   { href: '/client/chat', icon: '💬', label: 'Chat' },
   { href: '/client/profile', icon: '👤', label: 'Perfil' },
 ];
@@ -33,7 +32,7 @@ export default function Sidebar() {
   const { darkMode, highContrast } = useTheme();
   const isWorker = user?.mode === 'worker';
   const links = isWorker ? workerLinks : clientLinks;
-  const mobileLinks = isWorker ? workerLinks.slice(0, 5) : [clientLinks[0], clientLinks[1], clientLinks[2], clientLinks[3], clientLinks[5]];
+  const mobileLinks = isWorker ? workerLinks.slice(0, 5) : [clientLinks[0], clientLinks[1], clientLinks[2], clientLinks[3], clientLinks[4]];
 
   // Compute colors based on accessibility state — always derived from the
   // same palette used by the rest of the app (getThemeColors), so the
