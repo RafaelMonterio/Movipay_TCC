@@ -261,168 +261,6 @@ function OrganicMap({ themeColors, selectedCategory, onSelectCategory, searchQue
       <motion.div
         initial={{ opacity: 0, x: -30 }}
         animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.6 }}
-        style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'left' }}
-      >
-          
-          {/* Anel LED Giratório Conic-Gradient (Laranja & Verde) */}
-          <motion.div
-            aria-hidden="true"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
-            style={{
-              position: 'absolute',
-              inset: -5,
-              borderRadius: '50%',
-              background: 'conic-gradient(from 0deg, #FF7A00, transparent 20%, #22D31B 50%, transparent 70%, #FF7A00 100%)',
-              padding: 4,
-              WebkitMask: 'radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px))',
-              mask: 'radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px))',
-              opacity: 0.88,
-              pointerEvents: 'none',
-              boxShadow: '0 0 35px rgba(255,122,0,0.3)',
-              zIndex: 1,
-            }}
-          />
-
-          {/* Halo Neon de Fundo com Pulso Suave */}
-          <motion.div
-            aria-hidden="true"
-            animate={{ scale: [1, 1.04, 1], opacity: [0.35, 0.55, 0.35] }}
-            transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
-            style={{
-              position: 'absolute',
-              inset: -14,
-              borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(255,122,0,0.22) 0%, rgba(34,211,27,0.14) 55%, transparent 75%)',
-              filter: 'blur(20px)',
-              pointerEvents: 'none',
-              zIndex: 0,
-            }}
-          />
-
-          {/* Badge de status removido per request */}
-
-          {/* CONTAINER PRINCIPAL DO MAPA (100% REDONDO / CIRCULAR) */}
-          <div
-            className="map-frame"
-            style={{
-              position: 'relative',
-              width: '100%',
-              height: '100%',
-              borderRadius: '50%',
-              overflow: 'hidden',
-              background: themeColors.cardBg,
-              boxShadow: '0 20px 50px rgba(0,0,0,0.25)',
-              zIndex: 2,
-            }}
-          >
-            {/* Componente do Mapa Leaflet */}
-            <WorkersMap
-              workers={filteredWorkers}
-              center={[-23.7058, -46.3685]}
-              onSelectWorker={setSelectedWorker}
-              selectedWorkerId={selectedWorker?.id}
-              height={540}
-            />
-
-            {/* Card Flutuante com Efeito Glassmorphism do Profissional Selecionado */}
-            <AnimatePresence>
-              {selectedWorker && (
-                <motion.div
-                  initial={{ opacity: 0, y: 18, scale: 0.94 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 18, scale: 0.94 }}
-                  transition={{ duration: 0.22 }}
-                  style={{
-                    position: 'absolute',
-                    bottom: 18,
-                    left: 24,
-                    right: 24,
-                    background: 'rgba(15, 23, 14, 0.94)',
-                    border: '2px solid #FF7A00',
-                    borderRadius: 18,
-                    boxShadow: '0 20px 45px rgba(0,0,0,0.5), 0 0 20px rgba(255,122,0,0.3)',
-                    padding: 12,
-                    backdropFilter: 'blur(16px)',
-                    zIndex: 50,
-                    color: '#fff',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <span style={{ fontSize: '0.66rem', fontWeight: 800, color: '#FF7A00', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                      {selectedWorker.role} · {selectedWorker.distance_km} km
-                    </span>
-                    <button
-                      onClick={() => setSelectedWorker(null)}
-                      style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#bbb' }}
-                    >
-                      <Icon name="x" size={15} />
-                    </button>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <img
-                      src={selectedWorker.photo}
-                      alt={selectedWorker.name}
-                      style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', border: '2px solid #FF7A00' }}
-                    />
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <h4 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#fff', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {selectedWorker.name} {selectedWorker.emoji}
-                      </h4>
-                      <p style={{ fontSize: '0.7rem', color: '#ccc', marginTop: 1 }}>{selectedWorker.specialty}</p>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-                    <button
-                      type="button"
-                      onClick={() => router.push(`/client/workers/${selectedWorker.profileId}`)}
-                      style={{
-                        flex: 1,
-                        border: 'none',
-                        borderRadius: 8,
-                        background: 'linear-gradient(135deg, #FF7A00, #FF9A33)',
-                        color: '#fff',
-                        fontWeight: 800,
-                        fontSize: '0.74rem',
-                        padding: '7px 8px',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Ver Perfil
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => router.push(`/client/chat?worker=${selectedWorker.profileId}`)}
-                      style={{
-                        border: '1.5px solid rgba(255,255,255,0.25)',
-                        borderRadius: 8,
-                        background: 'rgba(255,255,255,0.1)',
-                        color: '#fff',
-                        fontWeight: 700,
-                        fontSize: '0.74rem',
-                        padding: '7px 10px',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      💬 Chat
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* ───────────────────────────────────────────────────────────── */}
-      {/* COLUNA DIREITA: INFORMAÇÕES ESTRUTURADAS, BUSCA & TELEMETRIA   */}
-      {/* ───────────────────────────────────────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, x: 30 }}
-        animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.6, delay: 0.1 }}
         style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'left' }}
       >
@@ -447,176 +285,199 @@ function OrganicMap({ themeColors, selectedCategory, onSelectCategory, searchQue
           Localize profissionais próximos no mapa, combine orçamentos instantâneos com proteção de pagamento e ganhe <strong>Folhas de desconto</strong> a cada serviço.
         </p>
 
-        {/* Barra de Busca com Foco Neon */}
-        <form
-          onSubmit={onSearchSubmit}
+        {/* Últimos Serviços */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12, marginTop: 8 }}>
+          {[
+            { name: 'Diarista', time: 'Hoje · 14:40', price: 'R$ 180', icon: 'broom' },
+            { name: 'Eletricista', time: 'Ontem · 18:10', price: 'R$ 240', icon: 'bolt' },
+            { name: 'Pintura', time: 'Seg · 09:30', price: 'R$ 520', icon: 'paint' },
+            { name: 'Cabeleireiro', time: 'Qua · 13:20', price: 'R$ 95', icon: 'scissors' },
+          ].map(service => (
+            <div
+              key={service.name + service.time}
+              style={{
+                background: themeColors.cardBg,
+                border: `1.5px solid ${themeColors.cardBorder}`,
+                borderRadius: 14,
+                padding: '12px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                boxShadow: '0 4px 14px rgba(0,0,0,0.04)',
+              }}
+            >
+              <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(255,122,0,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Icon name={service.icon} size={17} color="#FF7A00" />
+              </div>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <p style={{ fontWeight: 800, fontSize: '0.8rem', color: themeColors.text, lineHeight: 1.1 }}>{service.name}</p>
+                <p style={{ fontSize: '0.64rem', color: themeColors.textMuted, marginTop: 2 }}>{service.time}</p>
+              </div>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: '0.7rem', fontWeight: 800, color: '#22D31B' }}>{service.price}</span>
+            </div>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* ───────────────────────────────────────────────────────────── */}
+      {/* COLUNA DIREITA: MAPA / VISUALIZAÇÃO GEOGRÁFICA               */}
+      {/* ───────────────────────────────────────────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0, x: 30 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.6 }}
+        style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'left' }}
+      >
+        
+        {/* Anel LED Giratório Conic-Gradient (Laranja & Verde) */}
+        <motion.div
+          aria-hidden="true"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            background: themeColors.inputBg,
-            border: '2px solid rgba(255,122,0,0.45)',
-            borderRadius: 16,
-            padding: '6px 8px 6px 16px',
-            boxShadow: '0 8px 30px rgba(255,122,0,0.14), 0 0 0 3px rgba(255,122,0,0.06)',
-            marginBottom: 20,
+            position: 'absolute',
+            inset: -5,
+            borderRadius: '50%',
+            background: 'conic-gradient(from 0deg, #FF7A00, transparent 20%, #22D31B 50%, transparent 70%, #FF7A00 100%)',
+            padding: 4,
+            WebkitMask: 'radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px))',
+            mask: 'radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px))',
+            opacity: 0.88,
+            pointerEvents: 'none',
+            boxShadow: '0 0 35px rgba(255,122,0,0.3)',
+            zIndex: 1,
+          }}
+        />
+
+        {/* Halo Neon de Fundo com Pulso Suave */}
+        <motion.div
+          aria-hidden="true"
+          animate={{ scale: [1, 1.04, 1], opacity: [0.35, 0.55, 0.35] }}
+          transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+          style={{
+            position: 'absolute',
+            inset: -14,
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(255,122,0,0.22) 0%, rgba(34,211,27,0.14) 55%, transparent 75%)',
+            filter: 'blur(20px)',
+            pointerEvents: 'none',
+            zIndex: 0,
+          }}
+        />
+
+        {/* Badge de status removido per request */}
+
+        {/* CONTAINER PRINCIPAL DO MAPA (100% REDONDO / CIRCULAR) */}
+        <div
+          className="map-frame"
+          style={{
+            position: 'relative',
+            width: '100%',
+            height: '100%',
+            borderRadius: '50%',
+            overflow: 'hidden',
+            background: themeColors.cardBg,
+            boxShadow: '0 20px 50px rgba(0,0,0,0.25)',
+            zIndex: 2,
           }}
         >
-          <Icon name="search" size={18} color="#FF7A00" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Qual serviço procura? (ex: diarista, eletricista, pedreiro...)"
-            style={{
-              flex: 1,
-              border: 'none',
-              background: 'transparent',
-              color: themeColors.text,
-              fontSize: '0.9rem',
-              fontFamily: 'var(--body)',
-              outline: 'none',
-            }}
+          {/* Componente do Mapa Leaflet */}
+          <WorkersMap
+            workers={filteredWorkers}
+            center={[-23.7058, -46.3685]}
+            onSelectWorker={setSelectedWorker}
+            selectedWorkerId={selectedWorker?.id}
+            height={540}
           />
-          <button type="submit" className="btn-primary" style={{ padding: '10px 22px', fontSize: '0.84rem', borderRadius: 12 }}>
-            Buscar
-          </button>
-        </form>
 
-        {/* Filtros Rápidos de Categoria */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 24 }}>
-          <span style={{ fontSize: '0.72rem', fontWeight: 800, color: themeColors.textMuted, textTransform: 'uppercase', marginRight: 4, fontFamily: 'var(--mono)' }}>
-            Filtro:
-          </span>
-          {[
-            { id: 'todos', label: 'Todos', icon: 'sparkle' },
-            { id: 'limpeza', label: 'Diarista', icon: 'broom' },
-            { id: 'eletrica', label: 'Elétrica', icon: 'bolt' },
-            { id: 'cabelo', label: 'Cabelo', icon: 'scissors' },
-            { id: 'pedreiro', label: 'Pedreiro', icon: 'hammer' },
-            { id: 'jardim', label: 'Jardim', icon: 'leaf' },
-            { id: 'mudanca', label: 'Mudança', icon: 'box' },
-          ].map(cat => {
-            const isActive = (selectedCategory || 'todos') === cat.id;
-            return (
-              <button
-                key={cat.id}
-                type="button"
-                onClick={() => onSelectCategory(cat.id)}
+          {/* Card Flutuante com Efeito Glassmorphism do Profissional Selecionado */}
+          <AnimatePresence>
+            {selectedWorker && (
+              <motion.div
+                initial={{ opacity: 0, y: 18, scale: 0.94 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 18, scale: 0.94 }}
+                transition={{ duration: 0.22 }}
                 style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 5,
-                  padding: '5px 12px',
-                  borderRadius: 999,
-                  fontSize: '0.74rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  background: isActive ? 'linear-gradient(135deg, #FF7A00, #FF9A33)' : themeColors.cardBg,
-                  color: isActive ? '#fff' : themeColors.text,
-                  border: `1.5px solid ${isActive ? '#FF7A00' : themeColors.cardBorder}`,
-                  boxShadow: isActive ? '0 0 12px rgba(255,122,0,0.35)' : 'none',
+                  position: 'absolute',
+                  bottom: 18,
+                  left: 24,
+                  right: 24,
+                  background: 'rgba(15, 23, 14, 0.94)',
+                  border: '2px solid #FF7A00',
+                  borderRadius: 18,
+                  boxShadow: '0 20px 45px rgba(0,0,0,0.5), 0 0 20px rgba(255,122,0,0.3)',
+                  padding: 12,
+                  backdropFilter: 'blur(16px)',
+                  zIndex: 50,
+                  color: '#fff',
                 }}
               >
-                <Icon name={cat.icon} size={12} color={isActive ? '#fff' : '#FF7A00'} />
-                <span>{cat.label}</span>
-              </button>
-            );
-          })}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <span style={{ fontSize: '0.66rem', fontWeight: 800, color: '#FF7A00', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    {selectedWorker.role} · {selectedWorker.distance_km} km
+                  </span>
+                  <button
+                    onClick={() => setSelectedWorker(null)}
+                    style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#bbb' }}
+                  >
+                    <Icon name="x" size={15} />
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <img
+                    src={selectedWorker.photo}
+                    alt={selectedWorker.name}
+                    style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', border: '2px solid #FF7A00' }}
+                  />
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <h4 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#fff', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {selectedWorker.name} {selectedWorker.emoji}
+                    </h4>
+                    <p style={{ fontSize: '0.7rem', color: '#ccc', marginTop: 1 }}>{selectedWorker.specialty}</p>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/client/workers/${selectedWorker.profileId}`)}
+                    style={{
+                      flex: 1,
+                      border: 'none',
+                      borderRadius: 8,
+                      background: 'linear-gradient(135deg, #FF7A00, #FF9A33)',
+                      color: '#fff',
+                      fontWeight: 800,
+                      fontSize: '0.74rem',
+                      padding: '7px 8px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Ver Perfil
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/client/chat?worker=${selectedWorker.profileId}`)}
+                    style={{
+                      border: '1.5px solid rgba(255,255,255,0.25)',
+                      borderRadius: 8,
+                      background: 'rgba(255,255,255,0.1)',
+                      color: '#fff',
+                      fontWeight: 700,
+                      fontSize: '0.74rem',
+                      padding: '7px 10px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    💬 Chat
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
-
-        {/* 4 Cards de Telemetria e Destaques (Grid 2x2 Elegante) */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
-          {/* Card 1 */}
-          <div
-            style={{
-              background: themeColors.cardBg,
-              border: `1.5px solid ${themeColors.cardBorder}`,
-              borderRadius: 14,
-              padding: '12px 14px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              boxShadow: '0 4px 14px rgba(0,0,0,0.04)',
-            }}
-          >
-            <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(255,122,0,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Icon name="clock" size={17} color="#FF7A00" />
-            </div>
-            <div>
-              <p style={{ fontFamily: 'var(--display)', fontSize: '0.96rem', fontWeight: 800, color: themeColors.text, lineHeight: 1.1 }}>~12 min</p>
-              <p style={{ fontSize: '0.68rem', color: themeColors.textMuted, marginTop: 2 }}>Chegada rápida</p>
-            </div>
-          </div>
-
-          {/* Card 2 */}
-          <div
-            style={{
-              background: themeColors.cardBg,
-              border: `1.5px solid ${themeColors.cardBorder}`,
-              borderRadius: 14,
-              padding: '12px 14px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              boxShadow: '0 4px 14px rgba(0,0,0,0.04)',
-            }}
-          >
-            <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(34,211,27,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Icon name="star" size={17} color="#22D31B" />
-            </div>
-            <div>
-              <p style={{ fontFamily: 'var(--display)', fontSize: '0.96rem', fontWeight: 800, color: themeColors.text, lineHeight: 1.1 }}>4.95 ★</p>
-              <p style={{ fontSize: '0.68rem', color: themeColors.textMuted, marginTop: 2 }}>Avaliação média</p>
-            </div>
-          </div>
-
-          {/* Card 3 */}
-          <div
-            style={{
-              background: themeColors.cardBg,
-              border: `1.5px solid ${themeColors.cardBorder}`,
-              borderRadius: 14,
-              padding: '12px 14px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              boxShadow: '0 4px 14px rgba(0,0,0,0.04)',
-            }}
-          >
-            <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(34,211,27,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Icon name="shield" size={17} color="#22D31B" />
-            </div>
-            <div>
-              <p style={{ fontFamily: 'var(--display)', fontSize: '0.96rem', fontWeight: 800, color: themeColors.text, lineHeight: 1.1 }}>100% Seguro</p>
-              <p style={{ fontSize: '0.68rem', color: themeColors.textMuted, marginTop: 2 }}>Garantia MoviPay</p>
-            </div>
-          </div>
-
-          {/* Card 4 */}
-          <div
-            style={{
-              background: themeColors.cardBg,
-              border: `1.5px solid ${themeColors.cardBorder}`,
-              borderRadius: 14,
-              padding: '12px 14px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              boxShadow: '0 4px 14px rgba(0,0,0,0.04)',
-            }}
-          >
-            <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(255,122,0,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Icon name="leaf" size={17} color="#FF7A00" />
-            </div>
-            <div>
-              <p style={{ fontFamily: 'var(--display)', fontSize: '0.96rem', fontWeight: 800, color: themeColors.text, lineHeight: 1.1 }}>+50 Folhas</p>
-              <p style={{ fontSize: '0.68rem', color: themeColors.textMuted, marginTop: 2 }}>Cashback no pedido</p>
-            </div>
-          </div>
-        </div>
-
       </motion.div>
     </div>
   );
@@ -920,28 +781,8 @@ const LIVE_ACTIVITY = [
 ];
 
 function LiveActivityTicker({ theme }) {
-  const loopItems = [...LIVE_ACTIVITY, ...LIVE_ACTIVITY];
   return (
-    <div className="ticker-wrap" style={{ borderTop: `1.5px solid ${theme.line}`, borderBottom: `1.5px solid ${theme.line}`, background: theme.cardBg, overflow: 'hidden', position: 'relative', zIndex: 10 }}>
-      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, zIndex: 2, display: 'flex', alignItems: 'center', gap: 8, padding: '0 20px', background: `linear-gradient(90deg, ${theme.cardBg} 65%, transparent)` }}>
-        <motion.span
-          aria-hidden="true"
-          animate={{ opacity: [1, 0.3, 1] }}
-          transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
-          style={{ width: 8, height: 8, borderRadius: '50%', background: '#22D31B', boxShadow: '0 0 8px #22D31B', flexShrink: 0 }}
-        />
-        <span style={{ fontFamily: 'var(--mono)', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: theme.text, whiteSpace: 'nowrap' }}>
-          AO VIVO
-        </span>
-      </div>
-      <div className="ticker-track" style={{ display: 'flex', alignItems: 'center', gap: 40, padding: '12px 0 12px 140px', width: 'max-content' }}>
-        {loopItems.map((item, i) => (
-          <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem', color: theme.textMuted, whiteSpace: 'nowrap' }}>
-            <Icon name={item.icon} size={14} color={item.color} />{item.text}
-          </span>
-        ))}
-      </div>
-    </div>
+    <div style={{ height: 1, background: theme.line, width: '100%', opacity: 0.8 }} />
   );
 }
 
@@ -1337,6 +1178,108 @@ export default function ClientDashboardPage() {
           <LiveActivityTicker theme={theme} />
 
           {/* ══════════════════════════════════════════════════════════════ */}
+          {/* ── SEUS PROFISSIONAIS FAVORITOS ────────────────────────────── */}
+          {/* ══════════════════════════════════════════════════════════════ */}
+          <section style={{ padding: '36px 24px 0', maxWidth: 1200, margin: '0 auto' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+              <div>
+                <div className="eyebrow" style={{ marginBottom: 6 }}>profissionais salvos</div>
+                <h2 style={{ fontFamily: 'var(--display)', fontWeight: 800, fontSize: '1.8rem', letterSpacing: '-0.02em' }}>
+                  Seus Favoritos de Confiança
+                </h2>
+              </div>
+              <Link href="/client/workers" style={{ fontSize: '0.84rem', fontWeight: 700, color: '#FF7A00', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                Explorar todos os profissionais <Icon name="arrowRight" size={14} />
+              </Link>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 16 }}>
+              {favorites.map(w => (
+                <motion.div
+                  key={w.id}
+                  whileHover={{ y: -4 }}
+                  style={{
+                    background: theme.cardBg,
+                    border: `1.5px solid ${theme.cardBorder}`,
+                    borderRadius: 18,
+                    padding: 18,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.05)',
+                  }}
+                >
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#FF7A00', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        {w.role}
+                      </span>
+                      <button
+                        onClick={() => toggleFavorite(w.id)}
+                        style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#FF3B5C' }}
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                        </svg>
+                      </button>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                      <img src={w.photo} alt={w.name} style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', border: '2px solid #FF7A00' }} />
+                      <div>
+                        <h4 style={{ fontSize: '0.96rem', fontWeight: 800, color: theme.text }}>{w.name} {w.emoji}</h4>
+                        <p style={{ fontSize: '0.75rem', color: theme.textMuted, marginTop: 2 }}>{w.specialty}</p>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.74rem', color: theme.textMuted, paddingTop: 10, borderTop: `1px solid ${theme.line}` }}>
+                      <span>⭐ {w.avg_rating} ({w.completed_jobs} serviços)</span>
+                      <span>📍 {w.distance_km} km</span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/client/workers/${w.profileId}`)}
+                      style={{
+                        flex: 1,
+                        border: 'none',
+                        borderRadius: 10,
+                        background: 'linear-gradient(135deg, #FF7A00, #FF9A33)',
+                        color: '#fff',
+                        fontWeight: 800,
+                        fontSize: '0.76rem',
+                        padding: '9px 10px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Ver perfil para agendar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/client/workers/${w.profileId}`)}
+                      style={{
+                        flex: 1,
+                        border: `1.5px solid ${theme.cardBorder}`,
+                        borderRadius: 10,
+                        background: theme.inputBg,
+                        color: theme.text,
+                        fontWeight: 700,
+                        fontSize: '0.76rem',
+                        padding: '9px 10px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Ver perfil
+                    </button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </section>
+
+          {/* ══════════════════════════════════════════════════════════════ */}
           {/* ── PANORAMA DO CLIENTE (FOLHAS, GASTOS & RECOMPENSAS) ──────── */}
           {/* ══════════════════════════════════════════════════════════════ */}
           <section style={{ padding: '56px 24px', maxWidth: 1200, margin: '0 auto' }}>
@@ -1426,11 +1369,32 @@ export default function ClientDashboardPage() {
                 {lastServices.length === 0 ? (
                   <p style={{ fontSize: '0.8rem', color: theme.textMuted }}>Você ainda não possui pedidos recentes.</p>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
                     {lastServices.map(o => (
-                      <div key={o.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: theme.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.service_title}</span>
-                        <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#FF7A00' }}>{formatCurrency(o.price)}</span>
+                      <div
+                        key={o.id}
+                        style={{
+                          background: theme.cardBg,
+                          border: `1.5px solid ${theme.cardBorder}`,
+                          borderRadius: 16,
+                          padding: '14px 12px',
+                          minHeight: 120,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between',
+                          boxShadow: '0 8px 20px rgba(0,0,0,0.04)',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 12 }}>
+                          <div style={{ width: 30, height: 30, borderRadius: 10, background: 'rgba(255,122,0,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Icon name="checkCircle" size={15} color="#FF7A00" />
+                          </div>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#22D31B' }}>{formatCurrency(o.price)}</span>
+                        </div>
+                        <div>
+                          <p style={{ fontSize: '0.82rem', fontWeight: 800, color: theme.text, lineHeight: 1.3, marginBottom: 6 }}>{o.service_title}</p>
+                          <p style={{ fontSize: '0.66rem', color: theme.textMuted, margin: 0 }}>{new Date(o.created_at || Date.now()).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</p>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1480,114 +1444,6 @@ export default function ClientDashboardPage() {
               themeColors={colors}
               onCollectBonus={handleAddDailyBonus}
             />
-          </section>
-
-          {/* ══════════════════════════════════════════════════════════════ */}
-          {/* ── SIMULADOR DE ORÇAMENTO INSTANTÂNEO ──────────────────────── */}
-          {/* ══════════════════════════════════════════════════════════════ */}
-          <section style={{ padding: '0 24px 64px', maxWidth: 1200, margin: '0 auto' }}>
-            <InstantQuoteSimulator themeColors={colors} />
-          </section>
-
-          {/* ══════════════════════════════════════════════════════════════ */}
-          {/* ── SEUS PROFISSIONAIS FAVORITOS ────────────────────────────── */}
-          {/* ══════════════════════════════════════════════════════════════ */}
-          <section style={{ padding: '0 24px 64px', maxWidth: 1200, margin: '0 auto' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
-              <div>
-                <div className="eyebrow" style={{ marginBottom: 6 }}>profissionais salvos</div>
-                <h2 style={{ fontFamily: 'var(--display)', fontWeight: 800, fontSize: '1.8rem', letterSpacing: '-0.02em' }}>
-                  Seus Favoritos de Confiança
-                </h2>
-              </div>
-              <Link href="/client/workers" style={{ fontSize: '0.84rem', fontWeight: 700, color: '#FF7A00', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                Explorar todos os profissionais <Icon name="arrowRight" size={14} />
-              </Link>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 16 }}>
-              {favorites.map(w => (
-                <motion.div
-                  key={w.id}
-                  whileHover={{ y: -4 }}
-                  style={{
-                    background: theme.cardBg,
-                    border: `1.5px solid ${theme.cardBorder}`,
-                    borderRadius: 18,
-                    padding: 18,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    boxShadow: '0 8px 24px rgba(0,0,0,0.05)',
-                  }}
-                >
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#FF7A00', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                        {w.role}
-                      </span>
-                      <button
-                        onClick={() => toggleFavorite(w.id)}
-                        style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#FF3B5C' }}
-                      >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                        </svg>
-                      </button>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                      <img src={w.photo} alt={w.name} style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', border: '2px solid #FF7A00' }} />
-                      <div>
-                        <h4 style={{ fontSize: '0.96rem', fontWeight: 800, color: theme.text }}>{w.name} {w.emoji}</h4>
-                        <p style={{ fontSize: '0.75rem', color: theme.textMuted, marginTop: 2 }}>{w.specialty}</p>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.74rem', color: theme.textMuted, paddingTop: 10, borderTop: `1px solid ${theme.line}` }}>
-                      <span>⭐ {w.avg_rating} ({w.completed_jobs} serviços)</span>
-                      <span>📍 {w.distance_km} km</span>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-                    <button
-                      type="button"
-                      onClick={() => router.push(`/client/workers/${w.profileId}`)}
-                      style={{
-                        flex: 1,
-                        border: 'none',
-                        borderRadius: 10,
-                        background: 'linear-gradient(135deg, #FF7A00, #FF9A33)',
-                        color: '#fff',
-                        fontWeight: 800,
-                        fontSize: '0.76rem',
-                        padding: '9px 10px',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Pedir Serviço
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => router.push(`/client/chat?worker=${w.profileId}`)}
-                      style={{
-                        border: `1.5px solid ${theme.line}`,
-                        borderRadius: 10,
-                        background: 'transparent',
-                        color: theme.text,
-                        fontWeight: 700,
-                        fontSize: '0.76rem',
-                        padding: '9px 12px',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      💬
-                    </button>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
           </section>
 
           {/* ══════════════════════════════════════════════════════════════ */}

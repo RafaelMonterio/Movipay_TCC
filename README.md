@@ -28,21 +28,16 @@ backend cadasatro trabalhador
 
 Tela buscar servoçiços
 
-modo escuro sidebar
-
-Api google maps
 
 Tela do trablahdor: Serviços disponiveis funcionais
+
+Promp claude: Com exceção do sidebar, em todas as telas parece que todo o conteudo da pagina está comprimido, meio que ele não preenche toda a tela. Quero que todo o conteudo da tela em si preencha o espaçõ que tem para ela preencher. Quero que ele preencha todo espaço. E sobre o sidebar,  
+
 
 
 Prompt:
 
-tela  inicial do trabalhador: Remover o capo "Disponivel", que está em verde. remover o campo 1 pedido (quero que isso sejá a funcionalidade do botão do sininho ao lado superior direito(que inclisive está um botão muito simples, quero que fique masi sofisticado igual ao campo de notificção na tela principal)). Acima dos dados "1 Aguardando, 2 em anda..." quero que apareça um grafico mostrando todas as informações. (podendo mudar o periodo do mes, semana, ano). Sei que já existe algo parecido na tela de ganhos, mas faça na tela inicial também para ver como fica.
 
-Na tela de chat, tanto na tela de cliente ou trabalhador, remova o "...digitando", não vou usar. Quero que aqueles botões que estão acima a direita, de "localização, ligar" seja removidos. e quero que quando clique na bolinha de perfil , ou no nome, abra a tela de perfil do clente em questão. E outra, todos os outros cliente são a Ana cliente. Conserte esses erros desta tela, e depois  procure outras incoerencias desta tela para concertar. 
-
-
-Sobre o sidebar quero que sejá igual o do intragam, quero que ele não "minimize" clicando no botão, remova o botão e quero que ele esteja naturalmente minimizado, e quando eu passar o mouse, quero que ele apareça inteiro (os nomes de cada icone no caso), meio com a mesma animação que está agora, sem empurrar o resto do site porque ele maximizado vai aparecer numa area que não tem nadad mesmo
 
 Mais pelo backend, quero que, como cliente, quando eu agende um serviço (pelo modal), quero que esse pedido não fique somente como algo ilusório, quero que seja um pedido real, que esse pedido fique salvo na tela de pedido do cliente, e que se eu deslogar do cliente, e logar na conta do trabalhador em questão, apareça na tela de pedidos recebidos. e quando eu acietar, que na conta do cliente esteja ativo. basicamente quero que fique funcionando mesmo. 
 

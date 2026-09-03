@@ -131,7 +131,7 @@ export default function WorkersMap({ workers = [], center = [-23.7060, -46.3690]
           className: '',
         });
 
-        const marker = L.marker([lat, lng], { icon: workerIcon }).addTo(map);
+        const marker = L.marker([lat, lng], { icon: workerIcon, workerData: w }).addTo(map);
         const photo = w.photo || w.avatar_url || '/img/cabeleireiro.jpg';
         const profilePath = w.profileId ? `/client/workers/${w.profileId}` : '#';
         const preview = `
@@ -196,7 +196,27 @@ export default function WorkersMap({ workers = [], center = [-23.7060, -46.3690]
     // down and rebuilt constantly. `onSelectWorker` is read from a ref, not
     // a dependency, for the same reason.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workersKey, centerKey, selectedWorkerId]);
+  }, [workersKey, centerKey]);
+
+  useEffect(() => {
+    if (!instanceRef.current || !selectedWorkerId) return;
+
+    const map = instanceRef.current;
+    let selectedMarker = null;
+
+    map.eachLayer(layer => {
+      if (!(layer instanceof window.L.Marker)) return;
+
+      const workerData = layer.options?.workerData;
+      if (workerData && String(workerData.id) === String(selectedWorkerId)) {
+        selectedMarker = layer;
+      }
+    });
+
+    if (selectedMarker) {
+      selectedMarker.openPopup();
+    }
+  }, [selectedWorkerId]);
 
   return (
     <div

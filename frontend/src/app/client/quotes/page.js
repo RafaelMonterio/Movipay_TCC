@@ -69,6 +69,12 @@ function Icon({ name, size = 24, color = 'currentColor', strokeWidth = 1.8, styl
       return <svg {...p}><path d="M3 6h18M6 12h12M10 18h4" /></svg>;
     case 'inbox':
       return <svg {...p}><polyline points="22 12 16 12 14 15 10 15 8 12 2 12" /><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" /></svg>;
+    case 'calculator':
+      return <svg {...p}><rect x="4" y="2.5" width="16" height="19" rx="2" /><path d="M8 7h8M8 12h2M12 12h2M8 16h2M12 16h2" /><line x1="16" y1="10" x2="16" y2="18" /></svg>;
+    case 'leaf':
+      return <svg {...p}><path d="M19 3c-3.5 0-7 1.2-9.5 3.8C7.2 9.4 6 13 6 17c4 0 7.6-1.2 9.5-3.8C17.8 10.6 19 7 19 3z" /><path d="M6 17c1.5-1.5 3.3-2.4 5.4-2.8" /></svg>;
+    case 'checkCircle':
+      return <svg {...p}><circle cx="12" cy="12" r="9" /><path d="M8.5 12.5l2 2 5-5" /></svg>;
     default: return null;
   }
 }
@@ -126,6 +132,183 @@ function Counter({ target, suffix = '' }) {
     return () => clearInterval(t);
   }, [inView, target]);
   return <span ref={ref}>{v.toLocaleString('pt-BR')}{suffix}</span>;
+}
+
+/* ─── SIMULADOR DE ORÇAMENTO INTELIGENTE ───────────────────────── */
+function InstantQuoteSimulator({ themeColors }) {
+  const [category, setCategory] = useState('limpeza');
+  const [urgency, setUrgency] = useState('urgente');
+  const [hours, setHours] = useState(3);
+
+  const baseRates = {
+    limpeza: 35,
+    eletrica: 65,
+    cabelo: 45,
+    pedreiro: 55,
+    jardim: 40,
+    mudanca: 70,
+  };
+
+  const multiplier = urgency === 'urgente' ? 1.25 : urgency === 'hoje' ? 1.1 : 1.0;
+  const rawPrice = (baseRates[category] || 40) * hours * multiplier;
+  const minPrice = Math.round(rawPrice * 0.9);
+  const maxPrice = Math.round(rawPrice * 1.15);
+  const estimatedLeavesBonus = Math.floor(rawPrice * 0.4);
+
+  return (
+    <div
+      style={{
+        background: themeColors.cardBg,
+        border: `1.5px solid ${themeColors.cardBorder}`,
+        borderRadius: 24,
+        padding: '32px 28px',
+        boxShadow: '0 16px 45px rgba(0,0,0,0.06)',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 24 }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icon name="calculator" size={16} color="#FF7A00" />
+            <span style={{ fontFamily: 'var(--mono)', fontSize: '0.72rem', fontWeight: 800, color: '#FF7A00', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+              SIMULADOR INTELIGENTE
+            </span>
+          </div>
+          <h3 style={{ fontFamily: 'var(--display)', fontSize: '1.45rem', fontWeight: 800, color: themeColors.text, marginTop: 4 }}>
+            Estime seu orçamento em segundos
+          </h3>
+        </div>
+        <span style={{ fontSize: '0.76rem', color: themeColors.textMuted, background: themeColors.line, padding: '4px 12px', borderRadius: 999 }}>
+          Valores médios calculados em Ribeirão Pires
+        </span>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20 }}>
+        <div>
+          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: themeColors.text, display: 'block', marginBottom: 8 }}>
+            1. Tipo de Serviço
+          </label>
+          <select
+            value={category}
+            onChange={e => setCategory(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '11px 14px',
+              borderRadius: 10,
+              border: `1.5px solid ${themeColors.line}`,
+              background: themeColors.cardBg,
+              color: themeColors.text,
+              fontSize: '0.88rem',
+              fontWeight: 600,
+              outline: 'none',
+            }}
+          >
+            <option value="limpeza">🧹 Limpeza / Diarista</option>
+            <option value="eletrica">⚡ Eletricista</option>
+            <option value="cabelo">✂️ Cabelo & Estética</option>
+            <option value="pedreiro">🧱 Pedreiro & Reformas</option>
+            <option value="jardim">🌿 Jardinagem</option>
+            <option value="mudanca">📦 Mudanças & Frete</option>
+          </select>
+        </div>
+
+        <div>
+          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: themeColors.text, display: 'block', marginBottom: 8 }}>
+            2. Quando você precisa?
+          </label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {[{ id: 'urgente', label: '⚡ Em 1 hora' }, { id: 'hoje', label: '📅 Hoje' }, { id: 'semana', label: '🗓️ Esta semana' }].map(u => (
+              <button
+                key={u.id}
+                type="button"
+                onClick={() => setUrgency(u.id)}
+                style={{
+                  flex: 1,
+                  padding: '9px 6px',
+                  borderRadius: 10,
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  border: `1.5px solid ${urgency === u.id ? '#FF7A00' : themeColors.line}`,
+                  background: urgency === u.id ? 'rgba(255,122,0,0.12)' : 'transparent',
+                  color: urgency === u.id ? '#FF7A00' : themeColors.textMuted,
+                  transition: 'all 0.2s',
+                }}
+              >
+                {u.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+            <label style={{ fontSize: '0.8rem', fontWeight: 700, color: themeColors.text }}>
+              3. Estimativa de Tempo
+            </label>
+            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#FF7A00' }}>
+              {hours} hora{hours > 1 ? 's' : ''}
+            </span>
+          </div>
+          <input
+            type="range"
+            min="1"
+            max="8"
+            step="1"
+            value={hours}
+            onChange={e => setHours(Number(e.target.value))}
+            style={{ width: '100%', accentColor: '#FF7A00', cursor: 'pointer' }}
+          />
+        </div>
+      </div>
+
+      <div
+        style={{
+          marginTop: 24,
+          padding: '20px 24px',
+          borderRadius: 18,
+          background: 'linear-gradient(135deg, rgba(255,122,0,0.08), rgba(34,211,27,0.08))',
+          border: '1.5px solid rgba(255,122,0,0.25)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 16,
+        }}
+      >
+        <div>
+          <p style={{ fontSize: '0.76rem', color: themeColors.textMuted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            Faixa Estimada de Investimento
+          </p>
+          <p style={{ fontFamily: 'var(--display)', fontSize: '2rem', fontWeight: 800, color: themeColors.text, lineHeight: 1.1, marginTop: 4 }}>
+            R$ {minPrice} – R$ {maxPrice}
+          </p>
+          <p style={{ fontSize: '0.74rem', color: '#22D31B', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+            <Icon name="leaf" size={14} color="#22D31B" />
+            Você acumulará aprox. +{estimatedLeavesBonus} Folhas neste pedido
+          </p>
+        </div>
+
+        <Link
+          href={`/client/services?category=${category}`}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            background: 'linear-gradient(135deg, #FF7A00, #FF9A33)',
+            color: '#fff',
+            borderRadius: 10,
+            padding: '12px 24px',
+            fontWeight: 800,
+            fontSize: '0.88rem',
+            textDecoration: 'none',
+          }}
+        >
+          Ver Profissionais Disponíveis <Icon name="arrowRight" size={15} />
+        </Link>
+      </div>
+    </div>
+  );
 }
 
 /* ─── FLOATING LEAF BACKGROUND ─────────────────────────────────── */
@@ -557,6 +740,17 @@ export default function ClientQuotesPage() {
               <Counter target={stats.total} />
             </p>
             <p style={{ fontSize: '0.75rem', color: theme.textMuted, marginTop: 6 }}>Publicados</p>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          style={{ marginBottom: 22 }}
+        >
+          <div style={{ marginBottom: 18 }}>
+            <InstantQuoteSimulator themeColors={theme} />
           </div>
         </motion.div>
 
