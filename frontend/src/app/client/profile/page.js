@@ -661,6 +661,10 @@ export default function ClientProfilePage() {
         @media (max-width: 1024px) { .p-grid { grid-template-columns: 1fr !important; } }
         @media (max-width: 768px) { .p-header-flex { flex-direction: column; align-items: flex-start !important; gap: 20px; } .p-stats-grid { grid-template-columns: repeat(2, 1fr) !important; } }
         @media (max-width: 480px) { .p-stats-grid { grid-template-columns: 1fr !important; } }
+        @media (min-width: 769px) { .client-wide-page { max-width: none !important; margin: 0 !important; padding-left: 120px !important; padding-right: 120px !important; } }
+        .profile-page-content { display: flex; flex-direction: column; }
+        .profile-page-content > #folhas { order: 2; }
+        .profile-page-content > .p-grid { order: 1; }
       `}</style>
 
 
@@ -668,7 +672,8 @@ export default function ClientProfilePage() {
       {/* ══════════════════════════════════════════════════════════════ */}
       {/* ── CARTEIRA DE FOLHAS — versão detalhada (resumo mora na Home) ── */}
       {/* ══════════════════════════════════════════════════════════════ */}
-      <div id="folhas" style={{ position: 'relative', zIndex: 1, padding: '24px 20px 0', maxWidth: 1100, margin: '0 auto', fontFamily: 'var(--body)', scrollMarginTop: 80 }}>
+      <div className="profile-page-content">
+      <div id="folhas" className="client-wide-page" style={{ position: 'relative', zIndex: 1, padding: '24px 24px 0', maxWidth: 'none', margin: '0 auto', fontFamily: 'var(--body)', scrollMarginTop: 80 }}>
         <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
           style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: 20 }} className="folhas-grid">
 
@@ -783,7 +788,7 @@ export default function ClientProfilePage() {
 
       <style>{`@media (max-width: 860px) { .folhas-grid { grid-template-columns: 1fr !important; } }`}</style>
 
-      <div className="p-grid" style={{ position: 'relative', zIndex: 1, padding: '24px 20px 80px', maxWidth: 1100, margin: '0 auto', fontFamily: 'var(--body)', background: 'transparent', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, alignItems: 'start' }}>
+      <div className="p-grid client-wide-page" style={{ position: 'relative', zIndex: 1, padding: '24px 24px 80px', maxWidth: 'none', margin: '0 auto', fontFamily: 'var(--body)', background: 'transparent', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, alignItems: 'start' }}>
 
         {/* Left column - Main profile */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -853,6 +858,7 @@ export default function ClientProfilePage() {
             </p>
           </motion.div>
         </div>
+      </div>
       </div>
     </DashboardLayout>
   );

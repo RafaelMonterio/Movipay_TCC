@@ -6,17 +6,3 @@ Construído em **Next.js (App Router)**, com um sistema visual autoral (tipograf
 
 ## Comece por aqui
 
-```bash
-npm install
-npm run dev
-```
-
-Abra [http://localhost:3000](http://localhost:3000).
-
-## Documentação completa
-
-Toda a documentação técnica e funcional do projeto — arquitetura, design system, papéis de usuário (cliente/prestador), fluxo de autenticação, sistema de Folhas, e o histórico de decisões de produto — está em **[`PROJETO.md`](./PROJETO.md)**.
-
-## Licença
-
-Uso interno / projeto de portfólio.

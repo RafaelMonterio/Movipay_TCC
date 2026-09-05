@@ -625,11 +625,14 @@ export default function ClientQuotesPage() {
           .q-quote-actions { flex-wrap: wrap; }
           .stick-ant-container { bottom: 80px !important; right: 14px !important; width: 52px !important; height: 52px !important; }
         }
+        @media (min-width: 769px) {
+          .client-wide-page { max-width: none !important; margin: 0 !important; padding-left: 120px !important; padding-right: 120px !important; }
+        }
       `}</style>
 
 
 
-      <div style={{ position: 'relative', zIndex: 1, padding: '24px 20px 80px', maxWidth: 1100, margin: '0 auto', fontFamily: 'var(--body)', background: 'transparent' }}>
+      <div className="client-wide-page" style={{ position: 'relative', zIndex: 1, padding: '24px 24px 80px', maxWidth: 'none', margin: '0 auto', fontFamily: 'var(--body)', background: 'transparent' }}>
 
         {/* ─── HEADER ────────────────────────────────────────────── */}
         <motion.div

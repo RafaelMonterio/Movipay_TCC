@@ -64,11 +64,3 @@ compatíveis com Expo SDK 57 (a mais recente hoje), testado com
 - Nenhuma tela/lógica (`src/screens`, `src/context`, etc.) foi alterada.
 
 ## Como rodar agora
-```bash
-cd frontend/mobile
-npm install
-npx expo start
-```
-Escaneie o novo QR code com o app **Expo Go** atualizado (mesma rede Wi-Fi
-que o computador). Para o backend responder, garanta que a API
-(`backend/api`) esteja rodando e acessível na porta 3000 na mesma rede.

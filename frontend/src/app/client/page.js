@@ -259,6 +259,7 @@ function OrganicMap({ themeColors, selectedCategory, onSelectCategory, searchQue
       {/* COLUNA ESQUERDA: INFORMAÇÕES, BUSCA & TELEMETRIA             */}
       {/* ───────────────────────────────────────────────────────────── */}
       <motion.div
+        className="hero-copy"
         initial={{ opacity: 0, x: -30 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.6, delay: 0.1 }}
@@ -323,32 +324,17 @@ function OrganicMap({ themeColors, selectedCategory, onSelectCategory, searchQue
       {/* COLUNA DIREITA: MAPA / VISUALIZAÇÃO GEOGRÁFICA               */}
       {/* ───────────────────────────────────────────────────────────── */}
       <motion.div
+        className="map-orbit-wrapper"
         initial={{ opacity: 0, x: 30 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.6 }}
-        style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'left' }}
+        style={{ position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'left', width: '100%', maxWidth: 620, aspectRatio: '1 / 1', alignSelf: 'center', justifySelf: 'end', minWidth: 0, flexShrink: 0 }}
       >
         
-        {/* Anel LED Giratório Conic-Gradient (Laranja & Verde) */}
-        <motion.div
-          aria-hidden="true"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
-          style={{
-            position: 'absolute',
-            inset: -5,
-            borderRadius: '50%',
-            background: 'conic-gradient(from 0deg, #FF7A00, transparent 20%, #22D31B 50%, transparent 70%, #FF7A00 100%)',
-            padding: 4,
-            WebkitMask: 'radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px))',
-            mask: 'radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px))',
-            opacity: 0.88,
-            pointerEvents: 'none',
-            boxShadow: '0 0 35px rgba(255,122,0,0.3)',
-            zIndex: 1,
-          }}
-        />
-
+        {/* Anel LED Giratório Conic-Gradient (Laranja & Verde) — contorno do mapa redondo.
+            BUG CORRIGIDO: faltava position:'relative' no container pai acima, então esse
+            anel (position:absolute) perdia a referência do mapa e "flutuava" girando em
+            outro lugar da tela em vez de ficar encaixado ao redor do círculo do mapa. */}
         {/* Halo Neon de Fundo com Pulso Suave */}
         <motion.div
           aria-hidden="true"
@@ -365,29 +351,47 @@ function OrganicMap({ themeColors, selectedCategory, onSelectCategory, searchQue
           }}
         />
 
+        {/* Contorno circular externo do mapa */}
+        <motion.div
+          aria-hidden="true"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            borderRadius: '50%',
+            background: 'conic-gradient(from 0deg, #FF7A00, transparent 20%, #22D31B 50%, transparent 70%, #FF7A00 100%)',
+            WebkitMask: 'radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px))',
+            mask: 'radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px))',
+            opacity: 0.88,
+            pointerEvents: 'none',
+            boxShadow: '0 0 35px rgba(255,122,0,0.3)',
+            zIndex: 1,
+          }}
+        />
+
         {/* Badge de status removido per request */}
 
         {/* CONTAINER PRINCIPAL DO MAPA (100% REDONDO / CIRCULAR) */}
         <div
           className="map-frame"
           style={{
-            position: 'relative',
-            width: '100%',
-            height: '100%',
+            position: 'absolute',
+            inset: 7,
             borderRadius: '50%',
             overflow: 'hidden',
             background: themeColors.cardBg,
             boxShadow: '0 20px 50px rgba(0,0,0,0.25)',
             zIndex: 2,
           }}
-        >
+          >
           {/* Componente do Mapa Leaflet */}
           <WorkersMap
             workers={filteredWorkers}
             center={[-23.7058, -46.3685]}
             onSelectWorker={setSelectedWorker}
             selectedWorkerId={selectedWorker?.id}
-            height={540}
+            height="100%"
           />
 
           {/* Card Flutuante com Efeito Glassmorphism do Profissional Selecionado */}
@@ -894,13 +898,13 @@ export default function ClientDashboardPage() {
 
   const theme = {
     bg: colors.bg,
-    bgAlt: darkMode ? '#0D130B' : '#F1EAD9',
-    bgAlt2: darkMode ? '#0F1A0C' : '#F5F1E5',
+    bgAlt: darkMode ? '#0D130B' : '#F7F7F5',
+    bgAlt2: darkMode ? '#0F1A0C' : '#FAFAFA',
     text: colors.text,
     textMuted: colors.textMuted,
     cardBg: colors.cardBg,
     cardBorder: colors.cardBorder,
-    navBg: darkMode ? 'rgba(18,26,15,0.95)' : 'rgba(250,246,236,0.95)',
+    navBg: darkMode ? 'rgba(18,26,15,0.95)' : 'rgba(255,255,255,0.95)',
     navBorder: darkMode ? 'rgba(243,239,226,0.08)' : 'rgba(23,36,26,0.08)',
     line: colors.line,
     mono: colors.mono,
@@ -948,7 +952,16 @@ export default function ClientDashboardPage() {
           }
           @media (min-width: 1024px) {
             .client-main-wrapper {
-              margin-left: 250px;
+              margin-left: 88px;
+            }
+            .client-category-grid {
+              grid-template-columns: repeat(9, minmax(0, 1fr)) !important;
+              gap: 18px !important;
+            }
+          }
+          @media (max-width: 1023px) {
+            .client-category-grid {
+              grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
             }
           }
 
@@ -956,10 +969,10 @@ export default function ClientDashboardPage() {
           .hero-split-grid {
             display: grid;
             grid-template-columns: 1fr 1.18fr;
-            gap: 40px;
+            gap: 48px;
             align-items: center;
             width: 100%;
-            max-width: 1260px;
+            max-width: none;
             margin: 0 auto;
           }
           @media (max-width: 1060px) {
@@ -1031,6 +1044,15 @@ export default function ClientDashboardPage() {
             border: none !important; box-shadow: 0 6px 20px rgba(0,0,0,0.18) !important;
             border-radius: 12px !important; overflow: hidden;
           }
+          .map-orbit-wrapper {
+            width: min(620px, calc(100vw - 64px)) !important;
+            height: min(620px, calc(100vw - 64px)) !important;
+            aspect-ratio: 1 / 1 !important;
+          }
+          @media (min-width: 1061px) {
+            .hero-copy { padding-left: 100px; }
+            .map-orbit-wrapper { justify-self: center !important; left: -24px; }
+          }
 
           /* Ticker contínuo */
           .ticker-track { animation: ticker-scroll 32s linear infinite; }
@@ -1053,7 +1075,7 @@ export default function ClientDashboardPage() {
 
           {/* ── NAVBAR SUPERIOR ──────────────────────────────────────────── */}
           <nav style={{ position: 'sticky', top: 0, zIndex: 100, borderBottom: navSolid ? `1px solid ${theme.navBorder}` : '1px solid transparent', background: navSolid ? theme.navBg : 'transparent', backdropFilter: 'blur(12px)', transition: 'all 0.35s' }}>
-            <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', height: 68, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+            <div style={{ maxWidth: 'none', margin: '0 auto', padding: '0 32px', height: 68, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
 
               {/* Logo / Título de boas-vindas */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -1154,7 +1176,7 @@ export default function ClientDashboardPage() {
           {/* ══════════════════════════════════════════════════════════════ */}
           {/* ── HERO SECTION: MAPA À ESQUERDA & INFORMAÇÕES À DIREITA ───── */}
           {/* ══════════════════════════════════════════════════════════════ */}
-          <section style={{ position: 'relative', overflow: 'hidden', padding: '36px 24px 64px' }}>
+          <section style={{ position: 'relative', overflow: 'hidden', padding: '40px 32px 72px' }}>
             <ParticleField themeColors={colors} />
 
             {/* Halos Neon de Fundo */}
@@ -1180,7 +1202,7 @@ export default function ClientDashboardPage() {
           {/* ══════════════════════════════════════════════════════════════ */}
           {/* ── SEUS PROFISSIONAIS FAVORITOS ────────────────────────────── */}
           {/* ══════════════════════════════════════════════════════════════ */}
-          <section style={{ padding: '36px 24px 0', maxWidth: 1200, margin: '0 auto' }}>
+          <section style={{ padding: '40px 32px 0', maxWidth: 'none', margin: '0 auto' }}>
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
               <div>
                 <div className="eyebrow" style={{ marginBottom: 6 }}>profissionais salvos</div>
@@ -1282,7 +1304,7 @@ export default function ClientDashboardPage() {
           {/* ══════════════════════════════════════════════════════════════ */}
           {/* ── PANORAMA DO CLIENTE (FOLHAS, GASTOS & RECOMPENSAS) ──────── */}
           {/* ══════════════════════════════════════════════════════════════ */}
-          <section style={{ padding: '56px 24px', maxWidth: 1200, margin: '0 auto' }}>
+          <section style={{ padding: '64px 32px', maxWidth: 'none', margin: '0 auto' }}>
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
               <div>
                 <div className="eyebrow" style={{ marginBottom: 6 }}>seu panorama</div>
@@ -1449,8 +1471,8 @@ export default function ClientDashboardPage() {
           {/* ══════════════════════════════════════════════════════════════ */}
           {/* ── CATEGORIAS DE SERVIÇOS ──────────────────────────────────── */}
           {/* ══════════════════════════════════════════════════════════════ */}
-          <section id="servicos" style={{ background: theme.bgAlt, padding: '72px 24px', transition: 'background 0.4s' }}>
-            <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+          <section id="servicos" style={{ background: theme.bgAlt, padding: '80px 32px', transition: 'background 0.4s' }}>
+            <div style={{ maxWidth: 'none', margin: '0 auto' }}>
               <div style={{ textAlign: 'center', marginBottom: 44 }}>
                 <div className="eyebrow" style={{ justifyContent: 'center' }}>todas as categorias</div>
                 <h2 style={{ fontFamily: 'var(--display)', fontWeight: 800, fontSize: '2.2rem', letterSpacing: '-0.02em', marginBottom: 8 }}>
@@ -1459,7 +1481,7 @@ export default function ClientDashboardPage() {
                 <p style={{ color: theme.textMuted, fontSize: '0.95rem' }}>Profissionais verificados e com garantia em todas as áreas.</p>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
+              <div className="client-category-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
                 {CATEGORIES.map((c, i) => (
                   <motion.div key={c.name} initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} viewport={{ once: true }}>
                     <Link href={`/client/services?category=${c.name.toLowerCase()}`} className="cat-card-item">
@@ -1476,7 +1498,7 @@ export default function ClientDashboardPage() {
           {/* ══════════════════════════════════════════════════════════════ */}
           {/* ── COMO FUNCIONA ───────────────────────────────────────────── */}
           {/* ══════════════════════════════════════════════════════════════ */}
-          <section style={{ padding: '80px 24px', maxWidth: 1100, margin: '0 auto', textAlign: 'center' }}>
+          <section style={{ padding: '88px 32px', maxWidth: 'none', margin: '0 auto', textAlign: 'center' }}>
             <div className="eyebrow" style={{ justifyContent: 'center' }}>fluxo simples</div>
             <h2 style={{ fontFamily: 'var(--display)', fontWeight: 800, fontSize: '2.2rem', letterSpacing: '-0.02em', marginBottom: 50 }}>
               Do pedido ao serviço pronto em 3 passos
@@ -1514,7 +1536,7 @@ export default function ClientDashboardPage() {
           {/* ══════════════════════════════════════════════════════════════ */}
           {/* ── CENTRAL DE VANTAGENS, SUPORTE 24H & INDIQUE UM AMIGO ───── */}
           {/* ══════════════════════════════════════════════════════════════ */}
-          <section style={{ padding: '64px 24px', maxWidth: 1200, margin: '0 auto' }}>
+          <section style={{ padding: '72px 32px', maxWidth: 'none', margin: '0 auto' }}>
             <motion.div
               initial={{ opacity: 0, scale: 0.98 }}
               whileInView={{ opacity: 1, scale: 1 }}
@@ -1633,9 +1655,9 @@ export default function ClientDashboardPage() {
           <footer
             style={{
               position: 'relative',
-              background: theme.bgAlt,
+              background: '#FFFFFF',
               borderTop: `1.5px solid ${theme.line}`,
-              padding: '46px 24px 50px',
+              padding: '52px 32px 56px',
               transition: 'background 0.4s',
               overflow: 'hidden',
               zIndex: 10,
@@ -1644,7 +1666,7 @@ export default function ClientDashboardPage() {
             {/* O CAMINHÃOZINHO 60FPS QUE ASPIRA AS FOLHAS DO FOOTER */}
             <FooterLeafPile />
 
-            <div style={{ position: 'relative', zIndex: 10, maxWidth: 1200, margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
+            <div style={{ position: 'relative', zIndex: 10, maxWidth: 'none', margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <img src="/img/logo.png" alt="MoviPay" style={{ width: 30, height: 30, borderRadius: '50%' }} />
                 <span style={{ fontFamily: 'var(--display)', fontWeight: 800, fontSize: '1.1rem' }}>

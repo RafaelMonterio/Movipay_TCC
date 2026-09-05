@@ -196,6 +196,14 @@ const categoryGroups = [
         badge: 'Top',
         badgeColor: '#FF7A00',
       },
+      {
+        id: 'manicure', name: 'Manicure', subtitle: 'Unhas e cuidados pessoais', icon: 'sparkle',
+        accent: 'from-pink-600 via-red-500 to-orange-500', badge: 'Popular', badgeColor: '#22D31B',
+      },
+      {
+        id: 'eletricista', name: 'Eletricista', subtitle: 'Instalações e reparos', icon: 'bolt',
+        accent: 'from-yellow-700 via-amber-600 to-orange-500', badge: 'Urgente', badgeColor: '#FF7A00',
+      },
     ],
   },
   {
@@ -214,6 +222,18 @@ const categoryGroups = [
         accent: 'from-yellow-700 via-amber-600 to-orange-500',
         badge: 'Sob medida',
         badgeColor: '#FF7A00',
+      },
+      {
+        id: 'serralheria', name: 'Serralheria', subtitle: 'Portões, grades e estruturas', icon: 'shield',
+        accent: 'from-slate-700 via-slate-800 to-slate-900', badge: 'Resistente', badgeColor: '#22D31B',
+      },
+      {
+        id: 'vidracaria', name: 'Vidracaria', subtitle: 'Vidros, espelhos e box', icon: 'sparkle',
+        accent: 'from-sky-500 via-cyan-500 to-teal-500', badge: 'Novo', badgeColor: '#22D31B',
+      },
+      {
+        id: 'montagem', name: 'Montagem de Móveis', subtitle: 'Montagem rápida e segura', icon: 'box',
+        accent: 'from-violet-500 via-purple-500 to-indigo-600', badge: 'Prático', badgeColor: '#FF7A00',
       },
     ],
   },
@@ -251,6 +271,14 @@ const categoryGroups = [
         accent: 'from-pink-600 via-red-500 to-orange-500',
         badge: 'Shorts',
         badgeColor: '#22D31B',
+      },
+      {
+        id: 'social-media', name: 'Social Media', subtitle: 'Conteúdo e redes sociais', icon: 'sparkle',
+        accent: 'from-pink-600 via-red-500 to-orange-500', badge: 'Em alta', badgeColor: '#22D31B',
+      },
+      {
+        id: 'fotografia', name: 'Fotografia', subtitle: 'Eventos, produtos e retratos', icon: 'star',
+        accent: 'from-violet-500 via-purple-500 to-fuchsia-500', badge: 'Criativo', badgeColor: '#FF7A00',
       },
       {
         id: 'suporte',
@@ -2043,8 +2071,9 @@ function CategoriasView({ query, onSelect }) {
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-                  gap: 14,
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 320px))',
+                  justifyContent: 'start',
+                  gap: 18,
                 }}
               >
                 {group.cards.map((card, cardIndex) => (
@@ -2150,7 +2179,7 @@ export default function ClientServicesPage() {
         line: 'rgba(243,239,226,0.13)',
       }
     : {
-        bg: '#FAF6EC',
+        bg: '#FFFFFF',
         text: '#17241A',
         textMuted: '#5B6B57',
         cardBg: 'rgba(255,255,255,0.90)',
@@ -2188,6 +2217,9 @@ export default function ClientServicesPage() {
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html { scroll-behavior: smooth; }
+        @media (min-width: 769px) {
+          .client-wide-page { max-width: none !important; margin: 0 !important; padding-left: 120px !important; padding-right: 120px !important; }
+        }
       `}</style>
 
 
@@ -2207,10 +2239,11 @@ export default function ClientServicesPage() {
       />
 
       <div
+        className="client-wide-page"
         style={{
           width: '100%',
-          padding: '20px 16px 80px',
-          maxWidth: 1100,
+          padding: '20px 24px 80px',
+          maxWidth: 'none',
           margin: '0 auto',
           fontFamily: 'var(--body)',
           position: 'relative',

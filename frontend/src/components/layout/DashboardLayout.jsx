@@ -40,7 +40,14 @@ export default function DashboardLayout({ children }) {
       <FallingLeaves />
       <Sidebar />
 
-      <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, width: '100%' }}>
+      <style>{`
+        @media (min-width: 1024px) {
+          .dashboard-shell { width: calc(100% - 88px) !important; margin-left: 88px; }
+          .dashboard-content { max-width: none !important; }
+          .dashboard-content > div { max-width: none !important; margin-left: 0 !important; margin-right: 0 !important; }
+        }
+      `}</style>
+      <div className="dashboard-shell" style={{ display: 'flex', flexDirection: 'column', minWidth: 0, width: '100%' }}>
         <header style={{
           position: 'sticky', top: 0, zIndex: 20,
           background: headerBg,
@@ -54,7 +61,7 @@ export default function DashboardLayout({ children }) {
         </header>
 
         <main style={{ flex: 1, overflow: 'auto', paddingBottom: 0 }}>
-          <div style={{ width: '100%', maxWidth: '1220px', margin: '0 auto' }}>
+          <div className="dashboard-content" style={{ width: '100%', maxWidth: 'none', margin: '0 auto' }}>
             <ErrorBoundary>
               {children}
             </ErrorBoundary>

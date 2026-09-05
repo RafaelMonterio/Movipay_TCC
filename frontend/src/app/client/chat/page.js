@@ -625,7 +625,7 @@ export default function ChatPage() {
       </AnimatePresence>
 
       {/* Main chat layout */}
-      <div className="c-main" style={{ display: 'flex', height: 'calc(100vh - 56px)', overflow: 'hidden', background: theme.bg }}>
+      <div className="c-chat-page c-main" style={{ display: 'flex', height: 'calc(100vh - 56px)', overflow: 'hidden', background: theme.bg }}>
 
         {/* ── SIDEBAR ── */}
         <aside

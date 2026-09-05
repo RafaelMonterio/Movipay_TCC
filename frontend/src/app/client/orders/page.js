@@ -852,11 +852,14 @@ export default function ClientOrdersPage() {
           .o-stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
         }
         @media (max-width: 480px) { .o-stats-grid { grid-template-columns: 1fr !important; } }
+        @media (min-width: 769px) {
+          .client-wide-page { max-width: none !important; margin: 0 !important; padding-left: 120px !important; padding-right: 120px !important; }
+        }
       `}</style>
 
 
 
-      <div style={{ position: 'relative', zIndex: 1, padding: '24px 20px 80px', maxWidth: 1220, margin: '0 auto', fontFamily: 'var(--body)', background: 'transparent' }}>
+      <div className="client-wide-page" style={{ position: 'relative', zIndex: 1, padding: '24px 24px 80px', maxWidth: 'none', margin: '0 auto', fontFamily: 'var(--body)', background: 'transparent' }}>
 
         {/* ─── HEADER ────────────────────────────────────────────── */}
         <motion.div

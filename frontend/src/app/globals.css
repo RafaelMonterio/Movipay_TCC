@@ -5,15 +5,15 @@
 
 :root {
   /* Light theme (default) */
-  --bg: #FAF6EC;
-  --bg-alt: #F1EAD9;
+  --bg: #FFFFFF;
+  --bg-alt: #F7F7F5;
   --card-bg: rgba(255,255,255,0.92);
   --card-border: rgba(23,36,26,0.09);
   --line: rgba(23,36,26,0.13);
   --text: #17241A;
   --text-muted: #5B6B57;
   --mono: #8A4A00;
-  --header-bg: rgba(250,246,236,0.92);
+  --header-bg: rgba(255,255,255,0.92);
   --header-border: rgba(23,36,26,0.07);
   --accent-orange: #FF7A00;
   --accent-green: #22D31B;

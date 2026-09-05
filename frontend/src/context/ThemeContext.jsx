@@ -208,15 +208,15 @@ export function getThemeColors(darkMode) {
         headerBorder: 'rgba(243,239,226,0.07)',
       }
     : {
-        bg: '#FAF6EC',
-        bgAlt: '#F1EAD9',
+        bg: '#FFFFFF',
+        bgAlt: '#F8F8F8',
         cardBg: 'rgba(255,255,255,0.92)',
         cardBorder: 'rgba(23,36,26,0.09)',
         line: 'rgba(23,36,26,0.13)',
         text: '#17241A',
         textMuted: '#5B6B57',
         mono: '#8A4A00',
-        headerBg: 'rgba(250,246,236,0.92)',
+        headerBg: 'rgba(255,255,255,0.92)',
         headerBorder: 'rgba(23,36,26,0.07)',
       };
 }
