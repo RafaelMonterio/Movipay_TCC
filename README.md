@@ -16,13 +16,10 @@ a fazer:
 
 login com google
 
-chat client trablahdor
+Quero que quando eu criar a conta, apareça algo sobre os termos de usuario. Gere os termos de usuarios que são necessários para o projeto
+bug do mapa.
 
-telas do trabalhador
 
-Frontedn de todas as telas
-
-bug do mapa
 
 backend cadasatro trabalhador
 
@@ -31,13 +28,8 @@ Tela buscar servoçiços
 
 Tela do trablahdor: Serviços disponiveis funcionais
 
-Promp claude: Com exceção do sidebar, em todas as telas parece que todo o conteudo da pagina está comprimido, meio que ele não preenche toda a tela. Quero que todo o conteudo da tela em si preencha o espaçõ que tem para ela preencher. Quero que ele preencha todo espaço. E sobre o sidebar,  
-
-
 
 Prompt:
-
-
 
 Mais pelo backend, quero que, como cliente, quando eu agende um serviço (pelo modal), quero que esse pedido não fique somente como algo ilusório, quero que seja um pedido real, que esse pedido fique salvo na tela de pedido do cliente, e que se eu deslogar do cliente, e logar na conta do trabalhador em questão, apareça na tela de pedidos recebidos. e quando eu acietar, que na conta do cliente esteja ativo. basicamente quero que fique funcionando mesmo. 
 
