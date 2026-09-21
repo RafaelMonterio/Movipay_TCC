@@ -16,8 +16,8 @@ a fazer:
 
 login com google
 
-Quero que quando eu criar a conta, apareça algo sobre os termos de usuario. Gere os termos de usuarios que são necessários para o projeto
-bug do mapa.
+Quero que quando eu criar a conta, apareça algo sobre os termos de usuario. Gere os termos de usuarios que são necessários para o projeto, quero que sejá a ultima etapa do login para cada tipo de conta 
+
 
 
 
