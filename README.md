@@ -19,7 +19,16 @@ login com google
 Quero que quando eu criar a conta, apareça algo sobre os termos de usuario. Gere os termos de usuarios que são necessários para o projeto, quero que sejá a ultima etapa do login para cada tipo de conta 
 
 
-
+Estão anexadas a versão atual do codigo do site, e o app que foi feito separadamente, quero que você integre o app ao projeot (dentro do projeto já existe um protopo mobile que vai ser substituido. Porém antes quero que voce aprimore mais algumas coisas do site:
+1. O mapa da tela incial do cliente está bugada. acho que é problema da API, o mapa está embassado e e fica aparecendo as mensagens: "API KEY REQUIRED carto.com/iznasep/sipikey".
+2. Quero que subistitua TODOS os emojis por respectivos que você vai criar icon svg. 
+3. Dentro da pasta public/img, tem dois arquivos que são para usar de icon para a MOEDA folha, não para as folhes que caem visaualente
+4. Sobre as folhas que caem visualmente, quero que diminua em 40% a quantidade, e que elas estejam na ultima camada do site, em relacção a todos os cards e talz.
+5. Quero que apague o seguinte texto "Localize profissionais próximos..", aqueles cards falsos que eram para ser os ultimos servisos resquisitados. Quero que nessa area fique realmente os ultimos serviços concluidos que foram contratados. se a conta não tiver contratado nad ainda deixe um botão que leve para a tela de busca.
+6. Sobre a parte localização de trabalhador deixe ela realemte mostrando a localização que foi cadstrada pelo usuario, se já estiver tudo bem.
+7. Retire a maioria dos dados mocks que existem pelo site, só deixando os essencias. 
+8. Analize tudo relacionado a localização e mapas e concerte.
+9. Analise todo o site e corrija e melhore oque pode ser lapidado e feito 
 
 backend cadasatro trabalhador
 
@@ -31,7 +40,7 @@ Tela do trablahdor: Serviços disponiveis funcionais
 
 Prompt:
 
-Mais pelo backend, quero que, como cliente, quando eu agende um serviço (pelo modal), quero que esse pedido não fique somente como algo ilusório, quero que seja um pedido real, que esse pedido fique salvo na tela de pedido do cliente, e que se eu deslogar do cliente, e logar na conta do trabalhador em questão, apareça na tela de pedidos recebidos. e quando eu acietar, que na conta do cliente esteja ativo. basicamente quero que fique funcionando mesmo. 
+
 
 ## Catalogo de ícones do projeto
 
