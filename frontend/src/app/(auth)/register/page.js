@@ -8,7 +8,7 @@ import { useForm, rules } from '@/hooks/useForm';
 import { useTheme, getThemeColors } from '@/context/ThemeContext';
 import FallingLeaves from '@/components/effects/FallingLeaves';
 
-const STEPS = ['Dados', 'Perfil', 'Detalhes'];
+const STEPS = ['Dados', 'Perfil', 'Detalhes', 'Termos'];
 
 /* ─── SVG ICONS ─────────────────────────────────────────────────── */
 function Icon({ name, size = 20, color = 'currentColor', strokeWidth = 1.8, style }) {
@@ -302,7 +302,74 @@ function StepDetails({ mode, form, theme }) {
   );
 }
 
-/* ─── STEP TRANSITION WRAPPER ───────────────────────────────────── */
+const TERMS_BY_MODE = {
+  client: {
+    title: 'Termos de uso do cliente',
+    intro: 'Ao criar sua conta como cliente no MoviPay, você declara que leu e aceita as regras abaixo.',
+    items: [
+      'Você usará a plataforma para contratar serviços de forma responsável, clara e com informações verdadeiras sobre sua localização e necessidades.',
+      'É responsabilidade do cliente confirmar prazo, valor, endereço e condições do serviço antes de autorizar qualquer contratação.',
+      'O MoviPay atua como intermediador de contato e organização do processo; não é responsável por serviços realizados entre clientes e prestadores fora do uso da plataforma.',
+      'Você concorda em respeitar as regras de conduta, comunicação ética e pagamento acordado dentro do aplicativo.',
+      'A plataforma pode exigir verificação de dados e pode cancelar contas que realizarem fraude, abuso, assédio ou atividades incompatíveis com a comunidade.',
+    ],
+    footer: 'Ao continuar, você confirma que compreende os termos de uso e a responsabilidade de utilizar o MoviPay com ética e respeito.',
+  },
+  worker: {
+    title: 'Termos de uso do prestador',
+    intro: 'Ao criar sua conta como prestador no MoviPay, você declara que aceita as regras de prestação e uso da plataforma.',
+    items: [
+      'Você se compromete a informar dados reais sobre sua profissão, experiência, disponibilidade e localização, além de manter o perfil atualizado.',
+      'É responsabilidade do prestador prestar serviços com profissionalismo, honestidade, pontualidade e respeito ao cliente e ao ambiente de trabalho.',
+      'O MoviPay é uma plataforma de conexão e gestão de oportunidades; as negociações, valores, prazos e execução do serviço são de responsabilidade do prestador e do cliente.',
+      'Você concorda em seguir as regras de comunicação, qualidade, segurança e ética da comunidade MoviPay, sem práticas abusivas, assédio ou fraude.',
+      'A plataforma pode remover, sinalizar ou suspender perfis que apresentarem comportamento incompatível com os termos, avaliações fraudulentas ou dados falsos.',
+    ],
+    footer: 'Ao concluir o cadastro, você confirma que aceita estas condições para atuar como prestador no MoviPay.',
+  },
+};
+
+function StepTerms({ mode, theme, termsAccepted, setTermsAccepted }) {
+  const terms = TERMS_BY_MODE[mode === 'worker' ? 'worker' : 'client'];
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ background: mode === 'worker' ? 'rgba(255,122,0,0.08)' : 'rgba(34,211,27,0.08)', border: `1px solid ${mode === 'worker' ? 'rgba(255,122,0,0.24)' : 'rgba(34,211,27,0.22)'}`, borderRadius: 16, padding: 16 }}>
+        <p style={{ fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: mode === 'worker' ? '#E86D00' : '#1E9E1A', marginBottom: 8 }}>
+          {terms.title}
+        </p>
+        <p style={{ fontSize: '0.84rem', color: theme.textMuted, lineHeight: 1.7, margin: 0 }}>{terms.intro}</p>
+      </div>
+
+      <div style={{ border: `1px solid ${theme.line}`, borderRadius: 14, background: theme.inputBg, padding: 16, maxHeight: 250, overflowY: 'auto' }}>
+        <ul style={{ paddingLeft: 18, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {terms.items.map((item) => (
+            <li key={item} style={{ fontSize: '0.76rem', lineHeight: 1.7, color: theme.textMuted }}>
+              {item}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div style={{ fontSize: '0.78rem', color: theme.textMuted, lineHeight: 1.7, borderTop: `1px solid ${theme.line}`, paddingTop: 14 }}>
+        {terms.footer}
+      </div>
+
+      <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, background: theme.bgAlt, border: `1px solid ${theme.line}`, borderRadius: 12, padding: 12, cursor: 'pointer' }}>
+        <input
+          type="checkbox"
+          checked={termsAccepted}
+          onChange={(e) => setTermsAccepted(e.target.checked)}
+          style={{ width: 18, height: 18, accentColor: mode === 'worker' ? '#FF7A00' : '#22D31B', marginTop: 2 }}
+        />
+        <span style={{ fontSize: '0.8rem', color: theme.text, lineHeight: 1.5 }}>
+          Li e aceito os termos de uso do MoviPay para conta de {mode === 'worker' ? 'prestador' : 'cliente'}.
+        </span>
+      </label>
+    </motion.div>
+  );
+}
+
 const stepVariants = {
   enter: (dir) => ({ opacity: 0, x: dir > 0 ? 40 : -40 }),
   center: { opacity: 1, x: 0 },
@@ -321,6 +388,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [showPw, setShowPw] = useState(false);
   const [showPw2, setShowPw2] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [success, setSuccess] = useState(false);
   const inputRefs = useRef({});
 
@@ -375,12 +443,21 @@ export default function RegisterPage() {
       toast('Preencha todos os campos corretamente', 'warning');
       return;
     }
+    if (step === 3 && !termsAccepted) {
+      toast('Você precisa aceitar os termos para finalizar o cadastro.', 'warning');
+      return;
+    }
     setDir(1);
     setStep(s => s + 1);
   }
   function goBack() { setDir(-1); setStep(s => s - 1); }
 
   async function handleSubmit() {
+    if (!termsAccepted) {
+      toast('Você precisa aceitar os termos para criar sua conta.', 'warning');
+      return;
+    }
+
     try {
       setLoading(true);
       await register({
@@ -388,6 +465,8 @@ export default function RegisterPage() {
         phone: form.values.phone, bio: form.values.bio, city: form.values.city,
         avatar_url: form.values.avatar_url, lat: form.values.lat, lng: form.values.lng,
         neighborhood: form.values.neighborhood, category: form.values.category,
+        accepted_terms: true,
+        terms_version: '2026.09.23',
       });
       setSuccess(true);
       toast('Conta criada! Bem-vindo ao MoviPay 🎉', 'success');
@@ -405,6 +484,7 @@ export default function RegisterPage() {
     { title: 'Bem-vindo ao radar', body: 'Preencha seus dados e comece a pedir ou oferecer serviços em minutos.', emoji: '🐜' },
     { title: 'Cliente ou prestador?', body: 'Escolha como quer começar — dá para trocar de modo depois, sem perder nada.', emoji: '🔀' },
     { title: 'Quase lá!', body: isWorker ? 'Detalhes de perfil ajudam clientes a te encontrar mais rápido.' : 'Só mais um passo e seu perfil está pronto.', emoji: '✨' },
+    { title: 'Termos e regras', body: 'A última etapa confirma as regras do MoviPay para sua conta e para a comunidade.', emoji: '📜' },
   ];
 
   return (
@@ -521,21 +601,22 @@ export default function RegisterPage() {
                 </div>
 
                 <div style={{ background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, borderRadius: 22, overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.07)' }}>
-                  <motion.div animate={{ width: `${((step + 1) / 3) * 100}%`, background: accent }} transition={{ duration: 0.4 }} style={{ height: 3 }} />
+                  <motion.div animate={{ width: `${((step + 1) / STEPS.length) * 100}%`, background: accent }} transition={{ duration: 0.4 }} style={{ height: 3 }} />
 
                   <div style={{ padding: '28px 26px' }}>
                     <AnimatePresence mode="wait" custom={dir}>
                       <motion.div key={step} custom={dir} variants={stepVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.28 }}>
                         <h2 style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '1.5rem', marginBottom: 4 }}>
-                          {step === 0 ? 'Criar sua conta' : step === 1 ? 'Qual é o seu perfil?' : 'Últimos detalhes'}
+                          {step === 0 ? 'Criar sua conta' : step === 1 ? 'Qual é o seu perfil?' : step === 2 ? 'Últimos detalhes' : 'Termos de uso'}
                         </h2>
                         <p style={{ color: theme.textMuted, fontSize: '0.8rem', marginBottom: 22 }}>
-                          {step === 0 ? 'Passo 1 de 3 — Dados básicos' : step === 1 ? 'Passo 2 de 3 — você pode mudar depois' : 'Passo 3 de 3 — quase lá!'}
+                          {step === 0 ? 'Passo 1 de 4 — Dados básicos' : step === 1 ? 'Passo 2 de 4 — você pode mudar depois' : step === 2 ? 'Passo 3 de 4 — quase lá!' : 'Passo 4 de 4 — aceite as regras'}
                         </p>
 
                         {step === 0 && <StepData form={form} inputRefs={inputRefs} restoreFocus={restoreFocus} theme={theme} showPw={showPw} setShowPw={setShowPw} showPw2={showPw2} setShowPw2={setShowPw2} />}
                         {step === 1 && <StepMode mode={mode} setMode={setMode} theme={theme} />}
                         {step === 2 && <StepDetails mode={mode} form={form} theme={theme} />}
+                        {step === 3 && <StepTerms mode={mode} theme={theme} termsAccepted={termsAccepted} setTermsAccepted={setTermsAccepted} />}
                       </motion.div>
                     </AnimatePresence>
 
@@ -546,7 +627,7 @@ export default function RegisterPage() {
                           <Icon name="arrowLeft" size={14} /> Voltar
                         </motion.button>
                       )}
-                      {step < 2 ? (
+                      {step < 3 ? (
                         <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={goNext}
                           style={{ flex: 1, border: 'none', background: accent, color: '#fff', fontWeight: 800, padding: '12px 0', borderRadius: 12, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, boxShadow: `0 8px 24px ${accent}44` }}>
                           Próximo <Icon name="arrowRight" size={14} />

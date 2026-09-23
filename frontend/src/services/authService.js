@@ -111,6 +111,9 @@ const authService = {
       lng: payload.lng || null,
       neighborhood: payload.neighborhood || '',
       category: payload.category || '',
+      accepted_terms: !!payload.accepted_terms,
+      terms_version: payload.terms_version || '2026.09.23',
+      accepted_terms_at: payload.accepted_terms_at || new Date().toISOString(),
     };
 
     db[email] = newUser;

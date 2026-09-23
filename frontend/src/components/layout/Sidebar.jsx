@@ -2,25 +2,26 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { CalendarDays, ClipboardList, Home, LogOut, MessageCircle, Search, Target, User, Wallet } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme, getThemeColors } from '@/context/ThemeContext';
 
 const clientLinks = [
-  { href: '/client', icon: '🏠', label: 'Home' },
-  { href: '/client/services', icon: '🔍', label: 'Serviços' },
-  { href: '/client/quotes', icon: '📋', label: 'Orçamentos' },
-  { href: '/client/chat', icon: '💬', label: 'Chat' },
-  { href: '/client/profile', icon: '👤', label: 'Perfil' },
+  { href: '/client', icon: Home, label: 'Home' },
+  { href: '/client/services', icon: Search, label: 'Serviços' },
+  { href: '/client/quotes', icon: ClipboardList, label: 'Orçamentos' },
+  { href: '/client/chat', icon: MessageCircle, label: 'Chat' },
+  { href: '/client/profile', icon: User, label: 'Perfil' },
 ];
 
 const workerLinks = [
-  { href: '/worker', icon: '🏠', label: 'Início' },
-  { href: '/worker/orders', icon: '📋', label: 'Pedidos' },
-  { href: '/worker/quotes', icon: '🎯', label: 'Oportunidades' },
-  { href: '/worker/earnings', icon: '💰', label: 'Ganhos' },
-  { href: '/worker/calendar', icon: '📅', label: 'Calendário' },
-  { href: '/worker/chat', icon: '💬', label: 'Chat' },
-  { href: '/worker/profile', icon: '👤', label: 'Perfil' },
+  { href: '/worker', icon: Home, label: 'Início' },
+  { href: '/worker/orders', icon: ClipboardList, label: 'Pedidos' },
+  { href: '/worker/quotes', icon: Target, label: 'Oportunidades' },
+  { href: '/worker/earnings', icon: Wallet, label: 'Ganhos' },
+  { href: '/worker/calendar', icon: CalendarDays, label: 'Calendário' },
+  { href: '/worker/chat', icon: MessageCircle, label: 'Chat' },
+  { href: '/worker/profile', icon: User, label: 'Perfil' },
 ];
 
 export default function Sidebar() {
@@ -132,7 +133,9 @@ export default function Sidebar() {
                   boxShadow: active ? 'inset 0 1px 0 rgba(255,255,255,0.15)' : 'none',
                 }}
               >
-                <span className="text-xl flex-shrink-0">{l.icon}</span>
+                <span className="flex-shrink-0 flex items-center justify-center">
+                  <l.icon size={20} strokeWidth={2.2} />
+                </span>
                 {!collapsed && (
                   <span className="ml-3 text-sm whitespace-nowrap overflow-hidden font-medium" style={{ color: active ? activeText : textMuted }}>
                     {l.label}
@@ -147,9 +150,10 @@ export default function Sidebar() {
           <button onClick={logout}
             className="flex items-center justify-center h-11 w-full px-3 rounded-2xl transition-all font-bold text-sm shadow-md hover:shadow-lg"
             style={buttonStyle}
+            aria-label="Sair"
           >
             {!collapsed && <span className="mr-2">Sair</span>}
-            {collapsed && <span className="text-base">↵</span>}
+            {collapsed && <LogOut size={18} strokeWidth={2.2} />}
           </button>
         </div>
       </aside>
@@ -161,12 +165,15 @@ export default function Sidebar() {
         {mobileLinks.map(l => {
           const active = pathname === l.href ||
             (l.href !== '/client' && l.href !== '/worker' && pathname.startsWith(l.href));
+          const Icon = l.icon;
           return (
             <Link key={l.href} href={l.href}
               className="flex flex-col items-center gap-0.5 flex-1 py-1 rounded-xl transition-all"
               style={{ color: active ? (highContrast ? activeText : '#FF7A00') : textMuted }}
             >
-              <span className={`text-xl ${active ? 'scale-110' : ''} transition-transform`}>{l.icon}</span>
+              <span className={`${active ? 'scale-110' : ''} transition-transform flex items-center justify-center`}>
+                <Icon size={20} strokeWidth={2.2} />
+              </span>
               <span className="text-[10px] font-medium leading-none">{l.label}</span>
             </Link>
           );
